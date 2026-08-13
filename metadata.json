@@ -1,0 +1,6 @@
+{
+  "name": "Plano de Ensino e Cronograma",
+  "description": "Plataforma completa para elaboração, geração com IA e gestão de Planos de Ensino e Cronogramas Acadêmicos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

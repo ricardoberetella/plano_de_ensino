@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm;
+  }
+
+  /* Hide all non-printable UI elements */
+  .no-print,
+  aside,
+  header,
+  nav,
+  footer,
+  button,
+  select,
+  input,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Reset body and outer containers */
+  html,
+  body {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  #root,
+  .lg\:pl-64,
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background-color: #ffffff !important;
+  }
+
+  /* Reset text color for crisp black printing */
+  p, h1, h2, h3, h4, h5, h6, span, td, th, li, strong, b, i {
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+
+  /* Force white background on dark mode cards */
+  .bg-slate-900,
+  .bg-slate-800,
+  .bg-slate-950,
+  .dark\:bg-slate-900,
+  .dark\:bg-slate-800 {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  /* Table formatting for PDF printing */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #475569 !important;
+    padding: 6px 8px !important;
+    font-size: 8.5pt !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+  }
+
+  td {
+    border: 1px solid #94a3b8 !important;
+    padding: 6px 8px !important;
+    font-size: 8.5pt !important;
+    color: #000000 !important;
+  }
+
+  /* Page break rules */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+  }
+
+  .break-inside-avoid, .card {
+    page-break-inside: avoid !important;
+  }
+}
