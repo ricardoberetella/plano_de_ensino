@@ -36,6 +36,7 @@ import {
   MONTH_NAMES_PT,
   WEEKDAY_NAMES_PT,
   getUcColor,
+  UC_COLOR_PALETTE,
   UcColorConfig,
 } from "../utils/calendarUtils";
 import {
@@ -44,6 +45,7 @@ import {
   INITIAL_SCHOOL_EVENTS_2026,
   TEACHER_SCHEDULE_RULES,
 } from "../utils/calendarConfig";
+import { proeducadorUnits } from "../data/proeducadorData";
 import { generateSyllabusSchedule } from "../utils/scheduleGenerator";
 
 interface ScheduleViewProps {
@@ -60,24 +62,52 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   onOpenAIGenerator,
 }) => {
   const schedule = syllabus.schedule || [];
-  const units = syllabus.programmaticContent || [];
+
+  // Always use proeducadorUnits as base so all 7 UCs and their full lesson plans are present
+  const units = React.useMemo(() => {
+    const base = proeducadorUnits && Array.isArray(proeducadorUnits) && proeducadorUnits.length > 0
+      ? proeducadorUnits.map((u) => ({ ...u, lessonPlan: u.lessonPlan ? [...u.lessonPlan] : [] }))
+      : [];
+
+    const customContent = syllabus && Array.isArray(syllabus.programmaticContent)
+      ? syllabus.programmaticContent
+      : [];
+
+    customContent.forEach((customUnit) => {
+      if (!customUnit) return;
+      const customAcronym = (customUnit.acronym || "").toUpperCase();
+      const customTitle = (customUnit.unitTitle || "").toUpperCase();
+
+      const idx = base.findIndex((b) => {
+        if (customUnit.id && b.id === customUnit.id) return true;
+        const bAc = (b.acronym || "").toUpperCase();
+        if (customAcronym && bAc && customAcronym === bAc) return true;
+        const bTitle = (b.unitTitle || "").toUpperCase();
+        if (customTitle && bTitle && customTitle === bTitle) return true;
+        return false;
+      });
+
+      if (idx !== -1) {
+        base[idx] = {
+          ...base[idx],
+          ...customUnit,
+          id: base[idx].id || customUnit.id,
+          acronym: base[idx].acronym || customUnit.acronym,
+          unitTitle: customUnit.unitTitle || base[idx].unitTitle,
+          lessonPlan: customUnit.lessonPlan && customUnit.lessonPlan.length > 0
+            ? customUnit.lessonPlan
+            : base[idx].lessonPlan,
+        };
+      }
+    });
+
+    return base;
+  }, [syllabus]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("todos");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("todos");
-  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<string>(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) return "Prof. Ricardo Gea";
-    if (currentUser?.name?.toLowerCase().includes("beretella")) return "Prof. Ricardo Beretella";
-    return "todos";
-  });
-
-  useEffect(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) {
-      setSelectedProfessorFilter("Prof. Ricardo Gea");
-    } else if (currentUser?.name?.toLowerCase().includes("beretella")) {
-      setSelectedProfessorFilter("Prof. Ricardo Beretella");
-    }
-  }, [currentUser]);
+  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<string>("todos");
   const [viewMode, setViewMode] = useState<"calendario" | "semanas" | "tabela">("calendario");
 
   // Calendar master states
@@ -117,6 +147,21 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     return title.substring(0, 5);
   };
 
+  // Color mapping by UC Acronym for absolute consistency
+  const getAcronymColor = (acronym: string): UcColorConfig => {
+    const map: Record<string, number> = {
+      LIDT: 0,
+      CIEMA: 1,
+      CRD: 2,
+      MAP: 3,
+      FUSI: 4,
+      PRUSC: 5,
+      MINDU: 6,
+    };
+    const idx = map[acronym] ?? 0;
+    return UC_COLOR_PALETTE[idx];
+  };
+
   // Master date map aggregating all UCs
   interface DateEntry {
     unit: ProgrammaticUnit;
@@ -127,9 +172,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const masterDateMap: Record<string, DateEntry[]> = {};
 
-  units.forEach((unit, idx) => {
-    const ucColor = getUcColor(idx);
+  units.forEach((unit) => {
     const ucAcronym = getAcronym(unit);
+    const ucColor = getAcronymColor(ucAcronym);
     const lessons = unit.lessonPlan || [];
 
     lessons.forEach((lesson) => {
@@ -274,28 +319,46 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           </p>
         </div>
 
-        {/* Semester Filter */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
-          <button
-            onClick={() => setSelectedSemester("1º SEMESTRE")}
-            className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
-              selectedSemester === "1º SEMESTRE"
-                ? "bg-indigo-600 text-white shadow-md font-extrabold"
-                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            1º SEMESTRE (JAN - JUN)
-          </button>
-          <button
-            onClick={() => setSelectedSemester("2º SEMESTRE")}
-            className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
-              selectedSemester === "2º SEMESTRE"
-                ? "bg-indigo-600 text-white shadow-md font-extrabold"
-                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            2º SEMESTRE (JUL - DEZ)
-          </button>
+        {/* Header Controls: Semester and Professor Filter */}
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          {/* Professor Filter */}
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <Users className="w-3.5 h-3.5 text-slate-500" />
+            <select
+              value={selectedProfessorFilter}
+              onChange={(e) => setSelectedProfessorFilter(e.target.value)}
+              aria-label="Filtrar por docente"
+              className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+            >
+              <option value="todos">Todos os Docentes</option>
+              <option value="Prof. Ricardo Beretella">Prof. Ricardo Beretella</option>
+              <option value="Prof. Ricardo Gea">Prof. Ricardo Gea</option>
+            </select>
+          </div>
+
+          {/* Semester Filter */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => setSelectedSemester("1º SEMESTRE")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                selectedSemester === "1º SEMESTRE"
+                  ? "bg-indigo-600 text-white shadow-md font-extrabold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              1º SEMESTRE
+            </button>
+            <button
+              onClick={() => setSelectedSemester("2º SEMESTRE")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                selectedSemester === "2º SEMESTRE"
+                  ? "bg-indigo-600 text-white shadow-md font-extrabold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              2º SEMESTRE
+            </button>
+          </div>
         </div>
       </div>
 
@@ -309,9 +372,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {semesterUnits.map((unit) => {
-              const originalIdx = units.findIndex((u) => u.id === unit.id);
-              const ucColor = getUcColor(originalIdx >= 0 ? originalIdx : 0);
               const ucAcronym = getAcronym(unit);
+              const ucColor = getAcronymColor(ucAcronym);
 
               return (
                 <div
@@ -363,11 +425,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
                       let entries = masterDateMap[cell.isoDate] || [];
                       if (selectedUnitFilter !== "todas") {
-                        entries = entries.filter((e) => e.unit.id === selectedUnitFilter);
+                        entries = entries.filter((e) => e.unit.id === selectedUnitFilter || getAcronym(e.unit) === selectedUnitFilter);
                       }
                       if (selectedProfessorFilter !== "todos") {
-                        const profKeyword = selectedProfessorFilter.replace("Prof. ", "");
-                        entries = entries.filter((e) => e.lesson.professor?.includes(profKeyword));
+                        const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+                        entries = entries.filter((e) => (e.lesson.professor || "").toLowerCase().includes(profKeyword));
                       }
 
                       const schoolEvent = schoolEvents.find((ev) => ev.date === cell.isoDate);
