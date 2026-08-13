@@ -191,6 +191,34 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     });
   });
 
+  // Check if an entry belongs to a selected professor
+  const matchesTeacherFilter = (entry: DateEntry, isoDate: string): boolean => {
+    if (selectedProfessorFilter === "todos") return true;
+
+    // Check direct lesson.professor field if present
+    if (entry.lesson.professor) {
+      const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+      if (entry.lesson.professor.toLowerCase().includes(profKeyword)) return true;
+    }
+
+    // Check TEACHER_SCHEDULE_RULES matching day of week and UC
+    try {
+      const d = new Date(isoDate + "T12:00:00");
+      const dow = d.getDay(); // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+      const ruleMatch = teacherRules.some(
+        (rule) =>
+          rule.professor === selectedProfessorFilter &&
+          rule.dayOfWeek === dow &&
+          rule.ucAcronym === entry.ucAcronym
+      );
+      if (ruleMatch) return true;
+    } catch {
+      // ignore
+    }
+
+    return false;
+  };
+
   // Filtered schedule for semanas / tabela view
   const filteredSchedule = schedule.filter((item) => {
     const matchesSearch =
@@ -365,32 +393,32 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {/* MASTER CALENDAR GRID */}
       {viewMode === "calendario" && (
         <div className="space-y-6 animate-in fade-in duration-200">
-        {/* UC Color Legend */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
-          <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-2">
-            Legenda de Unidades Curriculares ({semesterUnits.length} UCs)
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {semesterUnits.map((unit) => {
-              const ucAcronym = getAcronym(unit);
-              const ucColor = getAcronymColor(ucAcronym);
+          {/* UC Color Legend */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-2">
+              Legenda de Unidades Curriculares ({semesterUnits.length} UCs)
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {semesterUnits.map((unit) => {
+                const ucAcronym = getAcronym(unit);
+                const ucColor = getAcronymColor(ucAcronym);
 
-              return (
-                <div
-                  key={unit.id}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border ${
-                    ucColor.bg
-                  } ${ucColor.text} ${ucColor.border}`}
-                >
-                  <span>{ucAcronym}</span>
-                  <span className="text-[10px] opacity-80 font-semibold hidden sm:inline">
-                    ({unit.workload || "40h"})
-                  </span>
-                </div>
-              );
-            })}
+                return (
+                  <div
+                    key={unit.id}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border ${
+                      ucColor.bg
+                    } ${ucColor.text} ${ucColor.border}`}
+                  >
+                    <span>{ucAcronym}</span>
+                    <span className="text-[10px] opacity-80 font-semibold hidden sm:inline">
+                      ({unit.workload || "40h"})
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
           {/* 6 Month Grids */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -428,42 +456,52 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                         entries = entries.filter((e) => e.unit.id === selectedUnitFilter || getAcronym(e.unit) === selectedUnitFilter);
                       }
                       if (selectedProfessorFilter !== "todos") {
-                        const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
-                        entries = entries.filter((e) => (e.lesson.professor || "").toLowerCase().includes(profKeyword));
+                        entries = entries.filter((e) => matchesTeacherFilter(e, cell.isoDate!));
                       }
 
                       const schoolEvent = schoolEvents.find((ev) => ev.date === cell.isoDate);
                       const isHoliday = schoolEvent && (schoolEvent.type === "feriado" || schoolEvent.type === "suspensao");
                       const hasClasses = entries.length > 0;
 
+                      // When only 1 UC is on this day, use its background for solid high-contrast highlight
+                      const singleEntry = entries.length === 1 ? entries[0] : null;
+
                       return (
                         <button
                           key={cIdx}
-                          onClick={() => hasClasses && setSelectedDayModalDate(cell.isoDate)}
+                          onClick={() => (hasClasses || isHoliday) && setSelectedDayModalDate(cell.isoDate)}
                           className={`min-h-12 rounded-xl font-bold flex flex-col items-center justify-between p-1 transition-all cursor-pointer border ${
                             isHoliday
-                              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-400"
+                              ? "bg-red-500 text-white border-red-600 shadow-xs"
+                              : singleEntry
+                              ? `${singleEntry.ucColor.bg} ${singleEntry.ucColor.text} ${singleEntry.ucColor.border} shadow-xs hover:scale-105 ring-1 ring-white/20`
                               : hasClasses
-                              ? "bg-slate-50 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 shadow-2xs hover:scale-105 hover:border-indigo-500"
+                              ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 shadow-2xs hover:scale-105 hover:border-indigo-500"
                               : "border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          <span className="text-[11px] font-extrabold leading-none">{cell.dayNumber}</span>
+                          <span className={`text-[11px] font-black leading-none ${singleEntry || isHoliday ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                            {cell.dayNumber}
+                          </span>
                           
                           {/* Event or UC Chips */}
                           {isHoliday ? (
-                            <span className="text-[7px] font-black uppercase text-red-600 dark:text-red-400 truncate max-w-full leading-tight">
+                            <span className="text-[7px] font-black uppercase text-red-100 truncate max-w-full leading-tight">
                               {schoolEvent?.type === "feriado" ? "Feriado" : "Recesso"}
                             </span>
+                          ) : singleEntry ? (
+                            <span className="text-[8px] font-black uppercase tracking-tight text-white/90 leading-none truncate max-w-full">
+                              {singleEntry.ucAcronym} {singleEntry.lesson.hours}
+                            </span>
                           ) : (
-                            <div className="flex items-center justify-center gap-0.5 flex-wrap w-full overflow-hidden max-h-6">
+                            <div className="flex flex-col gap-0.5 w-full overflow-hidden">
                               {entries.map((entry, eIdx) => (
                                 <span
                                   key={eIdx}
-                                  className={`px-1 py-0.5 text-[8px] font-black rounded ${entry.ucColor.bg} ${entry.ucColor.text} leading-none tracking-tighter truncate max-w-full`}
-                                  title={`${entry.ucAcronym} (${entry.lesson.professor || 'Docente'}): ${entry.lesson.conhecimentos}`}
+                                  className={`px-1 py-0.5 text-[7px] font-black rounded ${entry.ucColor.bg} ${entry.ucColor.text} leading-none tracking-tighter truncate text-center shadow-2xs`}
+                                  title={`${entry.ucAcronym}: ${entry.lesson.conhecimentos}`}
                                 >
-                                  {entry.ucAcronym}
+                                  {entry.ucAcronym} {entry.lesson.hours}
                                 </span>
                               ))}
                             </div>
@@ -480,12 +518,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           {/* Selected Day Classes Modal */}
           {selectedDayModalDate && (() => {
             const rawDayClasses = masterDateMap[selectedDayModalDate] || [];
-            const dayClasses = rawDayClasses.filter((item) => {
-              if (selectedProfessorFilter === "todos") return true;
-              const profKeyword = selectedProfessorFilter.replace("Prof. ", "");
-              return (item.lesson.professor || "").includes(profKeyword);
-            });
+            const dayClasses = rawDayClasses.filter((item) => matchesTeacherFilter(item, selectedDayModalDate));
             const formattedDate = formatDateBR(selectedDayModalDate);
+            const schoolEvent = schoolEvents.find((ev) => ev.date === selectedDayModalDate);
 
             return (
               <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
