@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   CheckCircle2,
@@ -63,8 +63,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 }) => {
   const schedule = syllabus.schedule || [];
 
-  // Always use proeducadorUnits as base so all 7 UCs and their full lesson plans are present
-  const units = React.useMemo(() => {
+  // Modals for editing school calendar & teacher rules
+  const [showSchoolEventsModal, setShowSchoolEventsModal] = useState(false);
+  const [schoolEvents, setSchoolEvents] = useState<SchoolCalendarEvent[]>(INITIAL_SCHOOL_EVENTS_2026);
+  const [teacherRules, setTeacherRules] = useState<TeacherWeeklyRule[]>(TEACHER_SCHEDULE_RULES);
+
+  // Base units from proeducador merged with custom edits
+  const rawUnits = useMemo(() => {
     const base = proeducadorUnits && Array.isArray(proeducadorUnits) && proeducadorUnits.length > 0
       ? proeducadorUnits.map((u) => ({ ...u, lessonPlan: u.lessonPlan ? [...u.lessonPlan] : [] }))
       : [];
@@ -94,32 +99,45 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           id: base[idx].id || customUnit.id,
           acronym: base[idx].acronym || customUnit.acronym,
           unitTitle: customUnit.unitTitle || base[idx].unitTitle,
-          lessonPlan: customUnit.lessonPlan && customUnit.lessonPlan.length > 0
-            ? customUnit.lessonPlan
-            : base[idx].lessonPlan,
         };
+      } else {
+        base.push({ ...customUnit, lessonPlan: customUnit.lessonPlan ? [...customUnit.lessonPlan] : [] });
       }
     });
 
     return base;
   }, [syllabus]);
 
+  // Synchronize dynamic schedule calculation
+  const { updatedUnits: generatedUnits, masterSchedule } = useMemo(() => {
+    return generateSyllabusSchedule(rawUnits, schoolEvents, teacherRules);
+  }, [rawUnits, schoolEvents, teacherRules]);
+
+  const units = generatedUnits.length > 0 ? generatedUnits : rawUnits;
+
+  // View & Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("todos");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("todos");
-  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<string>("todos");
   const [viewMode, setViewMode] = useState<"calendario" | "semanas" | "tabela">("calendario");
 
-  // Calendar master states
-  const [selectedSemester, setSelectedSemester] = useState<"1º SEMESTRE" | "2º SEMESTRE">("1º SEMESTRE");
-  const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>("todas");
-  const [selectedDayModalDate, setSelectedDayModalDate] = useState<string | null>(null);
+  // Separate Teacher Profile state: Prof. Ricardo Beretella OR Prof. Ricardo Gea
+  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<"Prof. Ricardo Beretella" | "Prof. Ricardo Gea">(() => {
+    if (currentUser?.name?.toLowerCase().includes("gea")) return "Prof. Ricardo Gea";
+    return "Prof. Ricardo Beretella";
+  });
 
-  // Modals for editing school calendar & teacher rules
-  const [showSchoolEventsModal, setShowSchoolEventsModal] = useState(false);
-  const [showTeacherRulesModal, setShowTeacherRulesModal] = useState(false);
-  const [schoolEvents, setSchoolEvents] = useState<SchoolCalendarEvent[]>(INITIAL_SCHOOL_EVENTS_2026);
-  const [teacherRules, setTeacherRules] = useState<TeacherWeeklyRule[]>(TEACHER_SCHEDULE_RULES);
+  useEffect(() => {
+    if (currentUser?.name?.toLowerCase().includes("gea")) {
+      setSelectedProfessorFilter("Prof. Ricardo Gea");
+    } else if (currentUser?.name?.toLowerCase().includes("beretella")) {
+      setSelectedProfessorFilter("Prof. Ricardo Beretella");
+    }
+  }, [currentUser]);
+
+  // Calendar semester state: "1º SEMESTRE" | "2º SEMESTRE"
+  const [selectedSemester, setSelectedSemester] = useState<"1º SEMESTRE" | "2º SEMESTRE">("1º SEMESTRE");
+  const [selectedDayModalDate, setSelectedDayModalDate] = useState<string | null>(null);
 
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
@@ -128,41 +146,40 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   // Recalculate schedule based on current rules & calendar
   const handleRecalculateSchedule = () => {
-    const { updatedUnits, masterSchedule } = generateSyllabusSchedule(units, schoolEvents, teacherRules);
+    const { updatedUnits, masterSchedule: newMasterSchedule } = generateSyllabusSchedule(rawUnits, schoolEvents, teacherRules);
     syllabus.programmaticContent = updatedUnits;
-    onChangeSchedule(masterSchedule);
+    onChangeSchedule(newMasterSchedule);
   };
 
   // Helper to compute acronym for a UC
   const getAcronym = (unit: ProgrammaticUnit): string => {
     const title = (unit.unitTitle || "").toUpperCase();
-    if (unit.acronym === "PROC" || unit.acronym === "PRUSC" || title.includes("PROCESSOS")) return "PRUSC";
-    if (unit.acronym === "METR" || unit.acronym === "MINDU" || title.includes("METROLOGIA")) return "MINDU";
-    if (unit.acronym === "LIDT" || title.includes("LEITURA")) return "LIDT";
-    if (unit.acronym === "CIEMA" || title.includes("CIÊNCIAS") || title.includes("CIENCIAS")) return "CIEMA";
-    if (unit.acronym === "CRD" || unit.acronym === "CDMAT" || title.includes("CONTROLE")) return "CRD";
-    if (unit.acronym === "MAP" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
-    if (unit.acronym === "FUSI" || title.includes("FUNDAMENTOS")) return "FUSI";
-    if (unit.acronym) return unit.acronym;
+    const ac = (unit.acronym || "").toUpperCase();
+    if (ac === "PROC" || ac === "PRUSC" || title.includes("PROCESSOS")) return "PRUSC";
+    if (ac === "METR" || ac === "MINDU" || title.includes("METROLOGIA")) return "MINDU";
+    if (ac === "LIDT" || title.includes("LEITURA") || title.includes("DESENHO")) return "LIDT";
+    if (ac === "CIEMA" || title.includes("CIÊNCIAS") || title.includes("CIENCIAS") || title.includes("MATERIAIS")) return "CIEMA";
+    if (ac === "CRD" || ac === "CDMAT" || title.includes("CONTROLE") || title.includes("DIMENSIONAL")) return "CRD";
+    if (ac === "MAP" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
+    if (ac === "FUSI" || title.includes("FUNDAMENTOS") || title.includes("USINAGEM")) return "FUSI";
+    if (ac) return ac;
     return title.substring(0, 5);
   };
 
-  // Color mapping by UC Acronym for absolute consistency
+  // Color mapping by UC Acronym (MAP is explicitly Red)
   const getAcronymColor = (acronym: string): UcColorConfig => {
-    const map: Record<string, number> = {
-      LIDT: 0,
-      CIEMA: 1,
-      CRD: 2,
-      MAP: 3,
-      FUSI: 4,
-      PRUSC: 5,
-      MINDU: 6,
-    };
-    const idx = map[acronym] ?? 0;
-    return UC_COLOR_PALETTE[idx];
+    const ac = (acronym || "").toUpperCase();
+    if (ac === "LIDT" || ac.includes("LEITURA") || ac.includes("DESENHO")) return UC_COLOR_PALETTE[0]; // Blue
+    if (ac === "CIEMA" || ac.includes("CIÊNCIAS") || ac.includes("CIENCIAS") || ac.includes("MATERIAIS")) return UC_COLOR_PALETTE[1]; // Emerald Green
+    if (ac === "CRD" || ac === "CDMAT" || ac.includes("CONTROLE") || ac.includes("DIMENSIONAL")) return UC_COLOR_PALETTE[2]; // Amber
+    if (ac === "MAP" || ac.includes("MATEMÁTICA") || ac.includes("MATEMATICA")) return UC_COLOR_PALETTE[3]; // RED (Vermelho)
+    if (ac === "FUSI" || ac.includes("FUNDAMENTOS")) return UC_COLOR_PALETTE[4]; // Purple
+    if (ac === "PRUSC" || ac === "PROC" || ac.includes("PROCESSOS")) return UC_COLOR_PALETTE[5]; // Cyan
+    if (ac === "MINDU" || ac === "METR" || ac.includes("METROLOGIA")) return UC_COLOR_PALETTE[6]; // Pink
+    return UC_COLOR_PALETTE[0];
   };
 
-  // Master date map aggregating all UCs
+  // Master date map aggregating all UCs for the active semester & teacher
   interface DateEntry {
     unit: ProgrammaticUnit;
     lesson: LessonPlanItem;
@@ -170,57 +187,54 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     ucColor: UcColorConfig;
   }
 
+  // Filter semester units strictly
+  const semesterUnits = units.filter((u) => {
+    const ac = getAcronym(u);
+    if (selectedSemester === "1º SEMESTRE") {
+      return ["LIDT", "CIEMA", "CRD", "MAP", "FUSI"].includes(ac);
+    } else {
+      return ["PRUSC", "MINDU"].includes(ac);
+    }
+  });
+
   const masterDateMap: Record<string, DateEntry[]> = {};
 
-  units.forEach((unit) => {
+  // Build calendar data strictly from the active semester & selected teacher
+  semesterUnits.forEach((unit) => {
     const ucAcronym = getAcronym(unit);
     const ucColor = getAcronymColor(ucAcronym);
     const lessons = unit.lessonPlan || [];
 
     lessons.forEach((lesson) => {
       const iso = parseDateToISO(lesson.date);
-      if (iso) {
-        if (!masterDateMap[iso]) masterDateMap[iso] = [];
-        masterDateMap[iso].push({
-          unit,
-          lesson,
-          ucAcronym,
-          ucColor,
-        });
+      if (!iso) return;
+
+      const dateObj = new Date(iso + "T12:00:00");
+      const monthIdx = dateObj.getMonth();
+
+      // Check if date belongs to the active semester
+      const isFirstSemesterDate = monthIdx < 6;
+      if (selectedSemester === "1º SEMESTRE" && !isFirstSemesterDate) return;
+      if (selectedSemester === "2º SEMESTRE" && isFirstSemesterDate) return;
+
+      // Filter by teacher profile
+      if (lesson.professor) {
+        const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+        if (!lesson.professor.toLowerCase().includes(profKeyword)) return;
       }
+
+      if (!masterDateMap[iso]) masterDateMap[iso] = [];
+      masterDateMap[iso].push({
+        unit,
+        lesson,
+        ucAcronym,
+        ucColor,
+      });
     });
   });
 
-  // Check if an entry belongs to a selected professor
-  const matchesTeacherFilter = (entry: DateEntry, isoDate: string): boolean => {
-    if (selectedProfessorFilter === "todos") return true;
-
-    // Check direct lesson.professor field if present
-    if (entry.lesson.professor) {
-      const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
-      if (entry.lesson.professor.toLowerCase().includes(profKeyword)) return true;
-    }
-
-    // Check TEACHER_SCHEDULE_RULES matching day of week and UC
-    try {
-      const d = new Date(isoDate + "T12:00:00");
-      const dow = d.getDay(); // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
-      const ruleMatch = teacherRules.some(
-        (rule) =>
-          rule.professor === selectedProfessorFilter &&
-          rule.dayOfWeek === dow &&
-          rule.ucAcronym === entry.ucAcronym
-      );
-      if (ruleMatch) return true;
-    } catch {
-      // ignore
-    }
-
-    return false;
-  };
-
   // Filtered schedule for semanas / tabela view
-  const filteredSchedule = schedule.filter((item) => {
+  const filteredSchedule = (masterSchedule.length > 0 ? masterSchedule : schedule).filter((item) => {
     const matchesSearch =
       item.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.activities && item.activities.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -229,7 +243,22 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     const matchesType = selectedTypeFilter === "todos" || item.type === selectedTypeFilter;
     const matchesStatus = selectedStatusFilter === "todos" || item.status === selectedStatusFilter;
 
-    return matchesSearch && matchesType && matchesStatus;
+    // Filter by professor
+    let matchesProf = true;
+    if (item.professor) {
+      const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+      matchesProf = item.professor.toLowerCase().includes(profKeyword);
+    }
+
+    // Filter by semester
+    let matchesSem = true;
+    if (item.date) {
+      const m = parseInt(item.date.split("-")[1], 10) - 1;
+      if (selectedSemester === "1º SEMESTRE" && m >= 6) matchesSem = false;
+      if (selectedSemester === "2º SEMESTRE" && m < 6) matchesSem = false;
+    }
+
+    return matchesSearch && matchesType && matchesStatus && matchesProf && matchesSem;
   });
 
   // Group by Week Number for "semanas" view
@@ -277,6 +306,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       type: "teorica",
       status: "planejada",
       activities: "",
+      professor: selectedProfessorFilter,
     };
 
     onChangeSchedule([...schedule, newItem]);
@@ -293,78 +323,50 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     onChangeSchedule(schedule.filter((item) => item.id !== id));
   };
 
-  const markAllPreviousCompleted = () => {
-    const today = new Date().toISOString().split("T")[0];
-    const updated = schedule.map((item) => {
-      if (item.date && item.date <= today && item.status === "planejada") {
-        return { ...item, status: "concluida" as ClassStatus };
-      }
-      return item;
-    });
-    onChangeSchedule(updated);
-  };
-
-  const reorderClassNumbers = () => {
-    const updated = schedule.map((item, index) => ({
-      ...item,
-      classNumber: index + 1,
-    }));
-    onChangeSchedule(updated);
-  };
-
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Month indices strictly separated by semester
   const monthIndices =
     selectedSemester === "1º SEMESTRE"
-      ? [0, 1, 2, 3, 4, 5]
-      : [6, 7, 8, 9, 10, 11];
-
-  const semesterUnits = units.filter((u) => {
-    const ac = getAcronym(u);
-    if (selectedSemester === "1º SEMESTRE") {
-      return !["PRUSC", "MINDU"].includes(ac);
-    } else {
-      return ["PRUSC", "MINDU"].includes(ac);
-    }
-  });
+      ? [0, 1, 2, 3, 4, 5]     // Jan a Jun
+      : [6, 7, 8, 9, 10, 11];  // Jul a Dez
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
       
-      {/* Simple Header with Title and Semester Selector */}
+      {/* Top Header Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <CalendarIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-              Calendário Escolar Integrado
+              Calendário Escolar – {selectedProfessorFilter}
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Acompanhamento de aulas por Unidade Curricular e distribuição dos semestres
+            Visualização semestral exclusiva do cronograma de aulas e Unidades Curriculares
           </p>
         </div>
 
-        {/* Header Controls: Semester and Professor Filter */}
+        {/* Header Controls: Teacher Profile and Semester Selector */}
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-          {/* Professor Filter */}
+          {/* Teacher Profile Selector */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
+            <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <select
               value={selectedProfessorFilter}
-              onChange={(e) => setSelectedProfessorFilter(e.target.value)}
+              onChange={(e) => setSelectedProfessorFilter(e.target.value as any)}
               aria-label="Filtrar por docente"
-              className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-black text-slate-800 dark:text-slate-100 outline-none cursor-pointer"
             >
-              <option value="todos">Todos os Docentes</option>
               <option value="Prof. Ricardo Beretella">Prof. Ricardo Beretella</option>
               <option value="Prof. Ricardo Gea">Prof. Ricardo Gea</option>
             </select>
           </div>
 
-          {/* Semester Filter */}
+          {/* Semester Selector */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setSelectedSemester("1º SEMESTRE")}
@@ -374,7 +376,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              1º SEMESTRE
+              1º SEMESTRE (JAN - JUN)
             </button>
             <button
               onClick={() => setSelectedSemester("2º SEMESTRE")}
@@ -384,7 +386,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              2º SEMESTRE
+              2º SEMESTRE (JUL - DEZ)
             </button>
           </div>
         </div>
@@ -393,10 +395,16 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {/* MASTER CALENDAR GRID */}
       {viewMode === "calendario" && (
         <div className="space-y-6 animate-in fade-in duration-200">
+          
           {/* UC Color Legend */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
-            <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-2">
-              Legenda de Unidades Curriculares ({semesterUnits.length} UCs)
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider">
+                Legenda de Unidades Curriculares ({selectedSemester} – {semesterUnits.length} UCs)
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">
+                Feriados/Recessos são neutros (sem cor de fundo)
+              </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {semesterUnits.map((unit) => {
@@ -406,13 +414,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                 return (
                   <div
                     key={unit.id}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 border ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 border ${
                       ucColor.bg
-                    } ${ucColor.text} ${ucColor.border}`}
+                    } ${ucColor.text} ${ucColor.border} shadow-2xs`}
                   >
                     <span>{ucAcronym}</span>
-                    <span className="text-[10px] opacity-80 font-semibold hidden sm:inline">
-                      ({unit.workload || "40h"})
+                    <span className="text-[10px] opacity-90 font-medium hidden sm:inline">
+                      ({unit.workload || "40h"}) – {unit.unitTitle}
                     </span>
                   </div>
                 );
@@ -420,7 +428,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             </div>
           </div>
 
-          {/* 6 Month Grids */}
+          {/* 6 Month Grids for Selected Semester */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {monthIndices.map((mIdx) => {
               const monthName = MONTH_NAMES_PT[mIdx];
@@ -437,7 +445,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                     </h4>
                   </div>
 
-                  {/* Weekday Labels */}
+                  {/* Weekday Labels (Starting Sunday / DOM to Saturday / SÁB) */}
                   <div className="grid grid-cols-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     {WEEKDAY_NAMES_PT.map((dayName) => (
                       <div key={dayName} className="py-1">{dayName}</div>
@@ -448,22 +456,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   <div className="grid grid-cols-7 gap-1 text-center text-xs">
                     {grid.map((cell, cIdx) => {
                       if (!cell.isCurrentMonth || !cell.dayNumber || !cell.isoDate) {
-                        return <div key={cIdx} className="h-10 bg-slate-50/50 dark:bg-slate-800/10 rounded-xl opacity-30" />;
+                        return <div key={cIdx} className="h-11 bg-slate-50/40 dark:bg-slate-800/10 rounded-xl opacity-20" />;
                       }
 
-                      let entries = masterDateMap[cell.isoDate] || [];
-                      if (selectedUnitFilter !== "todas") {
-                        entries = entries.filter((e) => e.unit.id === selectedUnitFilter || getAcronym(e.unit) === selectedUnitFilter);
-                      }
-                      if (selectedProfessorFilter !== "todos") {
-                        entries = entries.filter((e) => matchesTeacherFilter(e, cell.isoDate!));
-                      }
-
+                      const entries = masterDateMap[cell.isoDate] || [];
                       const schoolEvent = schoolEvents.find((ev) => ev.date === cell.isoDate);
                       const isHoliday = schoolEvent && (schoolEvent.type === "feriado" || schoolEvent.type === "suspensao");
                       const hasClasses = entries.length > 0;
 
-                      // When only 1 UC is on this day, use its background for solid high-contrast highlight
+                      // Single UC takes the full block color; Multiple UCs render distinct color bars
                       const singleEntry = entries.length === 1 ? entries[0] : null;
 
                       return (
@@ -472,26 +473,30 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                           onClick={() => (hasClasses || isHoliday) && setSelectedDayModalDate(cell.isoDate)}
                           className={`min-h-12 rounded-xl font-bold flex flex-col items-center justify-between p-1 transition-all cursor-pointer border ${
                             isHoliday
-                              ? "bg-red-500 text-white border-red-600 shadow-xs"
+                              ? "bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500"
                               : singleEntry
-                              ? `${singleEntry.ucColor.bg} ${singleEntry.ucColor.text} ${singleEntry.ucColor.border} shadow-xs hover:scale-105 ring-1 ring-white/20`
+                              ? `${singleEntry.ucColor.bg} ${singleEntry.ucColor.text} ${singleEntry.ucColor.border} shadow-2xs hover:scale-105 ring-1 ring-white/10`
                               : hasClasses
-                              ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 shadow-2xs hover:scale-105 hover:border-indigo-500"
+                              ? "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 shadow-2xs hover:scale-105"
                               : "border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          <span className={`text-[11px] font-black leading-none ${singleEntry || isHoliday ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                          <span
+                            className={`text-[11px] font-black leading-none ${
+                              singleEntry ? "text-white" : isHoliday ? "text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
+                            }`}
+                          >
                             {cell.dayNumber}
                           </span>
                           
-                          {/* Event or UC Chips */}
+                          {/* Holiday Label (Neutral, No Color) */}
                           {isHoliday ? (
-                            <span className="text-[7px] font-black uppercase text-red-100 truncate max-w-full leading-tight">
+                            <span className="text-[7px] font-bold uppercase text-slate-400 dark:text-slate-500 truncate max-w-full leading-tight">
                               {schoolEvent?.type === "feriado" ? "Feriado" : "Recesso"}
                             </span>
                           ) : singleEntry ? (
-                            <span className="text-[8px] font-black uppercase tracking-tight text-white/90 leading-none truncate max-w-full">
-                              {singleEntry.ucAcronym} {singleEntry.lesson.hours}
+                            <span className="text-[8px] font-black uppercase tracking-tight text-white leading-none truncate max-w-full">
+                              {singleEntry.ucAcronym}
                             </span>
                           ) : (
                             <div className="flex flex-col gap-0.5 w-full overflow-hidden">
@@ -499,7 +504,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                 <span
                                   key={eIdx}
                                   className={`px-1 py-0.5 text-[7px] font-black rounded ${entry.ucColor.bg} ${entry.ucColor.text} leading-none tracking-tighter truncate text-center shadow-2xs`}
-                                  title={`${entry.ucAcronym}: ${entry.lesson.conhecimentos}`}
+                                  title={`${entry.ucAcronym} (${entry.lesson.hours}): ${entry.lesson.conhecimentos}`}
                                 >
                                   {entry.ucAcronym} {entry.lesson.hours}
                                 </span>
@@ -517,8 +522,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
           {/* Selected Day Classes Modal */}
           {selectedDayModalDate && (() => {
-            const rawDayClasses = masterDateMap[selectedDayModalDate] || [];
-            const dayClasses = rawDayClasses.filter((item) => matchesTeacherFilter(item, selectedDayModalDate));
+            const dayClasses = masterDateMap[selectedDayModalDate] || [];
             const formattedDate = formatDateBR(selectedDayModalDate);
             const schoolEvent = schoolEvents.find((ev) => ev.date === selectedDayModalDate);
 
@@ -529,7 +533,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="w-5 h-5 text-indigo-600" />
                       <h3 className="text-base font-black uppercase text-slate-900 dark:text-white">
-                        Aulas Programadas para {formattedDate}
+                        {formattedDate} – {selectedProfessorFilter}
                       </h3>
                     </div>
                     <button
@@ -540,7 +544,22 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                     </button>
                   </div>
 
+                  {schoolEvent && (
+                    <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs">
+                      <span className="font-black uppercase text-slate-600 dark:text-slate-300">
+                        {schoolEvent.type === "feriado" ? "Feriado Escolar" : "Recesso / Expediente Suspenso"}:
+                      </span>{" "}
+                      <span className="font-bold text-slate-800 dark:text-white">{schoolEvent.title}</span>
+                    </div>
+                  )}
+
                   <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {dayClasses.length === 0 && !schoolEvent && (
+                      <p className="text-xs text-slate-500 text-center py-6">
+                        Nenhuma aula registrada para este docente nesta data.
+                      </p>
+                    )}
+
                     {dayClasses.map((item, idx) => (
                       <div
                         key={idx}
@@ -644,16 +663,16 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
               <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
               <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">
-                Nenhuma aula encontrada
+                Nenhuma aula encontrada para o semestre e docente selecionados
               </h4>
               <p className="text-xs text-slate-500 mb-4">
-                Tente ajustar seus termos de busca/filtros ou adicione novas aulas.
+                Ajuste os filtros ou adicione novas aulas ao cronograma.
               </p>
               <button
                 onClick={addClassItem}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
               >
-                <Plus className="w-4 h-4" /> Adicionar Primeira Aula
+                <Plus className="w-4 h-4" /> Adicionar Aula
               </button>
             </div>
           ) : viewMode === "semanas" ? (
@@ -955,10 +974,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                         ev.type === "feriado"
-                          ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                          ? "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                           : ev.type === "compensacao"
                           ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                          : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                          : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                       }`}
                     >
                       {ev.type}
