@@ -1,3 +1,5 @@
+import { collection, doc, setDoc, onSnapshot, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
 import { proeducadorUnits } from "../data/proeducadorData";
@@ -5,7 +7,13 @@ import { proeducadorUnits } from "../data/proeducadorData";
 const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
 const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
 
-function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
+// Remove undefined values to prevent Firestore serialization errors
+function stripUndefined<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  return JSON.parse(JSON.stringify(obj));
+}
+
+export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   if (!Array.isArray(syllabiList) || syllabiList.length === 0) {
     return sanitizeSyllabi(initialSyllabi);
   }
@@ -22,7 +30,7 @@ function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
     );
 
     // Guarantee all default units from proeducadorUnits are present
-    for (const defaultUnit of (proeducadorUnits || [])) {
+    for (const defaultUnit of proeducadorUnits || []) {
       if (!defaultUnit) continue;
       const exists = currentUnits.some(
         (u) =>
@@ -79,21 +87,21 @@ function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
         lessonPlan = defaultUnit?.lessonPlan || [];
       }
 
-      const situationProblem = defaultUnit?.situationProblem || rest.situationProblem;
-      const rubrics = (defaultUnit?.rubrics && defaultUnit.rubrics.length > 0) ? defaultUnit.rubrics : (rest.rubrics || []);
+      const situationProblem = rest.situationProblem || defaultUnit?.situationProblem;
+      const rubrics = (rest.rubrics && rest.rubrics.length > 0) ? rest.rubrics : (defaultUnit?.rubrics || []);
 
       return {
         ...rest,
         id: unitId,
-        unitTitle: defaultUnit?.unitTitle || rest.unitTitle,
+        unitTitle: rest.unitTitle || defaultUnit?.unitTitle,
         acronym: ac,
         semester: sem,
-        workload: defaultUnit?.workload || rest.workload,
-        objective: defaultUnit?.objective || rest.objective,
-        basicCapacities: defaultUnit?.basicCapacities || rest.basicCapacities,
-        socioemotionalCapacities: defaultUnit?.socioemotionalCapacities || rest.socioemotionalCapacities,
-        technicalCapacities: defaultUnit?.technicalCapacities || rest.technicalCapacities,
-        topics: (defaultUnit?.topics && defaultUnit.topics.length > 0) ? defaultUnit.topics : rest.topics,
+        workload: rest.workload || defaultUnit?.workload,
+        objective: rest.objective || defaultUnit?.objective,
+        basicCapacities: rest.basicCapacities || defaultUnit?.basicCapacities,
+        socioemotionalCapacities: rest.socioemotionalCapacities || defaultUnit?.socioemotionalCapacities,
+        technicalCapacities: rest.technicalCapacities || defaultUnit?.technicalCapacities,
+        topics: (rest.topics && rest.topics.length > 0) ? rest.topics : (defaultUnit?.topics || []),
         lessonPlan,
         situationProblem,
         rubrics,
@@ -150,6 +158,76 @@ export function getActiveSyllabusId(defaultId: string): string {
 
 export function setActiveSyllabusId(id: string): void {
   localStorage.setItem(ACTIVE_ID_KEY, id);
+}
+
+// ----------------------------------------------------
+// FIREBASE CLOUD DATABASE SYNC
+// ----------------------------------------------------
+
+/**
+ * Saves a single syllabus to Firestore cloud database
+ */
+export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
+  try {
+    if (!syllabus || !syllabus.id) return;
+    const cleanData = stripUndefined(syllabus);
+    await setDoc(doc(db, "syllabi", syllabus.id), cleanData, { merge: true });
+  } catch (err) {
+    console.error("Erro ao gravar syllabus no Firebase Cloud:", err);
+  }
+}
+
+/**
+ * Saves all syllabi list to Firestore cloud database
+ */
+export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> {
+  try {
+    for (const item of syllabi) {
+      if (item && item.id) {
+        await saveSyllabusToCloud(item);
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao gravar todos os syllabi no Firebase:", err);
+  }
+}
+
+/**
+ * Subscribes to real-time changes in Firestore syllabi collection.
+ * Syncs automatically between different computers/browsers.
+ */
+export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void): () => void {
+  try {
+    const syllabiCol = collection(db, "syllabi");
+
+    const unsubscribe = onSnapshot(
+      syllabiCol,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: Syllabus[] = [];
+          snapshot.forEach((docSnap) => {
+            list.push(docSnap.data() as Syllabus);
+          });
+          const sanitized = sanitizeSyllabi(list);
+          saveSyllabiToStorage(sanitized);
+          onUpdate(sanitized);
+        } else {
+          // If cloud database is empty, seed it with initial syllabi
+          const initial = sanitizeSyllabi(loadSyllabiFromStorage());
+          saveAllSyllabiToCloud(initial);
+          onUpdate(initial);
+        }
+      },
+      (error) => {
+        console.warn("Aviso na sincronização do Firestore:", error);
+      }
+    );
+
+    return unsubscribe;
+  } catch (err) {
+    console.error("Erro ao iniciar listener do Firestore:", err);
+    return () => {};
+  }
 }
 
 export function createEmptySyllabus(): Syllabus {
