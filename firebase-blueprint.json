@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "Syllabi": {
+      "title": "Syllabi",
+      "description": "Collection of course syllabi and editable teaching plans",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseTitle": { "type": "string" },
+        "courseCode": { "type": "string" },
+        "workload": { "type": "string" },
+        "period": { "type": "string" },
+        "summary": { "type": "string" },
+        "programmaticContent": { "type": "array" },
+        "schedule": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "courseTitle"]
+    }
+  },
+  "firestore": {
+    "/syllabi/{syllabusId}": {
+      "entity": "Syllabi",
+      "description": "Syllabus documents synchronized across devices"
+    }
+  }
+}
