@@ -8,12 +8,11 @@ import {
   setActiveSyllabusId,
   createEmptySyllabus,
   saveSyllabusToCloud,
-  saveAllSyllabiToCloud,
+  deleteSyllabusFromCloud,
   subscribeToCloudSyllabi,
 } from "./utils/storage";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
-import { TabsNavigation } from "./components/TabsNavigation";
 import { DashboardView } from "./components/DashboardView";
 import { SyllabusEditor } from "./components/SyllabusEditor";
 import { UnidadesCurricularesView } from "./components/UnidadesCurricularesView";
@@ -28,7 +27,7 @@ import { triggerPrintSyllabus } from "./utils/exportUtils";
 export default function App() {
   const [syllabi, setSyllabi] = useState<Syllabus[]>(() => loadSyllabiFromStorage());
   const [activeId, setActiveId] = useState<string>(() => {
-    const defaultFirst = syllabi[0]?.id || "senai-usinagem-800h";
+    const defaultFirst = syllabi[0]?.id || "senai-usinagem-800h-beretella";
     return getActiveSyllabusId(defaultFirst);
   });
 
@@ -36,14 +35,41 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // User Authentication Profile State (Prof. Ricardo Beretella Admin Editor vs Prof. Ricardo GEA Viewer)
+  // User Authentication Profile State (Prof. Ricardo Beretella vs Prof. Ricardo Gea)
   const [currentUser, setCurrentUser] = useState<UserProfile>({
-    id: "user-admin",
-    name: "Ricardo Beretella",
+    id: "user-beretella",
+    name: "Prof. Ricardo Beretella",
     email: "ricardo.beretella@sp.senai.br",
     role: "admin",
     unit: "Escola SENAI Roberto Mange - Campinas",
   });
+
+  // Switch professor user and automatically focus their respective syllabus
+  const handleChangeUser = (newUser: UserProfile) => {
+    setCurrentUser(newUser);
+    const isGea = newUser.name.toLowerCase().includes("gea");
+    const isBeretella = newUser.name.toLowerCase().includes("beretella");
+
+    if (isGea) {
+      const geaSyllabus = syllabi.find(
+        (s) =>
+          s.id === "senai-usinagem-800h-gea" ||
+          (s.professorName && s.professorName.toLowerCase().includes("gea"))
+      );
+      if (geaSyllabus) {
+        setActiveId(geaSyllabus.id);
+      }
+    } else if (isBeretella) {
+      const beretellaSyllabus = syllabi.find(
+        (s) =>
+          s.id === "senai-usinagem-800h-beretella" ||
+          (s.professorName && s.professorName.toLowerCase().includes("beretella"))
+      );
+      if (beretellaSyllabus) {
+        setActiveId(beretellaSyllabus.id);
+      }
+    }
+  };
 
   // Refine Modal State
   const [refineModal, setRefineModal] = useState<{
@@ -84,7 +110,8 @@ export default function App() {
   }, [activeId]);
 
   // Ensure active syllabus exists
-  const activeSyllabus = syllabi.find((s) => s.id === activeId) || syllabi[0] || createEmptySyllabus();
+  const activeSyllabus =
+    syllabi.find((s) => s.id === activeId) || syllabi[0] || createEmptySyllabus();
 
   const handleUpdateActiveSyllabus = (updated: Syllabus) => {
     const withTimestamp = {
@@ -92,12 +119,38 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
     setSyllabi((prev) => prev.map((s) => (s.id === withTimestamp.id ? withTimestamp : s)));
-    // Save to Firebase Cloud Firestore immediately
+    // Save to Firebase Cloud Firestore immediately for this specific professor/syllabus
     saveSyllabusToCloud(withTimestamp);
   };
 
   const handleSelectSyllabus = (id: string) => {
     setActiveId(id);
+    const selected = syllabi.find((s) => s.id === id);
+    if (selected) {
+      if (
+        selected.professorName.toLowerCase().includes("gea") &&
+        !currentUser.name.toLowerCase().includes("gea")
+      ) {
+        setCurrentUser({
+          id: "user-gea",
+          name: "Prof. Ricardo Gea",
+          email: "ricardo.gea@sp.senai.br",
+          role: currentUser.role || "admin",
+          unit: "Departamento Regional SENAI - SP",
+        });
+      } else if (
+        selected.professorName.toLowerCase().includes("beretella") &&
+        !currentUser.name.toLowerCase().includes("beretella")
+      ) {
+        setCurrentUser({
+          id: "user-beretella",
+          name: "Prof. Ricardo Beretella",
+          email: "ricardo.beretella@sp.senai.br",
+          role: currentUser.role || "admin",
+          unit: "Escola SENAI Roberto Mange - Campinas",
+        });
+      }
+    }
   };
 
   const handleCreateNew = () => {
@@ -106,6 +159,8 @@ export default function App() {
       return;
     }
     const newSyllabus = createEmptySyllabus();
+    newSyllabus.professorName = currentUser.name;
+    newSyllabus.professorEmail = currentUser.email;
     setSyllabi((prev) => [newSyllabus, ...prev]);
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
@@ -125,10 +180,13 @@ export default function App() {
       if (activeId === id) {
         setActiveId(remaining[0].id);
       }
+      deleteSyllabusFromCloud(id);
     }
   };
 
   const handleSyllabusGeneratedWithAI = (newSyllabus: Syllabus) => {
+    newSyllabus.professorName = currentUser.name;
+    newSyllabus.professorEmail = currentUser.email;
     setSyllabi((prev) => [newSyllabus, ...prev]);
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
@@ -163,28 +221,21 @@ export default function App() {
     }
   };
 
-  const handleResetDefaults = () => {
-    setSyllabi(initialSyllabi);
-    setActiveId(initialSyllabi[0].id);
-  };
-
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased flex flex-col selection:bg-blue-600 selection:text-white">
-      
       {/* Left Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         currentUser={currentUser}
-        onChangeUser={setCurrentUser}
+        onChangeUser={handleChangeUser}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main App Workspace (Padded for Desktop Sidebar) */}
+      {/* Main App Workspace */}
       <div className="lg:pl-64 flex-1 flex flex-col min-h-screen">
-        
         {/* Top Header Bar */}
         <Header
           syllabi={syllabi}
@@ -192,7 +243,7 @@ export default function App() {
           activeTab={activeTab}
           currentUser={currentUser}
           onSelectSyllabus={handleSelectSyllabus}
-          onChangeUser={setCurrentUser}
+          onChangeUser={handleChangeUser}
           onOpenLoginModal={() => setIsLoginModalOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
@@ -262,10 +313,10 @@ export default function App() {
         {/* Footer SENAI Standard */}
         <footer className="no-print border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center text-xs text-slate-500">
           <p className="font-medium">
-            Plano de Ensino & Cronograma de Aulas • <strong>SENAI Serviço Nacional de Aprendizagem Industrial</strong> • MSEP Gestão Pedagógica
+            Plano de Ensino & Cronograma de Aulas •{" "}
+            <strong>SENAI Serviço Nacional de Aprendizagem Industrial</strong> • MSEP Gestão Pedagógica
           </p>
         </footer>
-
       </div>
 
       {/* Login Authentication Modal */}
@@ -273,7 +324,7 @@ export default function App() {
         isOpen={isLoginModalOpen}
         currentUser={currentUser}
         onLoginSuccess={(user) => {
-          setCurrentUser(user);
+          handleChangeUser(user);
           setIsLoginModalOpen(false);
         }}
         onClose={() => setIsLoginModalOpen(false)}
@@ -287,9 +338,6 @@ export default function App() {
         onApplyRefinement={handleApplyRefinement}
         onClose={() => setRefineModal({ ...refineModal, isOpen: false })}
       />
-
     </div>
   );
 }
-
-
