@@ -46,8 +46,9 @@ export const Header: React.FC<HeaderProps> = ({
       onChangeUser({
         ...currentUser,
         id: "user-gea",
-        name: "Prof. Ricardo GEA",
+        name: "Prof. Ricardo Gea",
         email: "ricardo.gea@sp.senai.br",
+        role: "admin",
         unit: "Departamento Regional SENAI - SP",
       });
     } else {
@@ -56,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
         id: "user-beretella",
         name: "Prof. Ricardo Beretella",
         email: "ricardo.beretella@sp.senai.br",
+        role: "admin",
         unit: "Escola SENAI Roberto Mange - Campinas",
       });
     }
@@ -64,7 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="no-print bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs">
       <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-        
         {/* Left Side Breadcrumb & Mobile Menu Toggle */}
         <div className="flex items-center gap-3">
           <button
@@ -98,7 +99,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Side Status Indicators & Professor Profile Selector */}
         <div className="flex items-center gap-3">
-          
           {/* Cloud Online Indicator */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -106,11 +106,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Exclusive Professor Profile Selector */}
-          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
-            isBeretella
-              ? "bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
-              : "bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
-          }`}>
+          <div
+            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
+              isBeretella
+                ? "bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
+                : "bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+            }`}
+          >
             <User className="w-3.5 h-3.5" />
             <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">PERFIL DOCENTE:</span>
             <select
@@ -140,12 +142,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className={`w-1.5 h-1.5 rounded-full ${isAdmin ? "bg-emerald-500" : "bg-amber-500"}`} />
             <span>{isAdmin ? "MODO EDIÇÃO (ADMIN)" : "LEITURA"}</span>
           </button>
-
         </div>
-
       </div>
     </header>
   );
 };
-
-
