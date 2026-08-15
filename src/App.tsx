@@ -7,6 +7,9 @@ import {
   getActiveSyllabusId,
   setActiveSyllabusId,
   createEmptySyllabus,
+  saveSyllabusToCloud,
+  saveAllSyllabiToCloud,
+  subscribeToCloudSyllabi,
 } from "./utils/storage";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
@@ -53,6 +56,19 @@ export default function App() {
     content: "",
   });
 
+  // Subscribe to real-time Cloud Firestore updates across all devices
+  useEffect(() => {
+    const unsubscribe = subscribeToCloudSyllabi((cloudSyllabi) => {
+      if (cloudSyllabi && cloudSyllabi.length > 0) {
+        setSyllabi(cloudSyllabi);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Save changes to local storage whenever syllabi changes
   useEffect(() => {
     if (syllabi.length > 0) {
@@ -71,7 +87,13 @@ export default function App() {
   const activeSyllabus = syllabi.find((s) => s.id === activeId) || syllabi[0] || createEmptySyllabus();
 
   const handleUpdateActiveSyllabus = (updated: Syllabus) => {
-    setSyllabi((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    const withTimestamp = {
+      ...updated,
+      updatedAt: new Date().toISOString(),
+    };
+    setSyllabi((prev) => prev.map((s) => (s.id === withTimestamp.id ? withTimestamp : s)));
+    // Save to Firebase Cloud Firestore immediately
+    saveSyllabusToCloud(withTimestamp);
   };
 
   const handleSelectSyllabus = (id: string) => {
@@ -87,6 +109,7 @@ export default function App() {
     setSyllabi((prev) => [newSyllabus, ...prev]);
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
+    saveSyllabusToCloud(newSyllabus);
   };
 
   const handleDeleteSyllabus = (id: string) => {
@@ -109,6 +132,7 @@ export default function App() {
     setSyllabi((prev) => [newSyllabus, ...prev]);
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
+    saveSyllabusToCloud(newSyllabus);
   };
 
   const handleOpenRefineModal = (sectionName: string, content: any) => {
