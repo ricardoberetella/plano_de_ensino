@@ -5,13 +5,7 @@ import {
   BookOpen,
   Calendar,
   LogOut,
-  UserCheck,
-  Shield,
-  Eye,
   X,
-  Sparkles,
-  Layers,
-  Printer,
 } from "lucide-react";
 import { ActiveTab, UserProfile } from "../types/syllabus";
 import { SenaiLogo } from "./SenaiLogo";
@@ -38,25 +32,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Pre-defined profiles preserving login role
   const ricardoBeretella: UserProfile = {
     id: "user-beretella",
-    name: "Ricardo Beretella",
+    name: "Prof. Ricardo Beretella",
     email: "ricardo.beretella@sp.senai.br",
-    role: currentUser.role,
+    role: currentUser.role || "admin",
     unit: "Escola SENAI Roberto Mange - Campinas",
   };
 
   const ricardoGea: UserProfile = {
     id: "user-gea",
-    name: "Ricardo Gea",
+    name: "Prof. Ricardo Gea",
     email: "ricardo.gea@sp.senai.br",
-    role: currentUser.role,
+    role: currentUser.role || "admin",
     unit: "Departamento Regional SENAI - SP",
   };
 
-  const isBeretellaActive =
-    currentUser.name.toLowerCase().includes("beretella");
-
-  const isGeaActive =
-    currentUser.name.toLowerCase().includes("gea");
+  const isBeretellaActive = currentUser.name.toLowerCase().includes("beretella");
+  const isGeaActive = currentUser.name.toLowerCase().includes("gea");
 
   const menuItems = [
     {
@@ -201,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="w-full mt-2 py-2 px-3 text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-colors cursor-pointer uppercase tracking-wider"
           >
             <LogOut className="w-4 h-4 text-red-500" />
-            <span>SAIR DO SISTEMA</span>
+            <span>LOGIN / PERMISSÃO</span>
           </button>
         </div>
       </aside>
