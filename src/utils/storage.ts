@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
@@ -7,6 +7,7 @@ import { proeducadorUnits } from "../data/proeducadorData";
 const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
 const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
 
+// Remove undefined values to prevent Firestore serialization errors
 function stripUndefined<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   return JSON.parse(JSON.stringify(obj));
@@ -14,12 +15,14 @@ function stripUndefined<T>(obj: T): T {
 
 export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   if (!Array.isArray(syllabiList) || syllabiList.length === 0) {
-    return sanitizeSyllabi(initialSyllabi);
+    return initialSyllabi;
   }
 
   return syllabiList.map((s) => {
-    let rawContent = Array.isArray(s?.programmaticContent) ? s.programmaticContent : [];
-    let currentUnits = rawContent.filter(
+    let currentUnits = Array.isArray(s?.programmaticContent) ? s.programmaticContent : [];
+    
+    // Clean any invalid units
+    currentUnits = currentUnits.filter(
       (u) =>
         u &&
         u.unitTitle &&
@@ -28,18 +31,9 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
         u.unitTitle.toLowerCase() !== "nova"
     );
 
-    for (const defaultUnit of proeducadorUnits || []) {
-      if (!defaultUnit) continue;
-      const exists = currentUnits.some(
-        (u) =>
-          u &&
-          (u.id === defaultUnit.id ||
-            u.acronym === defaultUnit.acronym ||
-            (u.unitTitle && defaultUnit.unitTitle && u.unitTitle.toLowerCase().trim() === defaultUnit.unitTitle.toLowerCase().trim()))
-      );
-      if (!exists) {
-        currentUnits.push(defaultUnit);
-      }
+    // If there are no units at all in programmaticContent, initialize with proeducadorUnits
+    if (currentUnits.length === 0) {
+      currentUnits = (proeducadorUnits || []).map((pu) => ({ ...pu }));
     }
 
     const sanitizedUnits = currentUnits.map((u) => {
@@ -77,34 +71,26 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       }
 
       const { module, turmaOptions, ...rest } = u as any;
-      const defaultUnit = proeducadorUnits.find((pu) => pu.id === unitId || pu.acronym === ac);
-      
-      let lessonPlan = rest.lessonPlan;
-      if (!lessonPlan || lessonPlan.length === 0 || (defaultUnit?.lessonPlan && lessonPlan.length < defaultUnit.lessonPlan.length)) {
-        lessonPlan = defaultUnit?.lessonPlan || [];
-      }
-
-      const situationProblem = rest.situationProblem || defaultUnit?.situationProblem;
-      const rubrics = (rest.rubrics && rest.rubrics.length > 0) ? rest.rubrics : (defaultUnit?.rubrics || []);
 
       return {
         ...rest,
         id: unitId,
-        unitTitle: rest.unitTitle || defaultUnit?.unitTitle,
+        unitTitle: rest.unitTitle,
         acronym: ac,
         semester: sem,
-        workload: rest.workload || defaultUnit?.workload,
-        objective: rest.objective || defaultUnit?.objective,
-        basicCapacities: rest.basicCapacities || defaultUnit?.basicCapacities,
-        socioemotionalCapacities: rest.socioemotionalCapacities || defaultUnit?.socioemotionalCapacities,
-        technicalCapacities: rest.technicalCapacities || defaultUnit?.technicalCapacities,
-        topics: (rest.topics && rest.topics.length > 0) ? rest.topics : (defaultUnit?.topics || []),
-        lessonPlan,
-        situationProblem,
-        rubrics,
+        workload: rest.workload,
+        objective: rest.objective,
+        basicCapacities: Array.isArray(rest.basicCapacities) ? rest.basicCapacities : undefined,
+        socioemotionalCapacities: Array.isArray(rest.socioemotionalCapacities) ? rest.socioemotionalCapacities : undefined,
+        technicalCapacities: Array.isArray(rest.technicalCapacities) ? rest.technicalCapacities : undefined,
+        topics: Array.isArray(rest.topics) ? rest.topics : [],
+        lessonPlan: Array.isArray(rest.lessonPlan) ? rest.lessonPlan : [],
+        situationProblem: rest.situationProblem,
+        rubrics: Array.isArray(rest.rubrics) ? rest.rubrics : [],
       };
     });
 
+    // Deduplicate units by id
     const uniqueUnits: any[] = [];
     const seenIds = new Set<string>();
     for (const unit of sanitizedUnits) {
@@ -156,6 +142,10 @@ export function setActiveSyllabusId(id: string): void {
   localStorage.setItem(ACTIVE_ID_KEY, id);
 }
 
+// ----------------------------------------------------
+// FIREBASE CLOUD DATABASE SYNC
+// ----------------------------------------------------
+
 export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
   try {
     if (!syllabus || !syllabus.id) return;
@@ -163,6 +153,15 @@ export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
     await setDoc(doc(db, "syllabi", syllabus.id), cleanData, { merge: true });
   } catch (err) {
     console.error("Erro ao gravar syllabus no Firebase Cloud:", err);
+  }
+}
+
+export async function deleteSyllabusFromCloud(syllabusId: string): Promise<void> {
+  try {
+    if (!syllabusId) return;
+    await deleteDoc(doc(db, "syllabi", syllabusId));
+  } catch (err) {
+    console.error("Erro ao excluir syllabus do Firebase Cloud:", err);
   }
 }
 
