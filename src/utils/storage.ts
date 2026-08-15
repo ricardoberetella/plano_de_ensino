@@ -3,6 +3,7 @@ import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
 import { proeducadorUnits } from "../data/proeducadorData";
+
 const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
 const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
 
