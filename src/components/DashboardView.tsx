@@ -33,15 +33,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in duration-200">
-      
       {/* Header Title Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
-            MEUS PLANOS
+            MEUS PLANOS DE CURSO
           </h1>
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase mt-1">
-            GESTÃO PEDAGÓGICA MSEP
+            GESTÃO PEDAGÓGICA MSEP • DOCENTE ATIVO: {currentUser.name.toUpperCase()}
           </p>
         </div>
 
@@ -68,21 +67,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         {/* Card 1: PLANOS TOTAIS */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-            PLANOS TOTAIS
+            PLANOS REGISTRADOS
           </span>
           <div className="text-4xl font-black text-slate-900 dark:text-white">
             {syllabi.length}
           </div>
+          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+            PERFIS INDEPENDENTES POR PROFESSOR
+          </p>
         </div>
 
         {/* Card 2: SERVIÇO DE DADOS */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-blue-500/80 dark:border-blue-600 shadow-sm space-y-2 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-blue-500/80 dark:border-blue-600 shadow-xs space-y-2 relative overflow-hidden">
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-            SERVIÇO DE DADOS
+            SERVIÇO DE DADOS EM NUVEM
           </span>
           <div className="flex items-center gap-2">
             <span className="text-3xl font-black text-slate-900 dark:text-white">
@@ -91,18 +92,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block ring-4 ring-emerald-500/20 animate-pulse" />
           </div>
           <p className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-            FIREBASE: CONECTADO
+            FIREBASE FIRESTORE: CONECTADO E SEPARADO POR DOCENTE
           </p>
         </div>
-
       </div>
 
       {/* Plans Table / Cards List */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        
         {/* Table Header */}
         <div className="hidden md:grid grid-cols-12 px-6 py-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-400 tracking-wider">
-          <div className="col-span-5">CURSO / UNIDADE</div>
+          <div className="col-span-5">CURSO / DOCENTE RESPONSÁVEL</div>
           <div className="col-span-2 text-center">CARGA</div>
           <div className="col-span-3 text-center">SINCRONIZADO</div>
           <div className="col-span-2 text-right">AÇÕES</div>
@@ -137,8 +136,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">
-                    PRESENCIAL • {s.department || "SENAI-SP"}
+                  <div className="text-[11px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5 flex-wrap">
+                    <span className="text-blue-600 dark:text-blue-400 font-black">
+                      {s.professorName || "DOCENTE SENAI"}
+                    </span>
+                    <span>•</span>
+                    <span>{s.department || "SENAI-SP"}</span>
                   </div>
                 </div>
 
@@ -203,9 +206,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             );
           })}
         </div>
-
       </div>
-
     </div>
   );
 };
