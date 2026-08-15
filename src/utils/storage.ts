@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
@@ -7,7 +7,6 @@ import { proeducadorUnits } from "../data/proeducadorData";
 const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
 const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
 
-// Remove undefined values to prevent Firestore serialization errors
 function stripUndefined<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   return JSON.parse(JSON.stringify(obj));
@@ -29,7 +28,6 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
         u.unitTitle.toLowerCase() !== "nova"
     );
 
-    // Guarantee all default units from proeducadorUnits are present
     for (const defaultUnit of proeducadorUnits || []) {
       if (!defaultUnit) continue;
       const exists = currentUnits.some(
@@ -79,7 +77,6 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       }
 
       const { module, turmaOptions, ...rest } = u as any;
-
       const defaultUnit = proeducadorUnits.find((pu) => pu.id === unitId || pu.acronym === ac);
       
       let lessonPlan = rest.lessonPlan;
@@ -108,7 +105,6 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       };
     });
 
-    // Deduplicate units by id
     const uniqueUnits: any[] = [];
     const seenIds = new Set<string>();
     for (const unit of sanitizedUnits) {
@@ -160,13 +156,6 @@ export function setActiveSyllabusId(id: string): void {
   localStorage.setItem(ACTIVE_ID_KEY, id);
 }
 
-// ----------------------------------------------------
-// FIREBASE CLOUD DATABASE SYNC
-// ----------------------------------------------------
-
-/**
- * Saves a single syllabus to Firestore cloud database
- */
 export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
   try {
     if (!syllabus || !syllabus.id) return;
@@ -177,9 +166,6 @@ export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
   }
 }
 
-/**
- * Saves all syllabi list to Firestore cloud database
- */
 export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> {
   try {
     for (const item of syllabi) {
@@ -192,10 +178,6 @@ export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> 
   }
 }
 
-/**
- * Subscribes to real-time changes in Firestore syllabi collection.
- * Syncs automatically between different computers/browsers.
- */
 export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void): () => void {
   try {
     const syllabiCol = collection(db, "syllabi");
@@ -212,7 +194,6 @@ export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void)
           saveSyllabiToStorage(sanitized);
           onUpdate(sanitized);
         } else {
-          // If cloud database is empty, seed it with initial syllabi
           const initial = sanitizeSyllabi(loadSyllabiFromStorage());
           saveAllSyllabiToCloud(initial);
           onUpdate(initial);
