@@ -128,7 +128,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     return base.length > 0 ? base : (proeducadorUnits || []);
   }, [syllabus]);
 
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = currentUser?.role === "admin";
 
   // Semester state: "1º SEMESTRE" | "2º SEMESTRE"
   const [selectedSemester, setSelectedSemester] = useState<"1º SEMESTRE" | "2º SEMESTRE">("1º SEMESTRE");
@@ -952,13 +952,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <Sparkles className="w-4 h-4" />
                             <span>Situação de Aprendizagem (S.A.) SENAI</span>
                           </div>
-                          <button
-                            onClick={handleOpenEditSP}
-                            className="self-start sm:self-auto px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            <span>EDITAR SITUAÇÃO-PROBLEMA</span>
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={handleOpenEditSP}
+                              className="self-start sm:self-auto px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>EDITAR SITUAÇÃO-PROBLEMA</span>
+                            </button>
+                          )}
                         </div>
                         <h2 className="text-xl sm:text-2xl font-black uppercase text-white">
                           {activeSituationProblem.title}
@@ -983,13 +985,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             return (
                               <div
                                 key={idx}
-                                onClick={() =>
+                                onClick={() => {
+                                  if (!isAdmin) return;
                                   setCompletedChallenges((prev) => ({
                                     ...prev,
                                     [`${currentUnit.id}-${idx}`]: !isDone,
-                                  }))
-                                }
-                                className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 ${
+                                  }));
+                                }}
+                                className={`p-5 rounded-2xl border transition-all ${isAdmin ? 'cursor-pointer' : 'cursor-default'} flex items-start gap-4 ${
                                   isDone
                                     ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/50 text-emerald-900 dark:text-emerald-200"
                                     : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-blue-300 text-slate-800 dark:text-slate-200"
@@ -1047,13 +1050,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
                         Esta Unidade Curricular aceita o cadastro de uma Situação de Aprendizagem no padrão SENAI.
                       </p>
-                      <button
-                        onClick={handleOpenEditSP}
-                        className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>CADASTRAR SITUAÇÃO-PROBLEMA</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={handleOpenEditSP}
+                          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>CADASTRAR SITUAÇÃO-PROBLEMA</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1080,13 +1085,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md">PAR</span>
                         <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md">AUT</span>
                       </div>
-                      <button
-                        onClick={handleOpenAddRubric}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>NOVA RUBRICA</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={handleOpenAddRubric}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>NOVA RUBRICA</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1105,22 +1112,24 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               </span>
                               <span>{rubric.capacity}</span>
                             </span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={() => handleOpenEditRubric(idx, rubric)}
-                                className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                                title="Editar Rubrica"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteRubric(idx)}
-                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                                title="Excluir Rubrica"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => handleOpenEditRubric(idx, rubric)}
+                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                                  title="Editar Rubrica"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteRubric(idx)}
+                                  className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                                  title="Excluir Rubrica"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1282,13 +1291,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                 <td className="p-2 text-center whitespace-nowrap">
                                   <div className="flex flex-col items-center justify-center gap-1.5">
                                     <button
-                                      onClick={() => handleToggleLessonOk(lesson.id)}
-                                      className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
+                                      onClick={() => {
+                                        if (!isAdmin) return;
+                                        handleToggleLessonOk(lesson.id);
+                                      }}
+                                      className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
                                         isOk
                                           ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
                                           : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
                                       }`}
-                                      title={isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)"}
+                                      title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
                                     >
                                       <CheckCircle2 className="w-3.5 h-3.5" />
                                       <span>{isOk ? "OK!" : "OK"}</span>
