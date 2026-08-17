@@ -311,6 +311,7 @@ export default function App() {
           {activeTab === "plano" && (
             <SyllabusEditor
               syllabus={activeSyllabus}
+              currentUser={currentUser}
               onChange={handleUpdateActiveSyllabus}
               onOpenRefineModal={handleOpenRefineModal}
             />
