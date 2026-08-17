@@ -4,7 +4,7 @@ import { UserProfile } from "../types/syllabus";
 import { SenaiLogo } from "./SenaiLogo";
 
 interface LoginModalProps {
-  currentUser: UserProfile;
+  currentUser?: UserProfile | null;
   onLoginSuccess: (user: UserProfile) => void;
   onClose?: () => void;
   isOpen: boolean;
@@ -26,20 +26,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     const cleanPass = passwordInput.trim().toLowerCase();
 
-    // Bere -> EDITA (Prof. Ricardo Beretella / Admin)
-    if (
-      cleanPass === "bere" ||
-      cleanPass === "bere662" ||
-      cleanPass === "bere 662" ||
-      cleanPass === "beretella" ||
-      cleanPass === "beretella123" ||
-      cleanPass === "admin" ||
-      cleanPass === "senai123" ||
-      cleanPass === "senai" ||
-      cleanPass === "123456"
-    ) {
+    // 1. Senha de Visualizador (Somente Leitura - Não edita nada)
+    if (cleanPass === "ianes662" || cleanPass === "ianes 662") {
       onLoginSuccess({
-        id: "user-admin",
+        id: "user-viewer",
+        name: "Visualizador (Leitura)",
+        email: "visualizador@sp.senai.br",
+        role: "viewer",
+        unit: "SENAI São Paulo",
+      });
+      setPasswordInput("");
+      if (onClose) onClose();
+      return;
+    }
+
+    // 2. Senha de Administrador (Edição Completa)
+    if (cleanPass === "bere662" || cleanPass === "bere 662") {
+      onLoginSuccess({
+        id: "user-beretella",
         name: "Prof. Ricardo Beretella",
         email: "ricardo.beretella@sp.senai.br",
         role: "admin",
@@ -47,36 +51,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       });
       setPasswordInput("");
       if (onClose) onClose();
-    } else if (
-      cleanPass === "ianes662" ||
-      cleanPass === "ianes 662" ||
-      cleanPass === "gea123" ||
-      cleanPass === "gea"
-    ) {
-      onLoginSuccess({
-        id: "user-viewer",
-        name: "Prof. Ricardo GEA",
-        email: "ricardo.gea@sp.senai.br",
-        role: "viewer",
-        unit: "Departamento Regional SENAI - SP",
-      });
-      setPasswordInput("");
-      if (onClose) onClose();
-    } else {
-      setErrorMessage("Senha de acesso incorreta.");
+      return;
     }
+
+    setErrorMessage("Senha de acesso incorreta.");
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-[28px] shadow-2xl max-w-sm w-full overflow-hidden relative border border-slate-100">
-        
         {/* Top Dark Red Curved Header Accent */}
         <div className="h-3.5 bg-[#C8102E] w-full rounded-t-[28px]" />
 
         {/* Modal Card Content */}
         <div className="px-8 pt-8 pb-10 text-center space-y-6">
-          
           {/* Main Titles */}
           <div className="space-y-3 flex flex-col items-center">
             {/* Red Official SENAI Logo */}
@@ -123,13 +111,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               type="submit"
               className="w-full py-3.5 bg-[#C8102E] hover:bg-[#A60D25] text-white font-extrabold text-sm tracking-wider uppercase rounded-2xl shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all cursor-pointer"
             >
-              SENHA
+              ENTRAR
             </button>
           </form>
-
         </div>
       </div>
     </div>
   );
 };
-
