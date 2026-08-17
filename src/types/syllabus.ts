@@ -120,4 +120,3 @@ export interface Syllabus {
 }
 
 export type ActiveTab = "menu" | "plano" | "unidades" | "cronograma" | "gerar_ia" | "visao_aluno";
-
