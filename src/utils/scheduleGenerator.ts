@@ -12,23 +12,13 @@ export function generateSyllabusSchedule(
     eventsByDate[ev.date] = ev;
   });
 
-  // Track lesson plan counters and accumulated hours per UC
-  const ucLessonCounters: Record<string, number> = {};
-  const ucAccumulatedHours: Record<string, number> = {};
-
-  // Map predefined lesson plans if present
-  const hasPredefinedLessonPlan: Record<string, boolean> = {};
+  // Track lesson plan counters and accumulated hours per UC + Professor
+  const ucProfLessonCounters: Record<string, number> = {};
+  const ucProfAccumulatedHours: Record<string, number> = {};
 
   // Clone units to assign lessonPlan arrays
   const updatedUnits = units.map((u) => {
-    ucLessonCounters[u.id] = 0;
-    ucAccumulatedHours[u.id] = 0;
-    if (u.lessonPlan && u.lessonPlan.length > 0) {
-      hasPredefinedLessonPlan[u.id] = true;
-      return { ...u, lessonPlan: [...u.lessonPlan] };
-    }
-    hasPredefinedLessonPlan[u.id] = false;
-    return { ...u, lessonPlan: [] as LessonPlanItem[] };
+    return { ...u, lessonPlan: u.lessonPlan ? [...u.lessonPlan] : ([] as LessonPlanItem[]) };
   });
 
   const masterSchedule: ScheduleItem[] = [];
@@ -107,24 +97,28 @@ export function generateSyllabusSchedule(
           if (uIdx !== -1) {
             const currentUnitObj = updatedUnits[uIdx];
             const maxHours = getMaxHours(currentUnitObj);
-            const currentHours = ucAccumulatedHours[currentUnitObj.id];
+            const profKey = `${currentUnitObj.id}::${rule.professor}`;
+            const currentHours = ucProfAccumulatedHours[profKey] || 0;
 
-            // If UC has already reached or exceeded official workload, skip scheduling
+            // If UC has already reached or exceeded official workload for this professor, skip scheduling
             if (currentHours >= maxHours) {
               return;
             }
 
-            const currentCount = ucLessonCounters[currentUnitObj.id] + 1;
+            const currentCount = (ucProfLessonCounters[profKey] || 0) + 1;
             currentUnitObj.lessonPlan = currentUnitObj.lessonPlan || [];
-            const existingItem = currentUnitObj.lessonPlan[currentCount - 1];
+
+            const profSlug = rule.professor.toLowerCase().includes("gea") ? "gea" : "beretella";
+            const lessonItemId = `${currentUnitObj.id}-${profSlug}-aula-${currentCount}`;
+            const existingItem = currentUnitObj.lessonPlan.find((lp) => lp.id === lessonItemId);
 
             const itemHours = existingItem && existingItem.hours ? (parseInt(existingItem.hours.replace(/\D/g, ""), 10) || 4) : 0;
             const defaultRuleHours = parseInt(rule.hours.replace(/\D/g, ""), 10) || 4;
             const hoursVal = itemHours > 0 ? itemHours : defaultRuleHours;
 
             const hoursToAdd = Math.min(hoursVal, maxHours - currentHours);
-            ucAccumulatedHours[currentUnitObj.id] = currentHours + hoursToAdd;
-            ucLessonCounters[currentUnitObj.id] = currentCount;
+            ucProfAccumulatedHours[profKey] = currentHours + hoursToAdd;
+            ucProfLessonCounters[profKey] = currentCount;
 
             // Generate realistic topic name based on topics list
             const topicsList = currentUnitObj.topics || [];
@@ -139,7 +133,7 @@ export function generateSyllabusSchedule(
 
             if (!existingItem) {
               const lessonItem: LessonPlanItem = {
-                id: `${currentUnitObj.id}-aula-${currentCount}`,
+                id: lessonItemId,
                 date: brDate,
                 hours: `${hoursToAdd}h`,
                 capacities: "Desenvolver competências técnicas e socioemocionais",
@@ -156,6 +150,9 @@ export function generateSyllabusSchedule(
               }
               if (!existingItem.date) {
                 existingItem.date = brDate;
+              }
+              if (!existingItem.professor) {
+                existingItem.professor = rule.professor;
               }
             }
 
