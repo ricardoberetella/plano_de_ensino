@@ -14,23 +14,28 @@ import {
   BookMarked,
   Save,
   Check,
+  Lock,
 } from "lucide-react";
-import { Syllabus, ProgrammaticUnit, EvaluationItem } from "../types/syllabus";
+import { Syllabus, ProgrammaticUnit, EvaluationItem, UserProfile } from "../types/syllabus";
 
 interface SyllabusEditorProps {
   syllabus: Syllabus;
+  currentUser?: UserProfile | null;
   onChange: (updated: Syllabus) => void;
   onOpenRefineModal: (sectionName: string, content: string | any) => void;
 }
 
 export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   syllabus,
+  currentUser,
   onChange,
   onOpenRefineModal,
 }) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const isAdmin = currentUser?.role === "admin";
 
   const updateField = <K extends keyof Syllabus>(field: K, value: Syllabus[K]) => {
+    if (!isAdmin) return;
     onChange({
       ...syllabus,
       [field]: value,
@@ -46,16 +51,19 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
 
   // Specific Objectives Handlers
   const addSpecificObjective = () => {
+    if (!isAdmin) return;
     updateField("specificObjectives", [...syllabus.specificObjectives, "Novo objetivo específico..."]);
   };
 
   const updateSpecificObjective = (index: number, value: string) => {
+    if (!isAdmin) return;
     const list = [...syllabus.specificObjectives];
     list[index] = value;
     updateField("specificObjectives", list);
   };
 
   const removeSpecificObjective = (index: number) => {
+    if (!isAdmin) return;
     updateField(
       "specificObjectives",
       syllabus.specificObjectives.filter((_, i) => i !== index)
@@ -64,6 +72,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
 
   // Programmatic Content Handlers
   const addUnit = () => {
+    if (!isAdmin) return;
     const newUnit: ProgrammaticUnit = {
       id: "unit-" + Date.now(),
       unitTitle: `Unidade ${syllabus.programmaticContent.length + 1}: Título da Unidade`,
@@ -73,30 +82,35 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   };
 
   const updateUnitTitle = (unitIndex: number, title: string) => {
+    if (!isAdmin) return;
     const content = [...syllabus.programmaticContent];
     content[unitIndex].unitTitle = title;
     updateField("programmaticContent", content);
   };
 
   const addTopicToUnit = (unitIndex: number) => {
+    if (!isAdmin) return;
     const content = [...syllabus.programmaticContent];
     content[unitIndex].topics.push("Novo Tópico");
     updateField("programmaticContent", content);
   };
 
   const updateTopic = (unitIndex: number, topicIndex: number, value: string) => {
+    if (!isAdmin) return;
     const content = [...syllabus.programmaticContent];
     content[unitIndex].topics[topicIndex] = value;
     updateField("programmaticContent", content);
   };
 
   const removeTopic = (unitIndex: number, topicIndex: number) => {
+    if (!isAdmin) return;
     const content = [...syllabus.programmaticContent];
     content[unitIndex].topics.splice(topicIndex, 1);
     updateField("programmaticContent", content);
   };
 
   const removeUnit = (unitIndex: number) => {
+    if (!isAdmin) return;
     updateField(
       "programmaticContent",
       syllabus.programmaticContent.filter((_, i) => i !== unitIndex)
@@ -105,6 +119,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
 
   // Evaluation Criteria Handlers
   const addEvaluation = () => {
+    if (!isAdmin) return;
     const newEval: EvaluationItem = {
       id: "eval-" + Date.now(),
       name: "Nova Avaliação",
@@ -115,12 +130,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   };
 
   const updateEvaluation = (index: number, field: keyof EvaluationItem, value: string) => {
+    if (!isAdmin) return;
     const evals = [...syllabus.evaluationCriteria];
     evals[index] = { ...evals[index], [field]: value };
     updateField("evaluationCriteria", evals);
   };
 
   const removeEvaluation = (index: number) => {
+    if (!isAdmin) return;
     updateField(
       "evaluationCriteria",
       syllabus.evaluationCriteria.filter((_, i) => i !== index)
@@ -129,6 +146,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
 
   // Bibliography Handlers
   const addBibliography = (type: "basic" | "complementary") => {
+    if (!isAdmin) return;
     if (type === "basic") {
       updateField("basicBibliography", [
         ...syllabus.basicBibliography,
@@ -143,6 +161,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   };
 
   const updateBibliographyItem = (type: "basic" | "complementary", index: number, value: string) => {
+    if (!isAdmin) return;
     if (type === "basic") {
       const list = [...syllabus.basicBibliography];
       list[index] = value;
@@ -155,6 +174,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   };
 
   const removeBibliographyItem = (type: "basic" | "complementary", index: number) => {
+    if (!isAdmin) return;
     if (type === "basic") {
       updateField(
         "basicBibliography",
@@ -168,18 +188,31 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
     }
   };
 
+  const inputStyle = isAdmin
+    ? "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+    : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 cursor-default";
+
   return (
     <div className="max-w-6xl mx-auto py-6 px-4 space-y-8">
-      {/* Save Notification */}
+      {/* Save Notification / Status */}
       <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700/60">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
           <BookOpen className="w-4 h-4 text-indigo-500" />
-          <span>Editando Plano de Ensino: <strong>{syllabus.courseTitle}</strong></span>
+          <span>
+            {isAdmin ? "Editando Plano de Curso:" : "Visualizando Plano de Curso (Somente Leitura):"}{" "}
+            <strong>{syllabus.courseTitle}</strong>
+          </span>
         </div>
 
-        {saveSuccess && (
-          <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 animate-fadeIn">
-            <Check className="w-3.5 h-3.5" /> Salvo no navegador
+        {isAdmin ? (
+          saveSuccess && (
+            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 animate-fadeIn">
+              <Check className="w-3.5 h-3.5" /> Salvo no navegador
+            </span>
+          )
+        ) : (
+          <span className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full">
+            <Lock className="w-3.5 h-3.5" /> Modo Visualizador
           </span>
         )}
       </div>
@@ -204,9 +237,10 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.courseTitle}
               onChange={(e) => updateField("courseTitle", e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-base text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-3.5 py-2 border rounded-xl font-bold text-base ${inputStyle}`}
             />
           </div>
 
@@ -216,9 +250,10 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.courseCode}
               onChange={(e) => updateField("courseCode", e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-semibold text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-3.5 py-2 border rounded-xl font-semibold text-sm ${inputStyle}`}
             />
           </div>
 
@@ -228,10 +263,11 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.workload}
               onChange={(e) => updateField("workload", e.target.value)}
               placeholder="Ex: 60h (40h T / 20h P)"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              className={`w-full px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
             />
           </div>
 
@@ -241,10 +277,11 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.period}
               onChange={(e) => updateField("period", e.target.value)}
               placeholder="Ex: 2026.1"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              className={`w-full px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
             />
           </div>
 
@@ -254,10 +291,11 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.level}
               onChange={(e) => updateField("level", e.target.value)}
               placeholder="Ex: Graduação, Pós"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              className={`w-full px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
             />
           </div>
 
@@ -267,9 +305,10 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.department}
               onChange={(e) => updateField("department", e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              className={`w-full px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
             />
           </div>
 
@@ -279,10 +318,11 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </label>
             <input
               type="text"
+              readOnly={!isAdmin}
               value={syllabus.professorName}
               onChange={(e) => updateField("professorName", e.target.value)}
               placeholder="Nome do docente"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              className={`w-full px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
             />
           </div>
         </div>
@@ -298,21 +338,24 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">2. Ementa da Disciplina</h3>
           </div>
 
-          <button
-            onClick={() => onOpenRefineModal("Ementa", syllabus.summary)}
-            className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Refinar com IA</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onOpenRefineModal("Ementa", syllabus.summary)}
+              className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Refinar com IA</span>
+            </button>
+          )}
         </div>
 
         <textarea
+          readOnly={!isAdmin}
           value={syllabus.summary}
           onChange={(e) => updateField("summary", e.target.value)}
           rows={4}
           placeholder="Apresente os conceitos fundamentais, teorias e abrangência da disciplina..."
-          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white leading-relaxed focus:ring-2 focus:ring-indigo-500"
+          className={`w-full px-4 py-3 border rounded-xl text-sm leading-relaxed ${inputStyle}`}
         />
       </section>
 
@@ -326,18 +369,20 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">3. Objetivos de Aprendizagem</h3>
           </div>
 
-          <button
-            onClick={() =>
-              onOpenRefineModal("Objetivos de Aprendizagem", {
-                general: syllabus.generalObjectives,
-                specific: syllabus.specificObjectives,
-              })
-            }
-            className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Refinar com IA</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() =>
+                onOpenRefineModal("Objetivos de Aprendizagem", {
+                  general: syllabus.generalObjectives,
+                  specific: syllabus.specificObjectives,
+                })
+              }
+              className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Refinar com IA</span>
+            </button>
+          )}
         </div>
 
         {/* General Objective */}
@@ -346,10 +391,11 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             Objetivo Geral
           </label>
           <textarea
+            readOnly={!isAdmin}
             value={syllabus.generalObjectives}
             onChange={(e) => updateField("generalObjectives", e.target.value)}
             rows={2}
-            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+            className={`w-full px-4 py-2.5 border rounded-xl text-sm ${inputStyle}`}
           />
         </div>
 
@@ -359,12 +405,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Objetivos Específicos ({syllabus.specificObjectives.length})
             </label>
-            <button
-              onClick={addSpecificObjective}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Objetivo
-            </button>
+            {isAdmin && (
+              <button
+                onClick={addSpecificObjective}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Objetivo
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -373,16 +421,19 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                 <span className="w-6 text-center text-xs font-bold text-slate-400">{idx + 1}.</span>
                 <input
                   type="text"
+                  readOnly={!isAdmin}
                   value={obj}
                   onChange={(e) => updateSpecificObjective(idx, e.target.value)}
-                  className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                  className={`flex-1 px-3.5 py-2 border rounded-xl text-sm ${inputStyle}`}
                 />
-                <button
-                  onClick={() => removeSpecificObjective(idx)}
-                  className="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeSpecificObjective(idx)}
+                    className="p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -401,12 +452,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             </h3>
           </div>
 
-          <button
-            onClick={addUnit}
-            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Nova Unidade
-          </button>
+          {isAdmin && (
+            <button
+              onClick={addUnit}
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Nova Unidade
+            </button>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -418,17 +471,20 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <input
                   type="text"
+                  readOnly={!isAdmin}
                   value={unit.unitTitle}
                   onChange={(e) => updateUnitTitle(unitIdx, e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-sm text-slate-900 dark:text-white"
+                  className={`w-full px-3 py-1.5 border rounded-xl font-bold text-sm ${inputStyle}`}
                 />
-                <button
-                  onClick={() => removeUnit(unitIdx)}
-                  title="Excluir Unidade"
-                  className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeUnit(unitIdx)}
+                    title="Excluir Unidade"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg shrink-0 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {/* Topics */}
@@ -437,12 +493,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Tópicos / Assuntos
                   </span>
-                  <button
-                    onClick={() => addTopicToUnit(unitIdx)}
-                    className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Tópico
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => addTopicToUnit(unitIdx)}
+                      className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> Tópico
+                    </button>
+                  )}
                 </div>
 
                 {unit.topics.map((topic, topicIdx) => (
@@ -450,16 +508,19 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                     <span className="text-xs text-slate-400">•</span>
                     <input
                       type="text"
+                      readOnly={!isAdmin}
                       value={topic}
                       onChange={(e) => updateTopic(unitIdx, topicIdx, e.target.value)}
-                      className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white"
+                      className={`flex-1 px-3 py-1.5 border rounded-lg text-xs ${inputStyle}`}
                     />
-                    <button
-                      onClick={() => removeTopic(unitIdx, topicIdx)}
-                      className="p-1 text-slate-400 hover:text-rose-500"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => removeTopic(unitIdx, topicIdx)}
+                        className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -487,11 +548,12 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             Metodologia de Ensino
           </label>
           <textarea
+            readOnly={!isAdmin}
             value={syllabus.methodology}
             onChange={(e) => updateField("methodology", e.target.value)}
             rows={3}
             placeholder="Descreva as técnicas, ferramentas e recursos didáticos utilizados..."
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+            className={`w-full px-4 py-3 border rounded-xl text-sm ${inputStyle}`}
           />
         </div>
 
@@ -501,12 +563,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Sistema e Pesos de Avaliação
             </label>
-            <button
-              onClick={addEvaluation}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Avaliação
-            </button>
+            {isAdmin && (
+              <button
+                onClick={addEvaluation}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Avaliação
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -516,7 +580,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                   <th className="p-2.5 rounded-l-xl">Avaliação / Prova</th>
                   <th className="p-2.5 w-24">Peso / Valor</th>
                   <th className="p-2.5">Descrição / Instrumento</th>
-                  <th className="p-2.5 w-10 rounded-r-xl"></th>
+                  {isAdmin && <th className="p-2.5 w-10 rounded-r-xl"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -525,36 +589,41 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                     <td className="p-2">
                       <input
                         type="text"
+                        readOnly={!isAdmin}
                         value={item.name}
                         onChange={(e) => updateEvaluation(idx, "name", e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-semibold"
+                        className={`w-full px-2.5 py-1.5 border rounded-lg font-semibold ${inputStyle}`}
                       />
                     </td>
                     <td className="p-2">
                       <input
                         type="text"
+                        readOnly={!isAdmin}
                         value={item.weight}
                         onChange={(e) => updateEvaluation(idx, "weight", e.target.value)}
                         placeholder="ex: 30%"
-                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-center font-bold text-indigo-600 dark:text-indigo-400"
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-center font-bold text-indigo-600 dark:text-indigo-400 ${inputStyle}`}
                       />
                     </td>
                     <td className="p-2">
                       <input
                         type="text"
+                        readOnly={!isAdmin}
                         value={item.description || ""}
                         onChange={(e) => updateEvaluation(idx, "description", e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                        className={`w-full px-2.5 py-1.5 border rounded-lg ${inputStyle}`}
                       />
                     </td>
-                    <td className="p-2 text-center">
-                      <button
-                        onClick={() => removeEvaluation(idx)}
-                        className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={() => removeEvaluation(idx)}
+                          className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -580,12 +649,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Bibliografia Básica ({syllabus.basicBibliography.length})
             </label>
-            <button
-              onClick={() => addBibliography("basic")}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Livro
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => addBibliography("basic")}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Livro
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -593,16 +664,19 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
               <div key={idx} className="flex items-center gap-2">
                 <input
                   type="text"
+                  readOnly={!isAdmin}
                   value={book}
                   onChange={(e) => updateBibliographyItem("basic", idx, e.target.value)}
-                  className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className={`flex-1 px-3.5 py-2 border rounded-xl text-xs ${inputStyle}`}
                 />
-                <button
-                  onClick={() => removeBibliographyItem("basic", idx)}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeBibliographyItem("basic", idx)}
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -614,12 +688,14 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Bibliografia Complementar ({syllabus.complementaryBibliography.length})
             </label>
-            <button
-              onClick={() => addBibliography("complementary")}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Referência
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => addBibliography("complementary")}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Referência
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -627,16 +703,19 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
               <div key={idx} className="flex items-center gap-2">
                 <input
                   type="text"
+                  readOnly={!isAdmin}
                   value={book}
                   onChange={(e) => updateBibliographyItem("complementary", idx, e.target.value)}
-                  className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
+                  className={`flex-1 px-3.5 py-2 border rounded-xl text-xs ${inputStyle}`}
                 />
-                <button
-                  onClick={() => removeBibliographyItem("complementary", idx)}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeBibliographyItem("complementary", idx)}
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
