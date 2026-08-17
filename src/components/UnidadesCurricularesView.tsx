@@ -79,9 +79,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 }) => {
   // Always use proeducadorUnits as base so all 7 UCs are present, merging any custom edits from syllabus
   const units = React.useMemo(() => {
-    const base = proeducadorUnits && Array.isArray(proeducadorUnits) && proeducadorUnits.length > 0
-      ? proeducadorUnits.map((u) => ({ ...u }))
-      : [];
+    const base: ProgrammaticUnit[] = JSON.parse(JSON.stringify(proeducadorUnits || []));
 
     const customContent = syllabus && Array.isArray(syllabus.programmaticContent)
       ? syllabus.programmaticContent
@@ -102,12 +100,27 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       });
 
       if (idx !== -1) {
+        const existingBaseLessons = base[idx].lessonPlan || [];
+        const customLessons = customUnit.lessonPlan || [];
+
+        // Merge custom lessons by id over the base lessons so no professor's lessons are lost
+        const mergedLessons = [...existingBaseLessons];
+        customLessons.forEach((cl) => {
+          const lIdx = mergedLessons.findIndex((ml) => ml.id === cl.id);
+          if (lIdx !== -1) {
+            mergedLessons[lIdx] = cl;
+          } else {
+            mergedLessons.push(cl);
+          }
+        });
+
         base[idx] = {
           ...base[idx],
           ...customUnit,
           id: base[idx].id || customUnit.id,
           acronym: base[idx].acronym || customUnit.acronym,
           unitTitle: customUnit.unitTitle || base[idx].unitTitle,
+          lessonPlan: mergedLessons,
         };
       }
     });
@@ -473,9 +486,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const activeLessonPlan = rawLessonPlan.filter((item) => {
     if (!item) return false;
     if (selectedProfessorFilter === "todos") return true;
-    if (!item.professor || typeof item.professor !== "string" || item.professor.trim() === "") return true;
-    const targetProf = selectedProfessorFilter.replace("Prof. ", "").trim();
-    return item.professor.toLowerCase().includes(targetProf.toLowerCase());
+    const targetProf = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+    if (!item.professor || typeof item.professor !== "string" || item.professor.trim() === "") {
+      // If item has no professor tag, default it to item ID convention or match if active
+      return item.id?.toLowerCase().includes(targetProf.includes("gea") ? "gea" : "beretella");
+    }
+    return item.professor.toLowerCase().includes(targetProf);
   });
 
   // Filtered lesson plan search
