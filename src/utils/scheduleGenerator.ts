@@ -48,13 +48,24 @@ export function generateSyllabusSchedule(
   };
 
   // Date loop: 2026-01-26 to 2026-12-18
-  const startDate = new Date(2026, 0, 26); // Jan 26, 2026
-  const endDate = new Date(2026, 11, 18);   // Dec 18, 2026
+  const startDate = new Date(2026, 0, 26, 12, 0, 0); // Jan 26, 2026 (noon to avoid DST/timezone issues)
+  const endDate = new Date(2026, 11, 18, 12, 0, 0);   // Dec 18, 2026
 
   const curr = new Date(startDate);
 
+  // Store new clean lesson plans per unit during generation
+  const newLessonPlansPerUnit: Record<string, LessonPlanItem[]> = {};
+  updatedUnits.forEach((u) => {
+    newLessonPlansPerUnit[u.id] = [];
+  });
+
   while (curr <= endDate) {
-    const isoDate = curr.toISOString().split("T")[0];
+    const y = curr.getFullYear();
+    const m = String(curr.getMonth() + 1).padStart(2, "0");
+    const d = String(curr.getDate()).padStart(2, "0");
+    const isoDate = `${y}-${m}-${d}`;
+    const brDate = `${d}/${m}/${y}`;
+
     const month = curr.getMonth(); // 0-11
     const dayOfMonth = curr.getDate();
     let dayOfWeek = curr.getDay(); // 0=Dom, 1=Seg... 6=Sáb
@@ -85,9 +96,10 @@ export function generateSyllabusSchedule(
     const isCompensationSaturday = dayOfWeek === 6 && event && event.type === "compensacao";
     
     if ((dayOfWeek >= 1 && dayOfWeek <= 5) || isCompensationSaturday) {
+      const effectiveDayOfWeek = isCompensationSaturday ? (event?.balanceForDayOfWeek || 5) : dayOfWeek;
       // Find rules for this day and semester
       const activeRules = teacherRules.filter(
-        (r) => r.semester === semester && r.dayOfWeek === (isCompensationSaturday ? 5 : dayOfWeek) // saturday acts like Friday by default
+        (r) => r.semester === semester && r.dayOfWeek === effectiveDayOfWeek
       );
 
       activeRules.forEach((rule) => {
@@ -106,55 +118,38 @@ export function generateSyllabusSchedule(
             }
 
             const currentCount = (ucProfLessonCounters[profKey] || 0) + 1;
-            currentUnitObj.lessonPlan = currentUnitObj.lessonPlan || [];
-
             const profSlug = rule.professor.toLowerCase().includes("gea") ? "gea" : "beretella";
             const lessonItemId = `${currentUnitObj.id}-${profSlug}-aula-${currentCount}`;
-            const existingItem = currentUnitObj.lessonPlan.find((lp) => lp.id === lessonItemId);
+            
+            // Check if user previously edited this lesson's custom content
+            const existingItem = (currentUnitObj.lessonPlan || []).find(
+              (lp) => lp.id === lessonItemId || (lp.professor === rule.professor && lp.id?.endsWith(`-aula-${currentCount}`))
+            );
 
-            const itemHours = existingItem && existingItem.hours ? (parseInt(existingItem.hours.replace(/\D/g, ""), 10) || 4) : 0;
-            const defaultRuleHours = parseInt(rule.hours.replace(/\D/g, ""), 10) || 4;
-            const hoursVal = itemHours > 0 ? itemHours : defaultRuleHours;
-
-            const hoursToAdd = Math.min(hoursVal, maxHours - currentHours);
+            const ruleHours = parseInt(rule.hours.replace(/\D/g, ""), 10) || 4;
+            const hoursToAdd = Math.min(ruleHours, maxHours - currentHours);
             ucProfAccumulatedHours[profKey] = currentHours + hoursToAdd;
             ucProfLessonCounters[profKey] = currentCount;
 
             // Generate realistic topic name based on topics list
             const topicsList = currentUnitObj.topics || [];
             const topicIndex = (currentCount - 1) % Math.max(1, topicsList.length);
-            const topicText = topicsList[topicIndex] || `Aula ${currentCount} de ${currentUnitObj.unitTitle}`;
+            const defaultTopic = topicsList[topicIndex] || `Aula ${currentCount} de ${currentUnitObj.unitTitle}`;
+            const topicText = existingItem && existingItem.conhecimentos ? existingItem.conhecimentos : defaultTopic;
 
-            // Format date for lesson plan (DD/MM/YYYY)
-            const [y, m, d] = isoDate.split("-");
-            const brDate = `${d}/${m}/${y}`;
+            const lessonItem: LessonPlanItem = {
+              id: lessonItemId,
+              date: brDate, // Always synchronized to official school calendar
+              hours: `${hoursToAdd}h`,
+              capacities: existingItem?.capacities || "Desenvolver competências técnicas e socioemocionais",
+              conhecimentos: topicText,
+              estrategias: existingItem?.estrategias || `Exposição dialogada e prática com ${rule.professor}`,
+              recursos: existingItem?.recursos || "Ambientes pedagógicos, oficinas e laboratórios SENAI",
+              professor: rule.professor,
+              status: existingItem?.status || "planejada",
+            };
 
-            let topicName = topicText;
-
-            if (!existingItem) {
-              const lessonItem: LessonPlanItem = {
-                id: lessonItemId,
-                date: brDate,
-                hours: `${hoursToAdd}h`,
-                capacities: "Desenvolver competências técnicas e socioemocionais",
-                conhecimentos: topicText,
-                estrategias: `Exposição dialogada e prática com ${rule.professor}`,
-                recursos: "Ambientes pedagógicos, oficinas e laboratórios SENAI",
-                professor: rule.professor,
-                status: "planejada",
-              };
-              currentUnitObj.lessonPlan.push(lessonItem);
-            } else {
-              if (existingItem.conhecimentos) {
-                topicName = existingItem.conhecimentos;
-              }
-              if (!existingItem.date) {
-                existingItem.date = brDate;
-              }
-              if (!existingItem.professor) {
-                existingItem.professor = rule.professor;
-              }
-            }
+            newLessonPlansPerUnit[currentUnitObj.id].push(lessonItem);
 
             // Add to master schedule
             masterSchedule.push({
@@ -162,10 +157,10 @@ export function generateSyllabusSchedule(
               classNumber: globalClassNum++,
               weekNumber: Math.ceil((curr.getTime() - startDate.getTime()) / (7 * 24 * 3600 * 1000)) + 1,
               date: isoDate,
-              topic: `${currentUnitObj.acronym || currentUnitObj.unitTitle}: ${topicName}`,
+              topic: `${currentUnitObj.acronym || currentUnitObj.unitTitle}: ${topicText}`,
               unit: currentUnitObj.unitTitle,
               type: hoursToAdd >= 4 ? "pratica" : "teorica",
-              status: "planejada",
+              status: lessonItem.status,
               professor: rule.professor,
               activities: `Acompanhamento com ${rule.professor}`,
             });
@@ -176,6 +171,13 @@ export function generateSyllabusSchedule(
 
     curr.setDate(curr.getDate() + 1);
   }
+
+  // Update units with their clean synchronized lesson plans
+  updatedUnits.forEach((u) => {
+    if (newLessonPlansPerUnit[u.id] && newLessonPlansPerUnit[u.id].length > 0) {
+      u.lessonPlan = newLessonPlansPerUnit[u.id];
+    }
+  });
 
   return { updatedUnits, masterSchedule };
 }
