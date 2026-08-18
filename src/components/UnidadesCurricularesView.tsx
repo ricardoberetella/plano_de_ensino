@@ -678,7 +678,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 <button
                   onClick={() => {
                     if (currentUnit) {
-                      printUnidadeCurricularPDF(currentUnit, syllabus, currentUser.name);
+                      const activeProf = selectedProfessorFilter !== "todos"
+                        ? selectedProfessorFilter
+                        : (currentUser?.name?.toLowerCase().includes("gea") ? "Prof. Ricardo Gea" : (syllabus.professorName || "Prof. Ricardo Beretella"));
+                      printUnidadeCurricularPDF(currentUnit, syllabus, activeProf);
                     } else if (onPrint) {
                       onPrint();
                     }
