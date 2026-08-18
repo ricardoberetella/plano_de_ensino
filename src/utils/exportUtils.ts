@@ -109,7 +109,26 @@ export function printUnidadeCurricularPDF(
   syllabus: Syllabus,
   professorName: string = "Ricardo Beretella"
 ) {
-  const lessonPlan = unit.lessonPlan || [];
+  const formattedProfName = professorName.startsWith("Prof. ") ? professorName : `Prof. ${professorName}`;
+  const targetProf = formattedProfName.toLowerCase();
+  const isGea = targetProf.includes("gea");
+  const isBeretella = targetProf.includes("beretella");
+
+  // Strictly filter lessons for the specific professor to avoid duplication or mixed schedules
+  const rawLessons = unit.lessonPlan || [];
+  const lessonPlan = rawLessons.filter((lp) => {
+    if (!lp) return false;
+    if (lp.professor) {
+      const p = lp.professor.toLowerCase();
+      if (isGea) return p.includes("gea");
+      if (isBeretella) return p.includes("beretella");
+      return true;
+    }
+    if (isGea && lp.id?.includes("gea")) return true;
+    if (isBeretella && !lp.id?.includes("gea")) return true;
+    return true;
+  });
+
   const techCaps = unit.technicalCapacities || unit.basicCapacities || [];
   const socioCaps = unit.socioemotionalCapacities || [];
   const rubrics = unit.rubrics || [];
@@ -248,7 +267,7 @@ export function printUnidadeCurricularPDF(
 
       <div class="info-grid">
         <div><strong>Unidade Curricular:</strong> ${unit.unitTitle}</div>
-        <div><strong>Docente Responsável:</strong> ${professorName}</div>
+        <div><strong>Docente Responsável:</strong> ${formattedProfName}</div>
         <div><strong>Código / Sigla:</strong> ${unit.acronym || "UC"}</div>
         <div><strong>Unidade Escolar:</strong> ${syllabus.department || "Escola SENAI Roberto Mange"}</div>
       </div>
@@ -333,7 +352,7 @@ export function printUnidadeCurricularPDF(
       <div class="signature-box">
         <div>
           <div class="signature-line">Docente Responsável</div>
-          <div>${professorName}</div>
+          <div>${formattedProfName}</div>
         </div>
         <div>
           <div class="signature-line">Coordenação Pedagógica SENAI</div>
