@@ -3,6 +3,8 @@ import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
 import { proeducadorUnits } from "../data/proeducadorData";
+import { generateSyllabusSchedule } from "./scheduleGenerator";
+import { INITIAL_SCHOOL_EVENTS_2026, TEACHER_SCHEDULE_RULES } from "./calendarConfig";
 
 const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
 const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
@@ -18,9 +20,38 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
     return initialSyllabi;
   }
 
-  return syllabiList.map((s) => {
+  let list = [...syllabiList];
+
+  // Guarantee both independent professor syllabi exist
+  const hasBeretella = list.some(
+    (s) =>
+      s &&
+      (s.id === "senai-usinagem-800h-beretella" ||
+        (s.professorName && s.professorName.toLowerCase().includes("beretella")))
+  );
+  const hasGea = list.some(
+    (s) =>
+      s &&
+      (s.id === "senai-usinagem-800h-gea" ||
+        (s.professorName && s.professorName.toLowerCase().includes("gea")))
+  );
+
+  const initialBeretella = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-beretella");
+  const initialGea = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-gea");
+
+  if (!hasBeretella && initialBeretella) {
+    list.unshift(initialBeretella);
+  }
+  if (!hasGea && initialGea) {
+    list.push(initialGea);
+  }
+
+  // Remove obsolete single-doc syllabus if both specific ones are present
+  list = list.filter((s) => s.id !== "senai-usinagem-800h");
+
+  return list.map((s) => {
     let currentUnits = Array.isArray(s?.programmaticContent) ? s.programmaticContent : [];
-    
+
     // Clean any invalid units
     currentUnits = currentUnits.filter(
       (u) =>
@@ -100,9 +131,21 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       }
     }
 
+    // Determine active professor and teacher schedule rules
+    const isGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
+    const targetProfessor = isGea ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
+    const teacherRules = TEACHER_SCHEDULE_RULES.filter((r) => r.professor === targetProfessor);
+
+    const { updatedUnits: syncedUnits, masterSchedule: syncedSchedule } = generateSyllabusSchedule(
+      uniqueUnits,
+      INITIAL_SCHOOL_EVENTS_2026,
+      teacherRules
+    );
+
     return {
       ...s,
-      programmaticContent: uniqueUnits,
+      programmaticContent: syncedUnits,
+      schedule: syncedSchedule,
     };
   });
 }
@@ -146,6 +189,9 @@ export function setActiveSyllabusId(id: string): void {
 // FIREBASE CLOUD DATABASE SYNC
 // ----------------------------------------------------
 
+/**
+ * Saves a single syllabus to Firestore cloud database
+ */
 export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
   try {
     if (!syllabus || !syllabus.id) return;
@@ -165,6 +211,9 @@ export async function deleteSyllabusFromCloud(syllabusId: string): Promise<void>
   }
 }
 
+/**
+ * Saves all syllabi list to Firestore cloud database
+ */
 export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> {
   try {
     for (const item of syllabi) {
@@ -177,6 +226,10 @@ export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> 
   }
 }
 
+/**
+ * Subscribes to real-time changes in Firestore syllabi collection.
+ * Syncs automatically between different computers/browsers.
+ */
 export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void): () => void {
   try {
     const syllabiCol = collection(db, "syllabi");
@@ -193,6 +246,7 @@ export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void)
           saveSyllabiToStorage(sanitized);
           onUpdate(sanitized);
         } else {
+          // If cloud database is empty, seed it with initial syllabi
           const initial = sanitizeSyllabi(loadSyllabiFromStorage());
           saveAllSyllabiToCloud(initial);
           onUpdate(initial);
