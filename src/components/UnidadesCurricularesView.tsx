@@ -480,6 +480,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     return item.professor.toLowerCase().includes(targetProf);
   });
 
+  // Calculate total hours/aulas in the current unit schedule
+  const totalLessonHours = activeLessonPlan.reduce((sum, lesson) => {
+    const h = lesson?.hours;
+    if (typeof h === "number") return sum + h;
+    if (typeof h === "string") {
+      const match = h.match(/\d+/);
+      return sum + (match ? parseInt(match[0], 10) : 4);
+    }
+    return sum + 4;
+  }, 0);
+
   // Filtered lesson plan search
   const filteredLessonPlan = activeLessonPlan.filter(
     (item) =>
@@ -653,7 +664,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       {tab === "RUBRICAS" && <Award className="w-3.5 h-3.5 text-emerald-500" />}
                       {tab === "PLANO DE ENSINO" && <BookOpen className="w-3.5 h-3.5 text-blue-500" />}
                       {tab === "CRONOGRAMA" && <Calendar className="w-3.5 h-3.5 text-purple-500" />}
-                      <span>{tab === "CRONOGRAMA" ? "CALENDÁRIO" : tab}</span>
+                      <span>{tab === "CRONOGRAMA" ? "CALENDÁRIO" : tab === "PLANO DE ENSINO" ? "PLANO DE AULA/CRONOGRAMA" : tab}</span>
                     </button>
                   );
                 })}
@@ -1201,7 +1212,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     <div>
                       <h2 className="text-base font-black uppercase text-slate-900 dark:text-white flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-blue-600" />
-                        <span>Plano de Ensino Sequencial ({activeLessonPlan.length} Encontros) - {currentUnit.unitTitle}</span>
+                        <span>PLANO DE AULA CRONOGRAMA {totalLessonHours} AULAS - {currentUnit.unitTitle}</span>
                       </h2>
                       <p className="text-xs text-slate-500 font-medium">
                         Sequência didática diária, estratégias e recursos instrucionais SENAI
