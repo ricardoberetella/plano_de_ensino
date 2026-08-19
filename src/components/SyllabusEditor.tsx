@@ -957,35 +957,156 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
       {activeSubTab === "persona" && (
         <div className="space-y-6 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-2xl">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                    Persona & Arquétipo do Aprendiz SENAI
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                      Persona & Perfil do Aluno / Aprendiz
+                    </h2>
+                    {isAdmin && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        Editável pelo Admin
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500">
-                    Caracterização pedagógica do perfil dos estudantes do curso de Mecânico de Usinagem
+                    Personalize o arquétipo do estudante, desafios, motivações e itinerário formativo
                   </p>
                 </div>
               </div>
+
+              {isAdmin && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Preset Selector Dropdown */}
+                  <select
+                    onChange={(e) => {
+                      const choice = e.target.value;
+                      if (choice === "gabriel") {
+                        updateCoursePlan((prev) => ({
+                          ...prev,
+                          persona: {
+                            nome: "Gabriel Santos — O Jovem Aprendiz da Indústria Mecânica",
+                            idade: "17 anos",
+                            escolaridade: "Cursando o 2º ano do Ensino Médio, integrado ao Curso de Aprendizagem Industrial SENAI",
+                            perfil:
+                              "Jovem focado, curioso e altamente motivado pelo universo da mecânica de precisão e da tecnologia industrial. Valoriza a prática em oficina e tem grande facilidade para raciocínio lógico-espacial e leitura de desenhos técnicos.",
+                            motivacoes: [
+                              "Conquistar autonomia financeira e uma oportunidade efetiva de trabalho como operador de máquinas em uma grande indústria.",
+                              "Obter a certificação oficial do SENAI-SP, reconhecida nacionalmente por sua excelência técnica.",
+                              "Compreender como transformar blocos brutos de aço em peças complexas com tolerâncias micrométricas.",
+                              "Construir uma trilha sólida de carreira até o Curso Técnico em Mecânica e Engenharia.",
+                            ],
+                            desafios: [
+                              "Desenvolver paciência e tolerância à frustração quando uma peça não atinge a tolerância H7 de primeira.",
+                              "Cumprimento rigoroso do uso contínuo de EPIs e procedimentos da NR-12 em máquinas rotativas.",
+                              "Conciliar a rotina de estudos do Ensino Médio com as 4 horas diárias de oficina no SENAI.",
+                            ],
+                            rotina:
+                              "Chega pontualmente às 07h30, realiza o DDS, veste todos os EPIs, prepara os instrumentos de medição, estuda a folha de processo, calcula parâmetros de corte, opera torno/fresadora e realiza a autoinspeção dimensional.",
+                            habilidadesTecnicas: [
+                              "Operação de tornos convencionais e fresadoras",
+                              "Leitura de desenho mecânico em 1º diedro",
+                              "Controle dimensional com paquímetro e micrômetro",
+                            ],
+                            habilidadesSocioemocionais: [
+                              "Atenção aos detalhes",
+                              "Trabalho em equipe e respeito",
+                              "Autonomia e responsabilidade 5S",
+                            ],
+                            trilhaFutura: [
+                              "Aprendiz Industrial em Mecânico de Usinagem (800h)",
+                              "Mecânico / Preparador de Máquinas Convencionais e CNC",
+                              "Técnico em Fabricação Mecânica / Mecatrônica",
+                              "Graduação em Engenharia Mecânica / de Produção",
+                            ],
+                          },
+                        }));
+                      } else if (choice === "mariana") {
+                        updateCoursePlan((prev) => ({
+                          ...prev,
+                          persona: {
+                            nome: "Mariana Costa — Futura Técnica e Programadora de Manufatura",
+                            idade: "18 anos",
+                            escolaridade: "Ensino Médio concluído, aluna do Curso de Aprendizagem Industrial SENAI",
+                            perfil:
+                              "Estudante dedicada, com grande interesse em desenho técnico computadorizado (CAD), metrologia tridimensional e usinagem de precisão. Busca quebrar paradigmas no setor de usinagem com alta performance técnica.",
+                            motivacoes: [
+                              "Atuar no setor de controle de qualidade e ferramentaria de precisão.",
+                              "Dominar a operação de máquinas operatrizes e instrumentos milesimais.",
+                              "Ingressar em programa de estágio técnico em indústria aeronáutica ou automobilística.",
+                            ],
+                            desafios: [
+                              "Adaptação à força física requerida em manuseio de matérias-primas e morsas pesadas.",
+                              "Superação do receio inicial de projeção de cavacos incandescentes no torneamento.",
+                            ],
+                            rotina:
+                              "Organiza rigorosamente a bancada, verifica calibração dos micrômetros, planeja as etapas de usinagem com desenho CAD e inspeciona cada cota com ficha de controle dimensional.",
+                            habilidadesTecnicas: [
+                              "Operação de fresadoras e retíficas",
+                              "Metrologia dimensional avançada e rugosimetria",
+                            ],
+                            habilidadesSocioemocionais: [
+                              "Comunicação assertiva",
+                              "Resiliência e perseverança",
+                              "Foco na qualidade zero defeito",
+                            ],
+                            trilhaFutura: [
+                              "Aprendiz Industrial em Usinagem Mecânica (800h)",
+                              "Inspetora de Controle de Qualidade / Metrologista",
+                              "Técnica em Mecatrônica Industrial",
+                              "Engenheira de Manufatura e Automação",
+                            ],
+                          },
+                        }));
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                  >
+                    <option value="">Trocar Aluno / Modelo...</option>
+                    <option value="gabriel">Modelo 1: Gabriel Santos (Aprendiz Padrão)</option>
+                    <option value="mariana">Modelo 2: Mariana Costa (Foco em Metrologia/Técnico)</option>
+                  </select>
+
+                  <button
+                    onClick={() =>
+                      onOpenRefineModal(
+                        "Persona do Aluno",
+                        `Nome: ${planData.persona.nome}\nIdade: ${planData.persona.idade}\nPerfil: ${planData.persona.perfil}\nMotivações: ${planData.persona.motivacoes.join(", ")}`
+                      )
+                    }
+                    className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Refinar com IA</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Persona Hero Card */}
-            <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl border border-slate-800 space-y-4">
+            {/* Persona Hero Preview / Header Banner */}
+            <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
-                    GS
+                  <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                    {planData.persona.nome
+                      ? planData.persona.nome
+                          .split(" ")
+                          .slice(0, 2)
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                      : "AL"}
                   </div>
                   <div>
                     <span className="text-[10px] font-black tracking-wider uppercase text-blue-400 block">
-                      Arquétipo do Aluno
+                      Arquétipo do Aprendiz
                     </span>
                     <h3 className="text-lg font-black text-white">
-                      {planData.persona.nome}
+                      {planData.persona.nome || "Nome do Aluno"}
                     </h3>
                     <p className="text-xs text-slate-400">
                       {planData.persona.idade} • {planData.persona.escolaridade}
@@ -994,56 +1115,263 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                 </div>
 
                 <div className="px-3 py-1.5 rounded-xl bg-blue-950/80 border border-blue-800 text-blue-300 text-xs font-bold self-start sm:self-auto">
-                  Metalmecânica & Manufatura
+                  Metalmecânica & Usinagem Convencional
                 </div>
               </div>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pt-2 border-t border-slate-800">
-                {planData.persona.perfil}
-              </p>
             </div>
 
-            {/* Motivations & Challenges Grid */}
+            {/* Editable Fields for Name, Age, Schooling and Bio */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Nome do Aluno */}
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Nome do Aluno / Arquétipo
+                </label>
+                <input
+                  type="text"
+                  readOnly={!isAdmin}
+                  value={planData.persona.nome}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateCoursePlan((prev) => ({
+                      ...prev,
+                      persona: { ...prev.persona, nome: val },
+                    }));
+                  }}
+                  placeholder="Ex: Gabriel Santos — O Jovem Aprendiz"
+                  className={`w-full p-3 border text-sm font-bold ${inputStyle}`}
+                />
+              </div>
+
+              {/* Idade */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Faixa Etária / Idade
+                </label>
+                <input
+                  type="text"
+                  readOnly={!isAdmin}
+                  value={planData.persona.idade}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateCoursePlan((prev) => ({
+                      ...prev,
+                      persona: { ...prev.persona, idade: val },
+                    }));
+                  }}
+                  placeholder="Ex: 17 anos"
+                  className={`w-full p-3 border text-sm font-bold ${inputStyle}`}
+                />
+              </div>
+
+              {/* Escolaridade */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Escolaridade / Situação Escolar
+                </label>
+                <input
+                  type="text"
+                  readOnly={!isAdmin}
+                  value={planData.persona.escolaridade}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateCoursePlan((prev) => ({
+                      ...prev,
+                      persona: { ...prev.persona, escolaridade: val },
+                    }));
+                  }}
+                  placeholder="Ex: Cursando o 2º ano do Ensino Médio..."
+                  className={`w-full p-3 border text-sm font-bold ${inputStyle}`}
+                />
+              </div>
+            </div>
+
+            {/* Perfil Geral / Biografia */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Perfil Geral & Características Comportamentais
+              </label>
+              <textarea
+                readOnly={!isAdmin}
+                rows={3}
+                value={planData.persona.perfil}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateCoursePlan((prev) => ({
+                    ...prev,
+                    persona: { ...prev.persona, perfil: val },
+                  }));
+                }}
+                placeholder="Descreva o perfil do estudante, hábitos de estudo e aptidões..."
+                className={`w-full p-3.5 border text-sm leading-relaxed ${inputStyle}`}
+              />
+            </div>
+
+            {/* Motivations & Challenges Grid with Add/Remove */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Motivações */}
               <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-emerald-500" />
-                  <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
-                    Principais Motivações & Objetivos
-                  </h4>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-emerald-500" />
+                    <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
+                      Principais Motivações & Objetivos
+                    </h4>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        updateCoursePlan((prev) => ({
+                          ...prev,
+                          persona: {
+                            ...prev.persona,
+                            motivacoes: [
+                              ...(prev.persona.motivacoes || []),
+                              "Nova motivação ou objetivo profissional",
+                            ],
+                          },
+                        }));
+                      }}
+                      className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 rounded-lg text-[11px] font-black flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>+ Adicionar</span>
+                    </button>
+                  )}
                 </div>
-                <ul className="space-y-2">
+
+                <div className="space-y-2">
                   {planData.persona.motivacoes.map((m, idx) => (
-                    <li key={idx} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                      <span>{m}</span>
-                    </li>
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={m}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateCoursePlan((prev) => {
+                              const updated = [...prev.persona.motivacoes];
+                              updated[idx] = val;
+                              return {
+                                ...prev,
+                                persona: { ...prev.persona, motivacoes: updated },
+                              };
+                            });
+                          }}
+                          className={`flex-1 p-2 border text-xs font-medium ${inputStyle}`}
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-700 dark:text-slate-300 flex-1">
+                          {m}
+                        </span>
+                      )}
+                      {isAdmin && planData.persona.motivacoes.length > 1 && (
+                        <button
+                          onClick={() => {
+                            updateCoursePlan((prev) => {
+                              const updated = prev.persona.motivacoes.filter(
+                                (_, i) => i !== idx
+                              );
+                              return {
+                                ...prev,
+                                persona: { ...prev.persona, motivacoes: updated },
+                              };
+                            });
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer"
+                          title="Remover"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
 
               {/* Desafios */}
               <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
-                    Desafios Pedagógicos & Comportamentais
-                  </h4>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
+                      Desafios Pedagógicos & Comportamentais
+                    </h4>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        updateCoursePlan((prev) => ({
+                          ...prev,
+                          persona: {
+                            ...prev.persona,
+                            desafios: [
+                              ...(prev.persona.desafios || []),
+                              "Novo desafio pedagógico ou comportamental",
+                            ],
+                          },
+                        }));
+                      }}
+                      className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-200 rounded-lg text-[11px] font-black flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>+ Adicionar</span>
+                    </button>
+                  )}
                 </div>
-                <ul className="space-y-2">
+
+                <div className="space-y-2">
                   {planData.persona.desafios.map((d, idx) => (
-                    <li key={idx} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                      <span>{d}</span>
-                    </li>
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={d}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateCoursePlan((prev) => {
+                              const updated = [...prev.persona.desafios];
+                              updated[idx] = val;
+                              return {
+                                ...prev,
+                                persona: { ...prev.persona, desafios: updated },
+                              };
+                            });
+                          }}
+                          className={`flex-1 p-2 border text-xs font-medium ${inputStyle}`}
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-700 dark:text-slate-300 flex-1">
+                          {d}
+                        </span>
+                      )}
+                      {isAdmin && planData.persona.desafios.length > 1 && (
+                        <button
+                          onClick={() => {
+                            updateCoursePlan((prev) => {
+                              const updated = prev.persona.desafios.filter(
+                                (_, i) => i !== idx
+                              );
+                              return {
+                                ...prev,
+                                persona: { ...prev.persona, desafios: updated },
+                              };
+                            });
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer"
+                          title="Remover"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </div>
 
             {/* Rotina do Aluno */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 Rotina Prática Diária em Oficina (5S e Disciplina Técnica)
               </label>
@@ -1058,30 +1386,91 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
                     persona: { ...prev.persona, rotina: val },
                   }));
                 }}
-                className={`w-full p-4 border text-sm leading-relaxed ${inputStyle}`}
+                placeholder="Descreva a rotina diária do aluno (chegada, DDS, EPIs, operação das máquinas, 5S)..."
+                className={`w-full p-3.5 border text-sm leading-relaxed ${inputStyle}`}
               />
             </div>
 
-            {/* Trilha de Futuro */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-blue-500" />
-                <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
-                  Trilha Formativa & Itinerário de Carreira Futura
-                </h4>
+            {/* Trilha de Futuro com Add/Remove */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-blue-500" />
+                  <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider">
+                    Trilha Formativa & Itinerário de Carreira Futura
+                  </h4>
+                </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      updateCoursePlan((prev) => ({
+                        ...prev,
+                        persona: {
+                          ...prev.persona,
+                          trilhaFutura: [
+                            ...(prev.persona.trilhaFutura || []),
+                            "Nova Etapa de Carreira",
+                          ],
+                        },
+                      }));
+                    }}
+                    className="px-2.5 py-1 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-200 rounded-lg text-[11px] font-black flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>+ Adicionar Etapa</span>
+                  </button>
+                )}
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {planData.persona.trilhaFutura.map((etapa, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center gap-2.5"
+                    className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center gap-2.5 relative group"
                   >
                     <span className="w-6 h-6 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {etapa}
-                    </span>
+                    {isAdmin ? (
+                      <input
+                        type="text"
+                        value={etapa}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateCoursePlan((prev) => {
+                            const updated = [...prev.persona.trilhaFutura];
+                            updated[idx] = val;
+                            return {
+                              ...prev,
+                              persona: { ...prev.persona, trilhaFutura: updated },
+                            };
+                          });
+                        }}
+                        className={`flex-1 p-1.5 border text-xs font-bold ${inputStyle}`}
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex-1">
+                        {etapa}
+                      </span>
+                    )}
+                    {isAdmin && planData.persona.trilhaFutura.length > 1 && (
+                      <button
+                        onClick={() => {
+                          updateCoursePlan((prev) => {
+                            const updated = prev.persona.trilhaFutura.filter(
+                              (_, i) => i !== idx
+                            );
+                            return {
+                              ...prev,
+                              persona: { ...prev.persona, trilhaFutura: updated },
+                            };
+                          });
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-500 rounded cursor-pointer"
+                        title="Remover"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
