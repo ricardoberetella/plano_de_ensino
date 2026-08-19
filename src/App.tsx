@@ -48,7 +48,7 @@ export default function App() {
   // Authentication State: null by default (requires password on initial app load)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
-      const saved = sessionStorage.getItem("senai_authenticated_user");
+      const saved = localStorage.getItem("senai_authenticated_user") || sessionStorage.getItem("senai_authenticated_user");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -57,7 +57,7 @@ export default function App() {
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(() => {
     try {
-      const saved = sessionStorage.getItem("senai_authenticated_user");
+      const saved = localStorage.getItem("senai_authenticated_user") || sessionStorage.getItem("senai_authenticated_user");
       return !saved;
     } catch {
       return true;
@@ -82,6 +82,7 @@ export default function App() {
   const handleChangeUser = (newUser: UserProfile) => {
     setCurrentUser(newUser);
     try {
+      localStorage.setItem("senai_authenticated_user", JSON.stringify(newUser));
       sessionStorage.setItem("senai_authenticated_user", JSON.stringify(newUser));
     } catch (e) {
       console.error(e);
