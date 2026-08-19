@@ -12,7 +12,6 @@ export const INITIAL_SCHOOL_EVENTS_2026: SchoolCalendarEvent[] = [
   { id: "e-1-1", date: "2026-01-26", title: "Início do 1º Semestre Letivo", type: "inicio_fim" },
   { id: "e-1-2", date: "2026-02-16", title: "Carnaval - Expediente Suspenso", type: "feriado" },
   { id: "e-1-3", date: "2026-02-17", title: "Carnaval - Feriado", type: "feriado" },
-  { id: "e-1-4", date: "2026-02-18", title: "Quarta-feira de Cinzas", type: "feriado" },
   { id: "e-1-5", date: "2026-04-03", title: "Sexta-feira Santa - Feriado", type: "feriado" },
   { id: "e-1-6", date: "2026-04-21", title: "Tiradentes - Feriado Nacional", type: "feriado" },
   { id: "e-1-7", date: "2026-05-01", title: "Dia do Trabalho - Feriado", type: "feriado" },
