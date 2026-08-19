@@ -1,5 +1,6 @@
 import { ProgrammaticUnit, LessonPlanItem, ScheduleItem } from "../types/syllabus";
 import { SchoolCalendarEvent, TeacherWeeklyRule, INITIAL_SCHOOL_EVENTS_2026, TEACHER_SCHEDULE_RULES } from "./calendarConfig";
+import { parseDateToISO } from "./calendarUtils";
 
 export function generateSyllabusSchedule(
   units: ProgrammaticUnit[],
@@ -139,24 +140,25 @@ export function generateSyllabusSchedule(
 
             const lessonItem: LessonPlanItem = {
               id: lessonItemId,
-              date: brDate, // Always synchronized to official school calendar
-              hours: `${hoursToAdd}h`,
+              date: existingItem?.date || brDate, // Preserve user-edited date or use calendar date
+              hours: existingItem?.hours || `${hoursToAdd}h`,
               capacities: existingItem?.capacities || "Desenvolver competências técnicas e socioemocionais",
               conhecimentos: topicText,
               estrategias: existingItem?.estrategias || `Exposição dialogada e prática com ${rule.professor}`,
               recursos: existingItem?.recursos || "Ambientes pedagógicos, oficinas e laboratórios SENAI",
-              professor: rule.professor,
+              professor: existingItem?.professor || rule.professor,
               status: existingItem?.status || "planejada",
             };
 
             newLessonPlansPerUnit[currentUnitObj.id].push(lessonItem);
 
             // Add to master schedule
+            const scheduleDate = existingItem?.date ? (parseDateToISO(existingItem.date) || isoDate) : isoDate;
             masterSchedule.push({
               id: `sched-${globalClassNum}`,
               classNumber: globalClassNum++,
               weekNumber: Math.ceil((curr.getTime() - startDate.getTime()) / (7 * 24 * 3600 * 1000)) + 1,
-              date: isoDate,
+              date: scheduleDate,
               topic: `${currentUnitObj.acronym || currentUnitObj.unitTitle}: ${topicText}`,
               unit: currentUnitObj.unitTitle,
               type: hoursToAdd >= 4 ? "pratica" : "teorica",
@@ -172,11 +174,14 @@ export function generateSyllabusSchedule(
     curr.setDate(curr.getDate() + 1);
   }
 
-  // Update units with their clean synchronized lesson plans
+  // Update units with their clean synchronized lesson plans, preserving any extra custom lesson items
   updatedUnits.forEach((u) => {
-    if (newLessonPlansPerUnit[u.id] && newLessonPlansPerUnit[u.id].length > 0) {
-      u.lessonPlan = newLessonPlansPerUnit[u.id];
-    }
+    const generatedList = newLessonPlansPerUnit[u.id] || [];
+    const generatedIds = new Set(generatedList.map((l) => l.id));
+    const extraCustomLessons = (u.lessonPlan || []).filter(
+      (lp) => lp && lp.id && !generatedIds.has(lp.id)
+    );
+    u.lessonPlan = [...generatedList, ...extraCustomLessons];
   });
 
   return { updatedUnits, masterSchedule };
