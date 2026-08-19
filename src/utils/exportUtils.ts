@@ -323,7 +323,10 @@ export function printUnidadeCurricularPDF(
         </table>
       ` : ''}
 
-      <div class="section-title" style="page-break-before: auto;">Plano de Ensino Sequencial (${lessonPlan.length} Encontros)</div>
+      <div class="section-title" style="page-break-before: auto;">PLANO DE AULA CRONOGRAMA ${lessonPlan.reduce((sum, lp) => {
+        const match = lp?.hours?.toString().match(/\d+/);
+        return sum + (match ? parseInt(match[0], 10) : 4);
+      }, 0)} AULAS - ${unit.unitTitle}</div>
       ${lessonPlan.length > 0 ? `
         <table>
           <thead>
