@@ -331,18 +331,18 @@ export function printUnidadeCurricularPDF(
         <table>
           <thead>
             <tr>
-              <th style="width: 12%;">Data</th>
-              <th style="width: 8%;">Carga</th>
-              <th style="width: 35%;">Conhecimentos / Tópicos</th>
-              <th style="width: 25%;">Estratégia Didática</th>
-              <th style="width: 20%;">Recursos / Ambientes</th>
+              <th style="width: 14%;">Horas/Aulas/Data</th>
+              <th style="width: 22%;">Capacidades</th>
+              <th style="width: 26%;">Conhecimentos</th>
+              <th style="width: 20%;">Estratégias</th>
+              <th style="width: 18%;">Recursos/Ambientes</th>
             </tr>
           </thead>
           <tbody>
             ${lessonPlan.map((lp) => `
               <tr>
-                <td><strong>${lp.date}</strong></td>
-                <td>${lp.hours}</td>
+                <td><strong>${lp.date}</strong><br/><span style="color:#64748b;font-size:8pt;">${lp.hours}</span></td>
+                <td>${lp.capacities || 'Demonstrar capacidades técnicas e socioemocionais.'}</td>
                 <td>${lp.conhecimentos}</td>
                 <td>${lp.estrategias}</td>
                 <td>${lp.recursos}</td>
