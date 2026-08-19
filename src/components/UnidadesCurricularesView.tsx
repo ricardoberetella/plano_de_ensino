@@ -100,27 +100,13 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       });
 
       if (idx !== -1) {
-        const existingBaseLessons = base[idx].lessonPlan || [];
-        const customLessons = customUnit.lessonPlan || [];
-
-        // Merge custom lessons by id over the base lessons so no professor's lessons are lost
-        const mergedLessons = [...existingBaseLessons];
-        customLessons.forEach((cl) => {
-          const lIdx = mergedLessons.findIndex((ml) => ml.id === cl.id);
-          if (lIdx !== -1) {
-            mergedLessons[lIdx] = cl;
-          } else {
-            mergedLessons.push(cl);
-          }
-        });
-
         base[idx] = {
           ...base[idx],
           ...customUnit,
           id: base[idx].id || customUnit.id,
           acronym: base[idx].acronym || customUnit.acronym,
           unitTitle: customUnit.unitTitle || base[idx].unitTitle,
-          lessonPlan: mergedLessons,
+          lessonPlan: customUnit.lessonPlan && customUnit.lessonPlan.length > 0 ? customUnit.lessonPlan : (base[idx].lessonPlan || []),
         };
       }
     });
