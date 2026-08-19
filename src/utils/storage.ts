@@ -217,38 +217,46 @@ export function setActiveSyllabusId(id: string): void {
 /**
  * Saves a single syllabus to Firestore cloud database
  */
-export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
+export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<boolean> {
   try {
-    if (!syllabus || !syllabus.id) return;
+    if (!syllabus || !syllabus.id) return false;
     const cleanData = stripUndefined(syllabus);
     await setDoc(doc(db, "syllabi", syllabus.id), cleanData, { merge: true });
     console.log(`[Firebase Cloud] Syllabus salvo com sucesso: ${syllabus.id}`);
+    return true;
   } catch (err) {
     console.error("Erro ao gravar syllabus no Firebase Cloud:", err);
+    return false;
   }
 }
 
-export async function deleteSyllabusFromCloud(syllabusId: string): Promise<void> {
+export async function deleteSyllabusFromCloud(syllabusId: string): Promise<boolean> {
   try {
-    if (!syllabusId) return;
+    if (!syllabusId) return false;
     await deleteDoc(doc(db, "syllabi", syllabusId));
+    return true;
   } catch (err) {
     console.error("Erro ao excluir syllabus do Firebase Cloud:", err);
+    return false;
   }
 }
 
 /**
  * Saves all syllabi list to Firestore cloud database
  */
-export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> {
+export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<boolean> {
   try {
+    let allOk = true;
     for (const item of syllabi) {
       if (item && item.id) {
-        await saveSyllabusToCloud(item);
+        const ok = await saveSyllabusToCloud(item);
+        if (!ok) allOk = false;
       }
     }
+    return allOk;
   } catch (err) {
     console.error("Erro ao gravar todos os syllabi no Firebase:", err);
+    return false;
   }
 }
 
