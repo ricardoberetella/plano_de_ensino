@@ -2,12 +2,12 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebas
 import { db } from "../firebase";
 import { Syllabus } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
-import { proeducadorUnits } from "../data/proeducadorData";
+import { proeducadorUnits, defaultCoursePlanData } from "../data/proeducadorData";
 import { generateSyllabusSchedule } from "./scheduleGenerator";
 import { INITIAL_SCHOOL_EVENTS_2026, TEACHER_SCHEDULE_RULES } from "./calendarConfig";
 
-const STORAGE_KEY = "plano_ensino_app_data_v100_reset";
-const ACTIVE_ID_KEY = "plano_ensino_active_id_v100";
+const STORAGE_KEY = "senai_plano_ensino_persistent_data";
+const ACTIVE_ID_KEY = "senai_plano_ensino_active_id";
 
 // Remove undefined values to prevent Firestore serialization errors
 function stripUndefined<T>(obj: T): T {
@@ -155,8 +155,20 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       syncedSchedule = res.masterSchedule;
     }
 
+    // Ensure coursePlanData is always available
+    const preservedCoursePlan = s.coursePlanData
+      ? {
+          introducao: { ...defaultCoursePlanData.introducao, ...(s.coursePlanData.introducao || {}) },
+          perfilProfissional: { ...defaultCoursePlanData.perfilProfissional, ...(s.coursePlanData.perfilProfissional || {}) },
+          requisitosAcesso: { ...defaultCoursePlanData.requisitosAcesso, ...(s.coursePlanData.requisitosAcesso || {}) },
+          desenvolvimentoMetodologico: { ...defaultCoursePlanData.desenvolvimentoMetodologico, ...(s.coursePlanData.desenvolvimentoMetodologico || {}) },
+          persona: { ...defaultCoursePlanData.persona, ...(s.coursePlanData.persona || {}) },
+        }
+      : JSON.parse(JSON.stringify(defaultCoursePlanData));
+
     return {
       ...s,
+      coursePlanData: preservedCoursePlan,
       programmaticContent: syncedUnits,
       schedule: syncedSchedule,
     };
@@ -210,6 +222,7 @@ export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<void> {
     if (!syllabus || !syllabus.id) return;
     const cleanData = stripUndefined(syllabus);
     await setDoc(doc(db, "syllabi", syllabus.id), cleanData, { merge: true });
+    console.log(`[Firebase Cloud] Syllabus salvo com sucesso: ${syllabus.id}`);
   } catch (err) {
     console.error("Erro ao gravar syllabus no Firebase Cloud:", err);
   }
@@ -240,8 +253,30 @@ export async function saveAllSyllabiToCloud(syllabi: Syllabus[]): Promise<void> 
 }
 
 /**
+ * Force fetches latest documents from Firestore Cloud database
+ */
+export async function fetchCloudSyllabiNow(): Promise<Syllabus[] | null> {
+  try {
+    const syllabiCol = collection(db, "syllabi");
+    const snapshot = await getDocs(syllabiCol);
+    if (!snapshot.empty) {
+      const list: Syllabus[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as Syllabus);
+      });
+      const sanitized = sanitizeSyllabi(list);
+      saveSyllabiToStorage(sanitized);
+      return sanitized;
+    }
+  } catch (err) {
+    console.warn("Aviso ao buscar dados imediatos do Firebase:", err);
+  }
+  return null;
+}
+
+/**
  * Subscribes to real-time changes in Firestore syllabi collection.
- * Syncs automatically between different computers/browsers.
+ * Syncs automatically between different computers/browsers and Netlify deployments.
  */
 export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void): () => void {
   try {
@@ -285,54 +320,43 @@ export function createEmptySyllabus(): Syllabus {
 
   return {
     id: "syllabus-" + Date.now(),
-    courseTitle: "Nova Disciplina",
-    courseCode: "DISC-101",
-    workload: "60h",
+    courseTitle: "Mecânico de Usinagem Convencional",
+    courseCode: "CAI-7212-15",
+    workload: "800h",
     period,
-    department: "Departamento Geral",
-    level: "Graduação",
+    department: "Escola SENAI Oscar Lúcio Baldan - Monte Alto/SP",
+    level: "Formação Inicial e Continuada (Nível 2)",
     professorName: "Nome do Docente",
-    professorEmail: "docente@universidade.edu.br",
-    summary: "Digite aqui a ementa da disciplina...",
-    generalObjectives: "Digite o objetivo geral...",
-    specificObjectives: ["Objetivo específico 1", "Objetivo específico 2"],
-    programmaticContent: [
-      {
-        id: "unit-1-" + Date.now(),
-        unitTitle: "Unidade I: Introdução aos Conceitos Fundamentais",
-        topics: ["Tópico 1.1", "Tópico 1.2"],
-      },
-    ],
-    methodology: "Aulas expositivas e práticas com uso de tecnologia.",
+    professorEmail: "docente@sp.senai.br",
+    summary: "Usinar peças em máquinas de manufatura convencional...",
+    generalObjectives: "Desenvolver competências relativas à usinagem...",
+    specificObjectives: ["Operar torno convencional", "Operar fresadora convencional"],
+    programmaticContent: (proeducadorUnits || []).map((pu) => ({ ...pu })),
+    methodology: "Metodologia SENAI de Educação Profissional (MSEP)",
     evaluationCriteria: [
       {
         id: "eval-1",
-        name: "Avaliação Teórica",
-        weight: "50%",
-        description: "Prova individual escrita.",
+        name: "Dossiês Técnicos e Relatórios de SA",
+        weight: "30%",
+        description: "Qualidade dos relatórios técnicos e croquis ABNT.",
       },
       {
         id: "eval-2",
-        name: "Trabalhos Práticos",
-        weight: "50%",
-        description: "Exercícios e entregas em grupo.",
+        name: "Avaliação Prática de Oficina",
+        weight: "40%",
+        description: "Fabricação de peças e conjuntos em tolerância dimensional.",
       },
-    ],
-    basicBibliography: ["AUTOR, Nome. Título do Livro Principal. 1. ed. Cidade: Editora, 2024."],
-    complementaryBibliography: ["AUTOR, Nome. Título do Livro Complementar. 1. ed. Cidade: Editora, 2023."],
-    schedule: [
       {
-        id: "class-1-" + Date.now(),
-        classNumber: 1,
-        weekNumber: 1,
-        date: new Date().toISOString().split("T")[0],
-        topic: "Apresentação da Disciplina e Visão Geral",
-        unit: "Unidade I",
-        type: "teorica",
-        status: "planejada",
-        activities: "Leitura da ementa",
+        id: "eval-3",
+        name: "Rubricas Socioemocionais e Segurança",
+        weight: "30%",
+        description: "Postura profissional e uso de EPIs (NR-12).",
       },
     ],
+    basicBibliography: ["SENAI-SP. Coleção Pedagógica Usinagem Convencional. São Paulo: Editora SENAI, 2024."],
+    complementaryBibliography: ["ABNT NBR 8402. Desenho Técnico. Rio de Janeiro: ABNT."],
+    schedule: [],
+    coursePlanData: JSON.parse(JSON.stringify(defaultCoursePlanData)),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
