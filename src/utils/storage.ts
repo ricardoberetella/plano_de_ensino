@@ -50,127 +50,40 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   list = list.filter((s) => s.id !== "senai-usinagem-800h");
 
   return list.map((s) => {
-    let currentUnits = Array.isArray(s?.programmaticContent) ? s.programmaticContent : [];
+    if (!s) return s;
 
-    // Clean any invalid units
-    currentUnits = currentUnits.filter(
-      (u) =>
-        u &&
-        u.unitTitle &&
-        u.acronym !== "NOVA" &&
-        !u.unitTitle.toLowerCase().includes("nova unidade") &&
-        u.unitTitle.toLowerCase() !== "nova"
-    );
+    // Preserving all user programmatic units
+    let currentUnits = Array.isArray(s.programmaticContent) && s.programmaticContent.length > 0
+      ? s.programmaticContent
+      : (proeducadorUnits || []).map((pu) => ({ ...pu }));
 
-    // If there are no units at all in programmaticContent, initialize with proeducadorUnits
-    if (currentUnits.length === 0) {
-      currentUnits = (proeducadorUnits || []).map((pu) => ({ ...pu }));
-    }
+    // Preserving user schedule
+    let currentSchedule = Array.isArray(s.schedule) && s.schedule.length > 0
+      ? s.schedule
+      : [];
 
-    const sanitizedUnits = currentUnits.map((u) => {
-      let ac = u.acronym;
-      let unitId = u.id;
-      const title = (u.unitTitle || "").toUpperCase();
-      if (unitId === "uc-proc" || title.includes("PROCESSOS") || ac === "PROC" || ac === "PRUSC") {
-        ac = "PRUSC";
-        unitId = "uc-proc";
-      } else if (unitId === "uc-metr" || title.includes("METROLOGIA") || ac === "METR" || ac === "MINDU") {
-        ac = "MINDU";
-        unitId = "uc-metr";
-      } else if (unitId === "uc-fusi" || title.includes("FUNDAMENTOS")) {
-        ac = "FUSI";
-        unitId = "uc-fusi";
-      } else if (unitId === "uc-lidt" || title.includes("LEITURA")) {
-        ac = "LIDT";
-        unitId = "uc-lidt";
-      } else if (unitId === "uc-ciema" || title.includes("CIÊNCIAS") || title.includes("CIENCIAS")) {
-        ac = "CIEMA";
-        unitId = "uc-ciema";
-      } else if (unitId === "uc-crd" || unitId === "uc-cdmat" || title.includes("CONTROLE") || ac === "CDMAT" || ac === "CRD") {
-        ac = "CRD";
-        unitId = "uc-crd";
-      } else if (unitId === "uc-map" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA") || ac === "MAP") {
-        ac = "MAP";
-        unitId = "uc-map";
-      }
-
-      let sem: "1º SEMESTRE" | "2º SEMESTRE" = u.semester || "1º SEMESTRE";
-      if (["PRUSC", "MINDU"].includes(ac)) {
-        sem = "2º SEMESTRE";
-      } else if (["LIDT", "CIEMA", "CRD", "MAP", "FUSI"].includes(ac)) {
-        sem = "1º SEMESTRE";
-      }
-
-      const { module, turmaOptions, ...rest } = u as any;
-
-      return {
-        ...rest,
-        id: unitId,
-        unitTitle: rest.unitTitle,
-        acronym: ac,
-        semester: sem,
-        workload: rest.workload,
-        objective: rest.objective,
-        basicCapacities: Array.isArray(rest.basicCapacities) ? rest.basicCapacities : undefined,
-        socioemotionalCapacities: Array.isArray(rest.socioemotionalCapacities) ? rest.socioemotionalCapacities : undefined,
-        technicalCapacities: Array.isArray(rest.technicalCapacities) ? rest.technicalCapacities : undefined,
-        topics: Array.isArray(rest.topics) ? rest.topics : [],
-        lessonPlan: Array.isArray(rest.lessonPlan) ? rest.lessonPlan : [],
-        situationProblem: rest.situationProblem,
-        rubrics: Array.isArray(rest.rubrics) ? rest.rubrics : [],
-      };
-    });
-
-    // Deduplicate units by id
-    const uniqueUnits: any[] = [];
-    const seenIds = new Set<string>();
-    for (const unit of sanitizedUnits) {
-      if (!seenIds.has(unit.id)) {
-        seenIds.add(unit.id);
-        uniqueUnits.push(unit);
-      }
-    }
-
-    // Determine active professor and teacher schedule rules
-    const isGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
-    const targetProfessor = isGea ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
-    const teacherRules = TEACHER_SCHEDULE_RULES.filter((r) => r.professor === targetProfessor);
-
-    // Check if the syllabus already has populated lesson plans
-    const hasExistingLessons = uniqueUnits.some(
-      (u) => Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0
-    );
-
-    let syncedUnits = uniqueUnits;
-    let syncedSchedule = s.schedule || [];
-
-    // Only auto-generate initial schedule if the syllabus has never been initialized with lesson plans
-    if (!hasExistingLessons) {
+    // If both units and schedule are empty initial state, generate defaults
+    if (currentSchedule.length === 0 && currentUnits.length > 0) {
+      const isGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
+      const targetProfessor = isGea ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
+      const teacherRules = TEACHER_SCHEDULE_RULES.filter((r) => r.professor === targetProfessor);
       const res = generateSyllabusSchedule(
-        uniqueUnits,
+        currentUnits,
         INITIAL_SCHOOL_EVENTS_2026,
         teacherRules
       );
-      syncedUnits = res.updatedUnits;
-      syncedSchedule = res.masterSchedule;
+      currentUnits = res.updatedUnits;
+      currentSchedule = res.masterSchedule;
     }
 
-    // Ensure coursePlanData is always available
-    const preservedCoursePlan = s.coursePlanData
-      ? {
-          introducao: { ...defaultCoursePlanData.introducao, ...(s.coursePlanData.introducao || {}) },
-          perfilProfissional: { ...defaultCoursePlanData.perfilProfissional, ...(s.coursePlanData.perfilProfissional || {}) },
-          requisitosAcesso: { ...defaultCoursePlanData.requisitosAcesso, ...(s.coursePlanData.requisitosAcesso || {}) },
-          desenvolvimentoMetodologico: { ...defaultCoursePlanData.desenvolvimentoMetodologico, ...(s.coursePlanData.desenvolvimentoMetodologico || {}) },
-          persona: { ...defaultCoursePlanData.persona, ...(s.coursePlanData.persona || {}) },
-        }
-      : JSON.parse(JSON.stringify(defaultCoursePlanData));
+    // Preserve coursePlanData directly if user has edited it
+    const finalCoursePlan = s.coursePlanData || JSON.parse(JSON.stringify(defaultCoursePlanData));
 
     return {
       ...s,
-      coursePlanData: preservedCoursePlan,
-      programmaticContent: syncedUnits,
-      schedule: syncedSchedule,
+      coursePlanData: finalCoursePlan,
+      programmaticContent: currentUnits,
+      schedule: currentSchedule,
     };
   });
 }
