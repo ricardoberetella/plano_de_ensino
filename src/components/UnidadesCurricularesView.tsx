@@ -1250,10 +1250,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                          <th className="p-4 w-28">Data / Carga</th>
-                          <th className="p-4">Conhecimentos / Tópico</th>
-                          <th className="p-4">Estratégia Didática</th>
-                          <th className="p-4 hidden md:table-cell">Recursos / Ambientes</th>
+                          <th className="p-4 w-32 whitespace-nowrap">Horas/Aulas/Data</th>
+                          <th className="p-4">Capacidades</th>
+                          <th className="p-4">Conhecimentos</th>
+                          <th className="p-4">Estratégias</th>
+                          <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
                           <th className="p-3 w-24 text-center">Ações</th>
                         </tr>
                       </thead>
@@ -1270,7 +1271,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                 }`}
                               >
-                                <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap">
+                                {/* 1. Horas/Aulas/Data */}
+                                <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
                                   <div className="flex items-center gap-1.5">
                                     <Calendar className="w-3.5 h-3.5 text-blue-600" />
                                     <span>{lesson.date}</span>
@@ -1279,16 +1281,29 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     {lesson.hours}
                                   </span>
                                 </td>
-                                <td className="p-4 font-bold text-slate-800 dark:text-slate-100">
+
+                                {/* 2. Capacidades */}
+                                <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
+                                  {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
+                                </td>
+
+                                {/* 3. Conhecimentos */}
+                                <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
                                   <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
                                 </td>
-                                <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+
+                                {/* 4. Estratégias */}
+                                <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
                                   {renderFormattedText(lesson.estrategias)}
                                 </td>
-                                <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell">
+
+                                {/* 5. Recursos/Ambientes */}
+                                <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
                                   {lesson.recursos}
                                 </td>
-                                <td className="p-2 text-center whitespace-nowrap">
+
+                                {/* 6. Ações */}
+                                <td className="p-2 text-center whitespace-nowrap align-top">
                                   <div className="flex flex-col items-center justify-center gap-1.5">
                                     <button
                                       onClick={() => {
@@ -1331,7 +1346,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           })
                         ) : (
                           <tr>
-                            <td colSpan={5} className="p-8 text-center text-slate-400 font-bold italic">
+                            <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
                               Nenhuma aula encontrada para o filtro.
                             </td>
                           </tr>
