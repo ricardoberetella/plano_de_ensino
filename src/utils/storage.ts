@@ -136,11 +136,24 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
     const targetProfessor = isGea ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
     const teacherRules = TEACHER_SCHEDULE_RULES.filter((r) => r.professor === targetProfessor);
 
-    const { updatedUnits: syncedUnits, masterSchedule: syncedSchedule } = generateSyllabusSchedule(
-      uniqueUnits,
-      INITIAL_SCHOOL_EVENTS_2026,
-      teacherRules
+    // Check if the syllabus already has populated lesson plans
+    const hasExistingLessons = uniqueUnits.some(
+      (u) => Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0
     );
+
+    let syncedUnits = uniqueUnits;
+    let syncedSchedule = s.schedule || [];
+
+    // Only auto-generate initial schedule if the syllabus has never been initialized with lesson plans
+    if (!hasExistingLessons) {
+      const res = generateSyllabusSchedule(
+        uniqueUnits,
+        INITIAL_SCHOOL_EVENTS_2026,
+        teacherRules
+      );
+      syncedUnits = res.updatedUnits;
+      syncedSchedule = res.masterSchedule;
+    }
 
     return {
       ...s,
