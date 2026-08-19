@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { CheckCircle2, AlertCircle, X, ShieldCheck } from "lucide-react";
 import { Syllabus, ActiveTab, UserProfile } from "./types/syllabus";
 import { initialSyllabi } from "./data/mockSyllabi";
 import {
@@ -8,8 +9,10 @@ import {
   setActiveSyllabusId,
   createEmptySyllabus,
   saveSyllabusToCloud,
+  saveAllSyllabiToCloud,
   deleteSyllabusFromCloud,
   subscribeToCloudSyllabi,
+  sanitizeSyllabi,
 } from "./utils/storage";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
@@ -24,6 +27,12 @@ import { LoginModal } from "./components/LoginModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { triggerPrintSyllabus } from "./utils/exportUtils";
 
+interface ToastNotification {
+  id: string;
+  message: string;
+  type: "success" | "error" | "info";
+}
+
 export default function App() {
   const [syllabi, setSyllabi] = useState<Syllabus[]>(() => loadSyllabiFromStorage());
   const [activeId, setActiveId] = useState<string>(() => {
@@ -33,6 +42,8 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("menu");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Authentication State: null by default (requires password on initial app load)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
@@ -52,6 +63,20 @@ export default function App() {
       return true;
     }
   });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    const id = Date.now().toString();
+    setToast({ id, message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Switch professor user and automatically focus their respective syllabus
   const handleChangeUser = (newUser: UserProfile) => {
@@ -127,14 +152,73 @@ export default function App() {
   const activeSyllabus =
     syllabi.find((s) => s.id === activeId) || syllabi[0] || createEmptySyllabus();
 
-  const handleUpdateActiveSyllabus = (updated: Syllabus) => {
+  const handleUpdateActiveSyllabus = async (updated: Syllabus) => {
     const withTimestamp = {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
     setSyllabi((prev) => prev.map((s) => (s.id === withTimestamp.id ? withTimestamp : s)));
     // Save to Firebase Cloud Firestore immediately for this specific professor/syllabus
-    saveSyllabusToCloud(withTimestamp);
+    const success = await saveSyllabusToCloud(withTimestamp);
+    if (success) {
+      const timeStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      showToast(`Alterações salvas no Firebase Firestore com sucesso! (${timeStr})`, "success");
+    }
+  };
+
+  const handleManualSyncCloud = async () => {
+    setIsSyncing(true);
+    saveSyllabiToStorage(syllabi);
+    const ok = await saveAllSyllabiToCloud(syllabi);
+    setIsSyncing(false);
+    if (ok) {
+      const timeStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      showToast(`Todos os Planos de Curso foram salvos na Nuvem Firebase! (${timeStr})`, "success");
+    } else {
+      showToast("Aviso: Houve uma instabilidade na conexão com a nuvem, mas seus dados estão protegidos localmente.", "info");
+    }
+  };
+
+  // Export full backup to a JSON file download
+  const handleExportBackup = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(syllabi, null, 2));
+      const downloadAnchor = document.createElement("a");
+      const dateStr = new Date().toISOString().split("T")[0];
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `senai-plano-ensino-backup-${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Backup baixado com sucesso no seu computador!", "success");
+    } catch (err) {
+      console.error("Erro ao exportar backup", err);
+      showToast("Erro ao gerar arquivo de backup.", "error");
+    }
+  };
+
+  // Import backup from JSON file
+  const handleImportBackup = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = sanitizeSyllabi(parsed);
+          setSyllabi(sanitized);
+          saveSyllabiToStorage(sanitized);
+          await saveAllSyllabiToCloud(sanitized);
+          showToast("Backup restaurado e sincronizado com o Firebase com sucesso!", "success");
+        } else {
+          showToast("Arquivo de backup inválido.", "error");
+        }
+      } catch (err) {
+        console.error("Erro ao importar backup", err);
+        showToast("Erro ao ler arquivo de backup JSON.", "error");
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleSelectSyllabus = (id: string) => {
@@ -143,24 +227,24 @@ export default function App() {
     if (selected) {
       if (
         selected.professorName.toLowerCase().includes("gea") &&
-        !currentUser.name.toLowerCase().includes("gea")
+        !currentUser?.name.toLowerCase().includes("gea")
       ) {
         setCurrentUser({
           id: "user-gea",
           name: "Prof. Ricardo Gea",
           email: "ricardo.gea@sp.senai.br",
-          role: currentUser.role || "admin",
+          role: currentUser?.role || "admin",
           unit: "Departamento Regional SENAI - SP",
         });
       } else if (
         selected.professorName.toLowerCase().includes("beretella") &&
-        !currentUser.name.toLowerCase().includes("beretella")
+        !currentUser?.name.toLowerCase().includes("beretella")
       ) {
         setCurrentUser({
           id: "user-beretella",
           name: "Prof. Ricardo Beretella",
           email: "ricardo.beretella@sp.senai.br",
-          role: currentUser.role || "admin",
+          role: currentUser?.role || "admin",
           unit: "Escola SENAI Roberto Mange - Campinas",
         });
       }
@@ -168,7 +252,7 @@ export default function App() {
   };
 
   const handleCreateNew = () => {
-    if (currentUser.role !== "admin") {
+    if (currentUser?.role !== "admin") {
       setIsLoginModalOpen(true);
       return;
     }
@@ -179,10 +263,11 @@ export default function App() {
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
     saveSyllabusToCloud(newSyllabus);
+    showToast("Novo Plano de Curso criado e salvo!", "success");
   };
 
   const handleDeleteSyllabus = (id: string) => {
-    if (currentUser.role !== "admin") {
+    if (currentUser?.role !== "admin") {
       setIsLoginModalOpen(true);
       return;
     }
@@ -195,20 +280,24 @@ export default function App() {
         setActiveId(remaining[0].id);
       }
       deleteSyllabusFromCloud(id);
+      showToast("Plano de Curso excluído.", "info");
     }
   };
 
   const handleSyllabusGeneratedWithAI = (newSyllabus: Syllabus) => {
-    newSyllabus.professorName = currentUser.name;
-    newSyllabus.professorEmail = currentUser.email;
+    if (currentUser) {
+      newSyllabus.professorName = currentUser.name;
+      newSyllabus.professorEmail = currentUser.email;
+    }
     setSyllabi((prev) => [newSyllabus, ...prev]);
     setActiveId(newSyllabus.id);
     setActiveTab("unidades");
     saveSyllabusToCloud(newSyllabus);
+    showToast("Plano de Curso gerado por IA salvo na nuvem!", "success");
   };
 
   const handleOpenRefineModal = (sectionName: string, content: any) => {
-    if (currentUser.role !== "admin") {
+    if (currentUser?.role !== "admin") {
       setIsLoginModalOpen(true);
       return;
     }
@@ -253,6 +342,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased flex flex-col selection:bg-blue-600 selection:text-white">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 ${
+            toast.type === "success"
+              ? "bg-emerald-900/95 text-emerald-100 border-emerald-700 shadow-emerald-950/40"
+              : toast.type === "error"
+              ? "bg-red-900/95 text-red-100 border-red-700 shadow-red-950/40"
+              : "bg-blue-900/95 text-blue-100 border-blue-700 shadow-blue-950/40"
+          }`}
+        >
+          {toast.type === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+          {toast.type === "error" && <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />}
+          {toast.type === "info" && <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0" />}
+          <span className="text-xs font-bold leading-snug">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-auto p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Left Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -289,10 +402,10 @@ export default function App() {
               onGoToTab={(tab) => setActiveTab(tab)}
               onCreateNew={handleCreateNew}
               onDeleteSyllabus={handleDeleteSyllabus}
-              onSyncCloud={() => {
-                saveSyllabiToStorage(syllabi);
-                alert("Dados sincronizados com o banco em nuvem (Firebase Cloud)!");
-              }}
+              onSyncCloud={handleManualSyncCloud}
+              onExportBackup={handleExportBackup}
+              onImportBackup={handleImportBackup}
+              isSyncing={isSyncing}
             />
           )}
 
