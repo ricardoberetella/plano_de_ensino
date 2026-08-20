@@ -227,10 +227,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       ? currentUnit.stages.find((s) => s.id === selectedStageId) || currentUnit.stages[0]
       : null;
 
-  // Topic Inline Edit state
-  const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
-  const [editingTopicText, setEditingTopicText] = useState("");
-
   // Helper to update current unit in syllabus (with stage support)
   const handleUpdateCurrentUnit = (updatedUnit: ProgrammaticUnit) => {
     const updatedList = units.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
@@ -2625,11 +2621,82 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
+              {/* Professor Target Scope Selection */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
+                  Destino da Gravação / Perfil do Professor:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      lessonTargetScope === "Ambos os Professores"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="lessonTargetScope"
+                      value="Ambos os Professores"
+                      checked={lessonTargetScope === "Ambos os Professores"}
+                      onChange={() => setLessonTargetScope("Ambos os Professores")}
+                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
+                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      lessonTargetScope === "Prof. Ricardo Beretella"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="lessonTargetScope"
+                      value="Prof. Ricardo Beretella"
+                      checked={lessonTargetScope === "Prof. Ricardo Beretella"}
+                      onChange={() => setLessonTargetScope("Prof. Ricardo Beretella")}
+                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma A (Torneamento)</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      lessonTargetScope === "Prof. Ricardo Gea"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="lessonTargetScope"
+                      value="Prof. Ricardo Gea"
+                      checked={lessonTargetScope === "Prof. Ricardo Gea"}
+                      onChange={() => setLessonTargetScope("Prof. Ricardo Gea")}
+                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma B (Fresagem)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Select Stage if UC has stages */}
               {currentUnit && currentUnit.stages && currentUnit.stages.length > 0 && (
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                    Etapa / Rotação da Unidade Curricular
+                    Etapa / Rotação Ativa de Referência
                   </label>
                   <select
                     value={lessonForm.stageId || currentUnit.stages[0].id}
@@ -2645,7 +2712,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                     Data do Encontro (DD/MM/AAAA)
@@ -2657,6 +2724,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     placeholder="Ex: 25/03/2026"
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                    Ao salvar para ambos, a data da outra turma permanece protegida.
+                  </p>
                 </div>
 
                 <div>
@@ -2673,21 +2743,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     <option value="3h">3h</option>
                     <option value="4h">4h</option>
                     <option value="8h">8h</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                    Docente Responsável
-                  </label>
-                  <select
-                    value={lessonForm.professor || "Prof. Ricardo Beretella"}
-                    onChange={(e) => setLessonForm({ ...lessonForm, professor: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Prof. Ricardo Beretella">Prof. Ricardo Beretella</option>
-                    <option value="Prof. Ricardo Gea">Prof. Ricardo Gea</option>
-                    <option value="Prof. Ricardo Beretella / Prof. Ricardo Gea">Ambos os Docentes</option>
                   </select>
                 </div>
               </div>
@@ -2784,6 +2839,77 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
+              {/* Target Scope */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
+                  Destino da Gravação / Perfil do Professor:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      spTargetScope === "Ambos os Professores"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="spTargetScope"
+                      value="Ambos os Professores"
+                      checked={spTargetScope === "Ambos os Professores"}
+                      onChange={() => setSPTargetScope("Ambos os Professores")}
+                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
+                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      spTargetScope === "Prof. Ricardo Beretella"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="spTargetScope"
+                      value="Prof. Ricardo Beretella"
+                      checked={spTargetScope === "Prof. Ricardo Beretella"}
+                      onChange={() => setSPTargetScope("Prof. Ricardo Beretella")}
+                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      spTargetScope === "Prof. Ricardo Gea"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="spTargetScope"
+                      value="Prof. Ricardo Gea"
+                      checked={spTargetScope === "Prof. Ricardo Gea"}
+                      onChange={() => setSPTargetScope("Prof. Ricardo Gea")}
+                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Título da Situação de Aprendizagem
@@ -2930,6 +3056,77 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
+              {/* Target Scope */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
+                  Destino da Gravação / Perfil do Professor:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      rubricTargetScope === "Ambos os Professores"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="rubricTargetScope"
+                      value="Ambos os Professores"
+                      checked={rubricTargetScope === "Ambos os Professores"}
+                      onChange={() => setRubricTargetScope("Ambos os Professores")}
+                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
+                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      rubricTargetScope === "Prof. Ricardo Beretella"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="rubricTargetScope"
+                      value="Prof. Ricardo Beretella"
+                      checked={rubricTargetScope === "Prof. Ricardo Beretella"}
+                      onChange={() => setRubricTargetScope("Prof. Ricardo Beretella")}
+                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      rubricTargetScope === "Prof. Ricardo Gea"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="rubricTargetScope"
+                      value="Prof. Ricardo Gea"
+                      checked={rubricTargetScope === "Prof. Ricardo Gea"}
+                      onChange={() => setRubricTargetScope("Prof. Ricardo Gea")}
+                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Capacidade / Competência Avaliada
@@ -3013,6 +3210,256 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               >
                 <Save className="w-4 h-4" />
                 <span>Salvar Rubrica</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Editar / Adicionar Conhecimento & Tópico */}
+      {isTopicModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                  {editingTopicIndex !== null ? "Editar Conhecimento / Tópico" : "Adicionar Novo Conhecimento / Tópico"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsTopicModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs font-semibold">
+              {/* Target Scope */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
+                  Destino da Gravação / Perfil do Professor:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      topicTargetScope === "Ambos os Professores"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="topicTargetScope"
+                      value="Ambos os Professores"
+                      checked={topicTargetScope === "Ambos os Professores"}
+                      onChange={() => setTopicTargetScope("Ambos os Professores")}
+                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
+                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      topicTargetScope === "Prof. Ricardo Beretella"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="topicTargetScope"
+                      value="Prof. Ricardo Beretella"
+                      checked={topicTargetScope === "Prof. Ricardo Beretella"}
+                      onChange={() => setTopicTargetScope("Prof. Ricardo Beretella")}
+                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      topicTargetScope === "Prof. Ricardo Gea"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="topicTargetScope"
+                      value="Prof. Ricardo Gea"
+                      checked={topicTargetScope === "Prof. Ricardo Gea"}
+                      onChange={() => setTopicTargetScope("Prof. Ricardo Gea")}
+                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Texto do Conhecimento / Tópico Programático
+                </label>
+                <textarea
+                  rows={4}
+                  value={topicModalText}
+                  onChange={(e) => setTopicModalText(e.target.value)}
+                  placeholder="Digite o conhecimento ou conteúdo detalhado..."
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setIsTopicModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveTopicModal}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                <Save className="w-4 h-4" />
+                <span>Salvar Conhecimento</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 5: Editar / Adicionar Capacidade */}
+      {isCapacityModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                  {editingCapacityIndex !== null
+                    ? `Editar Capacidade (${capacityCategory === "socioemotional" ? "Socioemocional" : "Técnica"})`
+                    : `Adicionar Nova Capacidade (${capacityCategory === "socioemotional" ? "Socioemocional" : "Técnica"})`}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCapacityModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs font-semibold">
+              {/* Target Scope */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
+                  Destino da Gravação / Perfil do Professor:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      capacityTargetScope === "Ambos os Professores"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="capacityTargetScope"
+                      value="Ambos os Professores"
+                      checked={capacityTargetScope === "Ambos os Professores"}
+                      onChange={() => setCapacityTargetScope("Ambos os Professores")}
+                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
+                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      capacityTargetScope === "Prof. Ricardo Beretella"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="capacityTargetScope"
+                      value="Prof. Ricardo Beretella"
+                      checked={capacityTargetScope === "Prof. Ricardo Beretella"}
+                      onChange={() => setCapacityTargetScope("Prof. Ricardo Beretella")}
+                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                      capacityTargetScope === "Prof. Ricardo Gea"
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="capacityTargetScope"
+                      value="Prof. Ricardo Gea"
+                      checked={capacityTargetScope === "Prof. Ricardo Gea"}
+                      onChange={() => setCapacityTargetScope("Prof. Ricardo Gea")}
+                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
+                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Texto da Capacidade
+                </label>
+                <textarea
+                  rows={4}
+                  value={capacityModalText}
+                  onChange={(e) => setCapacityModalText(e.target.value)}
+                  placeholder="Descreva a capacidade técnica ou socioemocional..."
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setIsCapacityModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveCapacityModal}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                <Save className="w-4 h-4" />
+                <span>Salvar Capacidade</span>
               </button>
             </div>
           </div>
