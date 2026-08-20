@@ -311,7 +311,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     acronym: "PRUSC",
     semester: "2º SEMESTRE",
     module: "Módulo Específico",
-    workload: "280h",
+    workload: "160h",
     objective:
       "Operar tornos mecânicos universais, fresadoras universais e retificadoras para fabricação de peças mecânicas de precisão dentro das tolerâncias especificadas.",
     basicCapacities: [
@@ -382,7 +382,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     acronym: "MINDU",
     semester: "2º SEMESTRE",
     module: "Módulo Específico",
-    workload: "120h",
+    workload: "80h",
     objective:
       "Inspecionar e controlar peças e conjuntos usinados complexos através de técnicas avançadas de metrologia dimensional, geométrica e rugosimetria.",
     basicCapacities: [
