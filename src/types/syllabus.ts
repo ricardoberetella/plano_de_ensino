@@ -51,6 +51,9 @@ export interface LessonPlanItem {
   recursos: string;
   professor?: string; // "Prof. Ricardo Beretella" | "Prof. Ricardo Gea"
   status?: "planejada" | "concluida" | "reagendada";
+  stageId?: string;
+  stageTitle?: string;
+  stageTurma?: string;
 }
 
 export interface SituationProblem {
