@@ -1300,9 +1300,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     Carga Horária Total: {currentUnit.workload}
                   </span>
                 )}
-                {selectedProfessorFilter !== "todos" && (
+                {currentUser?.name && (
                   <span className="inline-block px-3 py-1 bg-blue-900/90 text-blue-200 border border-blue-700/80 font-black text-[11px] rounded-lg uppercase shadow-xs">
-                    Seus Encontros ({selectedProfessorFilter}): {activeLessonPlan.length} Dias de Aula ({activeLessonPlan.reduce((acc, lp) => acc + (parseInt(String(lp?.hours || "").replace(/\D/g, ""), 10) || 0), 0)}h)
+                    Docente: {currentUser.name} • {activeLessonPlan.length} Aulas ({activeLessonPlan.reduce((acc, lp) => acc + (parseInt(String(lp?.hours || "").replace(/\D/g, ""), 10) || 0), 0)}h)
                   </span>
                 )}
               </div>
@@ -1449,9 +1449,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 <button
                   onClick={() => {
                     if (currentUnit) {
-                      const activeProf = selectedProfessorFilter !== "todos"
-                        ? selectedProfessorFilter
-                        : (currentUser?.name?.toLowerCase().includes("gea") ? "Prof. Ricardo Gea" : (syllabus.professorName || "Prof. Ricardo Beretella"));
+                      const activeProf = currentUser?.name?.toLowerCase().includes("gea")
+                        ? "Prof. Ricardo Gea"
+                        : (currentUser?.name || syllabus.professorName || "Prof. Ricardo Beretella");
                       printUnidadeCurricularPDF(currentUnit, syllabus, activeProf);
                     } else if (onPrint) {
                       onPrint();
@@ -2033,12 +2033,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           const stageLessons = (stage.lessonPlan || []).filter((item) => {
                             if (!item) return false;
                             
-                            // Professor filter
-                            if (selectedProfessorFilter !== "todos") {
-                              const targetProf = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
-                              if (item.professor && !item.professor.toLowerCase().includes(targetProf)) {
-                                return false;
-                              }
+                            // Professor filter by active sidebar professor
+                            const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+                            const isGea = currentUser?.name?.toLowerCase().includes("gea");
+                            if (isBeretella && item.professor && !item.professor.toLowerCase().includes("beretella") && !item.professor.toLowerCase().includes("ambos")) {
+                              return false;
+                            }
+                            if (isGea && item.professor && !item.professor.toLowerCase().includes("gea") && !item.professor.toLowerCase().includes("ambos")) {
+                              return false;
                             }
 
                             // Search filter
