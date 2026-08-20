@@ -68,6 +68,23 @@ const renderFormattedText = (text?: string) => {
   });
 };
 
+export function parseDateSortKey(dateStr?: string): number {
+  if (!dateStr || typeof dateStr !== "string") return 9999999999999;
+  const iso = parseDateToISO(dateStr);
+  if (iso) {
+    return new Date(iso + "T12:00:00").getTime();
+  }
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    let year = match[3] ? parseInt(match[3], 10) : 2026;
+    if (year < 100) year += 2000;
+    return new Date(year, month - 1, day, 12, 0, 0).getTime();
+  }
+  return 9999999999999;
+}
+
 export const STAGE_THEMES = [
   {
     stageNum: 1,
@@ -290,25 +307,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       ? activeStage.topics
       : currentUnit?.topics || defaultMatchingUnit?.topics) || [];
 
-  // Target Scope Types and Helper
-  type TargetScopeType = "Prof. Ricardo Beretella" | "Prof. Ricardo Gea" | "Ambos os Professores";
-
-  const getStagesByScope = (stages: any[], scope: TargetScopeType) => {
-    if (scope === "Ambos os Professores") return stages;
-    if (scope === "Prof. Ricardo Beretella") {
-      return stages.filter((st, idx) => st.turma === "Turma A" || idx % 2 === 0 || st.title?.toLowerCase().includes("torneamento") || st.title?.toLowerCase().includes("turma a"));
-    }
-    if (scope === "Prof. Ricardo Gea") {
-      return stages.filter((st, idx) => st.turma === "Turma B" || idx % 2 === 1 || st.title?.toLowerCase().includes("fresagem") || st.title?.toLowerCase().includes("turma b"));
-    }
-    return stages;
-  };
-
   // 1. TOPICS (CONHECIMENTOS) MODAL STATE
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
   const [topicModalText, setTopicModalText] = useState("");
-  const [topicTargetScope, setTopicTargetScope] = useState<TargetScopeType>("Ambos os Professores");
 
   const handleOpenAddTopic = () => {
     if (!isAdmin) {
@@ -317,7 +319,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingTopicIndex(null);
     setTopicModalText("");
-    setTopicTargetScope("Ambos os Professores");
     setIsTopicModalOpen(true);
   };
 
@@ -328,7 +329,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingTopicIndex(index);
     setTopicModalText(currentText);
-    setTopicTargetScope("Ambos os Professores");
     setIsTopicModalOpen(true);
   };
 
@@ -337,35 +337,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     const text = topicModalText.trim();
     const isAdding = editingTopicIndex === null;
 
-    if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const targetStages = getStagesByScope(currentUnit.stages, topicTargetScope);
-      const targetStageIds = targetStages.map((s) => s.id);
-
-      const nextStages = currentUnit.stages.map((st) => {
-        if (!targetStageIds.includes(st.id)) return st;
-        const currentTopics = [...(st.topics || [])];
-        if (isAdding) {
-          return { ...st, topics: [...currentTopics, text] };
-        } else {
-          const updated = [...currentTopics];
-          if (editingTopicIndex !== null && editingTopicIndex < updated.length) {
-            updated[editingTopicIndex] = text;
-          } else {
-            updated.push(text);
-          }
-          return { ...st, topics: updated };
-        }
-      });
-
-      const nextUnitTopics = isAdding
-        ? [...(currentUnit.topics || []), text]
-        : (currentUnit.topics || []).map((t, idx) => (idx === editingTopicIndex ? text : t));
-
-      handleUpdateCurrentUnit({
-        ...currentUnit,
-        topics: nextUnitTopics,
-        stages: nextStages,
-      });
+    if (activeStage) {
+      const currentTopics = [...(activeStage.topics || [])];
+      const nextTopics = isAdding
+        ? [...currentTopics, text]
+        : currentTopics.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateActiveStage({ topics: nextTopics });
     } else {
       const nextTopics = isAdding
         ? [...(currentUnit.topics || []), text]
@@ -374,12 +351,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
 
     setIsTopicModalOpen(false);
-    setSyncSuccessToast(
-      topicTargetScope === "Ambos os Professores"
-        ? "Conhecimento gravado automaticamente nos perfis dos 2 professores!"
-        : `Conhecimento gravado para ${topicTargetScope}!`
-    );
-    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   const handleDeleteTopic = (index: number) => {
@@ -402,7 +373,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
   const [capacityCategory, setCapacityCategory] = useState<"basic_technical" | "socioemotional">("basic_technical");
   const [capacityModalText, setCapacityModalText] = useState("");
-  const [capacityTargetScope, setCapacityTargetScope] = useState<TargetScopeType>("Ambos os Professores");
 
   const handleOpenAddCapacity = (category: "basic_technical" | "socioemotional") => {
     if (!isAdmin) {
@@ -412,7 +382,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setEditingCapacityIndex(null);
     setCapacityCategory(category);
     setCapacityModalText("");
-    setCapacityTargetScope("Ambos os Professores");
     setIsCapacityModalOpen(true);
   };
 
@@ -424,7 +393,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setEditingCapacityIndex(index);
     setCapacityCategory(category);
     setCapacityModalText(currentText);
-    setCapacityTargetScope("Ambos os Professores");
     setIsCapacityModalOpen(true);
   };
 
@@ -433,65 +401,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     const text = capacityModalText.trim();
     const isAdding = editingCapacityIndex === null;
 
-    if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const targetStages = getStagesByScope(currentUnit.stages, capacityTargetScope);
-      const targetStageIds = targetStages.map((s) => s.id);
-
-      const nextStages = currentUnit.stages.map((st) => {
-        if (!targetStageIds.includes(st.id)) return st;
-        const updated = { ...st };
-
-        if (capacityCategory === "socioemotional") {
-          const list = [...(st.socioemotionalCapacities || [])];
-          if (isAdding) {
-            updated.socioemotionalCapacities = [...list, text];
-          } else {
-            const nextList = [...list];
-            if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
-              nextList[editingCapacityIndex] = text;
-            } else {
-              nextList.push(text);
-            }
-            updated.socioemotionalCapacities = nextList;
-          }
+    if (activeStage) {
+      if (capacityCategory === "socioemotional") {
+        const list = [...(activeStage.socioemotionalCapacities || [])];
+        const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+        handleUpdateActiveStage({ socioemotionalCapacities: nextList });
+      } else {
+        const hasBasic = Array.isArray(activeStage.basicCapacities) && activeStage.basicCapacities.length > 0;
+        if (hasBasic) {
+          const list = [...(activeStage.basicCapacities || [])];
+          const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+          handleUpdateActiveStage({ basicCapacities: nextList });
         } else {
-          // basic or technical
-          const hasBasic = Array.isArray(st.basicCapacities) && st.basicCapacities.length > 0;
-          if (hasBasic) {
-            const list = [...(st.basicCapacities || [])];
-            if (isAdding) {
-              updated.basicCapacities = [...list, text];
-            } else {
-              const nextList = [...list];
-              if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
-                nextList[editingCapacityIndex] = text;
-              } else {
-                nextList.push(text);
-              }
-              updated.basicCapacities = nextList;
-            }
-          } else {
-            const list = [...(st.technicalCapacities || [])];
-            if (isAdding) {
-              updated.technicalCapacities = [...list, text];
-            } else {
-              const nextList = [...list];
-              if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
-                nextList[editingCapacityIndex] = text;
-              } else {
-                nextList.push(text);
-              }
-              updated.technicalCapacities = nextList;
-            }
-          }
+          const list = [...(activeStage.technicalCapacities || [])];
+          const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+          handleUpdateActiveStage({ technicalCapacities: nextList });
         }
-        return updated;
-      });
-
-      handleUpdateCurrentUnit({
-        ...currentUnit,
-        stages: nextStages,
-      });
+      }
     } else {
       if (capacityCategory === "socioemotional") {
         const list = currentUnit.socioemotionalCapacities || [];
@@ -512,12 +438,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
 
     setIsCapacityModalOpen(false);
-    setSyncSuccessToast(
-      capacityTargetScope === "Ambos os Professores"
-        ? "Capacidade gravada automaticamente nos perfis dos 2 professores!"
-        : `Capacidade gravada para ${capacityTargetScope}!`
-    );
-    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   // 3. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
@@ -532,7 +452,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     };
 
   const [isSPModalOpen, setIsSPModalOpen] = useState(false);
-  const [spTargetScope, setSPTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [spForm, setSPForm] = useState<SituationProblem>({
     title: "",
     contextualization: "",
@@ -553,7 +472,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         expectedResults: activeSituationProblem.expectedResults ? [...activeSituationProblem.expectedResults] : [""],
       });
     }
-    setSPTargetScope("Ambos os Professores");
     setIsSPModalOpen(true);
   };
 
@@ -566,22 +484,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       expectedResults: spForm.expectedResults.map((r) => r.trim()).filter(Boolean),
     };
 
-    if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const targetStages = getStagesByScope(currentUnit.stages, spTargetScope);
-      const targetStageIds = targetStages.map((s) => s.id);
-
-      const nextStages = currentUnit.stages.map((st) => {
-        if (targetStageIds.includes(st.id)) {
-          return { ...st, situationProblem: JSON.parse(JSON.stringify(cleanedSP)) };
-        }
-        return st;
-      });
-
-      handleUpdateCurrentUnit({
-        ...currentUnit,
-        situationProblem: cleanedSP,
-        stages: nextStages,
-      });
+    if (activeStage) {
+      handleUpdateActiveStage({ situationProblem: cleanedSP });
     } else {
       handleUpdateCurrentUnit({
         ...currentUnit,
@@ -590,12 +494,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
 
     setIsSPModalOpen(false);
-    setSyncSuccessToast(
-      spTargetScope === "Ambos os Professores"
-        ? "Situação-Problema gravada automaticamente nos perfis dos 2 professores!"
-        : `Situação-Problema gravada para ${spTargetScope}!`
-    );
-    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   // 4. RUBRICS EDIT STATE & HANDLERS
@@ -606,7 +504,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
   const [editingRubricIndex, setEditingRubricIndex] = useState<number | null>(null);
-  const [rubricTargetScope, setRubricTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [rubricForm, setRubricForm] = useState<RubricItem>({
     capacity: "",
     nsa: "",
@@ -628,7 +525,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       par: "Demonstrou a capacidade de forma parcialmente autônoma com pequenos ajustes.",
       aut: "Demonstrou a capacidade de forma plena, autônoma e com rigorosa precisão.",
     });
-    setRubricTargetScope("Ambos os Professores");
     setIsRubricModalOpen(true);
   };
 
@@ -639,41 +535,18 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingRubricIndex(index);
     setRubricForm({ ...rubric });
-    setRubricTargetScope("Ambos os Professores");
     setIsRubricModalOpen(true);
   };
 
   const handleSaveRubric = () => {
     if (!currentUnit) return;
     const currentList = activeRubricsList;
-    let nextList: RubricItem[] = [];
+    const nextList = editingRubricIndex !== null
+      ? currentList.map((item, idx) => (idx === editingRubricIndex ? { ...rubricForm } : item))
+      : [...currentList, { ...rubricForm }];
 
-    if (editingRubricIndex !== null) {
-      nextList = currentList.map((item, idx) => (idx === editingRubricIndex ? { ...rubricForm } : item));
-    } else {
-      nextList = [...currentList, { ...rubricForm }];
-    }
-
-    if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const targetStages = getStagesByScope(currentUnit.stages, rubricTargetScope);
-      const targetStageIds = targetStages.map((s) => s.id);
-
-      const nextStages = currentUnit.stages.map((st) => {
-        if (!targetStageIds.includes(st.id)) return st;
-        const stList = [...(st.rubrics || [])];
-        if (editingRubricIndex !== null && editingRubricIndex < stList.length) {
-          stList[editingRubricIndex] = { ...rubricForm };
-        } else {
-          stList.push({ ...rubricForm });
-        }
-        return { ...st, rubrics: stList };
-      });
-
-      handleUpdateCurrentUnit({
-        ...currentUnit,
-        rubrics: nextList,
-        stages: nextStages,
-      });
+    if (activeStage) {
+      handleUpdateActiveStage({ rubrics: nextList });
     } else {
       handleUpdateCurrentUnit({
         ...currentUnit,
@@ -682,12 +555,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
 
     setIsRubricModalOpen(false);
-    setSyncSuccessToast(
-      rubricTargetScope === "Ambos os Professores"
-        ? "Rubrica MSEP gravada automaticamente nos perfis dos 2 professores!"
-        : `Rubrica MSEP gravada para ${rubricTargetScope}!`
-    );
-    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   const handleDeleteRubric = (index: number) => {
@@ -712,7 +579,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [lessonPlanStageFilter, setLessonPlanStageFilter] = useState<string>("todas");
   const [calendarStageFilter, setCalendarStageFilter] = useState<string>("todas");
-  const [lessonTargetScope, setLessonTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [lessonForm, setLessonForm] = useState<Partial<LessonPlanItem & { stageId?: string }>>({
     date: "",
     hours: "4h",
@@ -740,7 +606,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       capacities: "Demonstrar responsabilidade e autocontrole operacional.",
       stageId: preselectedStageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
     });
-    setLessonTargetScope("Ambos os Professores");
     setIsLessonModalOpen(true);
   };
 
@@ -751,134 +616,61 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingLesson(lesson);
     setLessonForm({ ...lesson });
-    setLessonTargetScope("Ambos os Professores");
     setIsLessonModalOpen(true);
   };
 
   const handleSaveLessonModal = () => {
     if (!currentUnit) return;
-    const currentList = currentUnit.lessonPlan || [];
-    const chosenProf =
-      lessonTargetScope === "Ambos os Professores"
-        ? "Prof. Ricardo Beretella / Prof. Ricardo Gea"
-        : lessonTargetScope;
+    const profName =
+      lessonForm.professor ||
+      (currentUser?.name?.includes("Gea") ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella");
 
     if (currentUnit.stages && currentUnit.stages.length > 0) {
-      // 1. Locate source stage and source lesson index reliably
-      let foundStageIndex = -1;
-      let foundLessonIndex = -1;
+      const targetStageId =
+        lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
 
-      if (editingLesson) {
-        for (let s = 0; s < currentUnit.stages.length; s++) {
-          const st = currentUnit.stages[s];
-          const idx = (st.lessonPlan || []).findIndex((lp) => lp.id === editingLesson.id);
-          if (idx !== -1) {
-            foundStageIndex = s;
-            foundLessonIndex = idx;
-            break;
-          }
-        }
-      }
-
-      // If not found by ID, default to selected or matching stageId from form
-      const fallbackStageId = lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
-      const targetStageIndex = foundStageIndex !== -1
-        ? foundStageIndex
-        : currentUnit.stages.findIndex((s) => s.id === fallbackStageId);
-      const effectiveStageIndex = targetStageIndex !== -1 ? targetStageIndex : 0;
-      const sourceStage = currentUnit.stages[effectiveStageIndex];
-
-      const targetStages = getStagesByScope(currentUnit.stages, lessonTargetScope);
-      const targetStageIds = targetStages.map((s) => s.id);
-
-      const nextStages = currentUnit.stages.map((st, sIdx) => {
-        const isTarget = targetStageIds.includes(st.id);
+      const nextStages = currentUnit.stages.map((st) => {
+        if (st.id !== targetStageId) return st;
         const stageLessons = [...(st.lessonPlan || [])];
 
         if (editingLesson) {
-          // If this is the exact stage containing the edited lesson
-          if (sIdx === effectiveStageIndex) {
-            const updated = stageLessons.map((item) =>
-              item.id === editingLesson.id
-                ? {
-                    ...item,
-                    date: lessonForm.date || item.date,
-                    hours: lessonForm.hours || item.hours,
-                    professor: chosenProf,
-                    conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
-                    estrategias: lessonForm.estrategias || item.estrategias,
-                    recursos: lessonForm.recursos || item.recursos,
-                    capacities: lessonForm.capacities || item.capacities,
-                    stageId: st.id,
-                    stageTitle: st.title,
-                    stageTurma: st.turma,
-                  }
-                : item
-            );
-            return { ...st, lessonPlan: updated };
-          }
-
-          // If "Ambos os Professores" is chosen, synchronize pedagogical content into the other target stages
-          if (lessonTargetScope === "Ambos os Professores" && isTarget) {
-            if (foundLessonIndex !== -1 && foundLessonIndex < stageLessons.length) {
-              // Update matching lesson slot while preserving this stage's own calendar date
-              const updated = stageLessons.map((item, idx) => {
-                if (idx === foundLessonIndex) {
-                  return {
-                    ...item,
-                    hours: lessonForm.hours || item.hours,
-                    professor: chosenProf,
-                    conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
-                    estrategias: lessonForm.estrategias || item.estrategias,
-                    recursos: lessonForm.recursos || item.recursos,
-                    capacities: lessonForm.capacities || item.capacities,
-                  };
+          const updated = stageLessons.map((item) =>
+            item.id === editingLesson.id
+              ? {
+                  ...item,
+                  date: lessonForm.date || item.date,
+                  hours: lessonForm.hours || item.hours,
+                  professor: profName,
+                  conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
+                  estrategias: lessonForm.estrategias || item.estrategias,
+                  recursos: lessonForm.recursos || item.recursos,
+                  capacities: lessonForm.capacities || item.capacities,
+                  stageId: st.id,
+                  stageTitle: st.title,
+                  stageTurma: st.turma,
                 }
-                return item;
-              });
-              return { ...st, lessonPlan: updated };
-            } else {
-              // If stage had fewer lessons, append the synced lesson
-              const newItem: LessonPlanItem = {
-                id: `lp-${st.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                date: lessonForm.date || "12/08/2026",
-                hours: lessonForm.hours || "4h",
-                professor: chosenProf,
-                conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
-                estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
-                recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
-                capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
-                stageId: st.id,
-                stageTitle: st.title,
-                stageTurma: st.turma,
-              };
-              return { ...st, lessonPlan: [...stageLessons, newItem] };
-            }
-          }
+              : item
+          );
+          return { ...st, lessonPlan: updated };
         } else {
-          // Creating a new lesson
-          if (isTarget) {
-            const newItem: LessonPlanItem = {
-              id: `lp-${st.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-              date: lessonForm.date || "12/08/2026",
-              hours: lessonForm.hours || "4h",
-              professor: chosenProf,
-              conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
-              estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
-              recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
-              capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
-              stageId: st.id,
-              stageTitle: st.title,
-              stageTurma: st.turma,
-            };
-            return { ...st, lessonPlan: [...stageLessons, newItem] };
-          }
+          const newItem: LessonPlanItem = {
+            id: `lp-${st.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            date: lessonForm.date || "12/08/2026",
+            hours: lessonForm.hours || "4h",
+            professor: profName,
+            conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
+            estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
+            recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
+            capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
+            stageId: st.id,
+            stageTitle: st.title,
+            stageTurma: st.turma,
+          };
+          return { ...st, lessonPlan: [...stageLessons, newItem] };
         }
-        return st;
       });
 
-      // Unified lessonPlan merged across all stages
-      const mergedList = nextStages.flatMap((st) =>
+      const mergedLessons = nextStages.flatMap((st) =>
         (st.lessonPlan || []).map((lp) => ({
           ...lp,
           stageId: st.id,
@@ -887,16 +679,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         }))
       );
 
-      handleUpdateCurrentUnit({ ...currentUnit, stages: nextStages, lessonPlan: mergedList });
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        stages: nextStages,
+        lessonPlan: mergedLessons,
+      });
     } else {
+      const currentList = currentUnit.lessonPlan || [];
+      let nextList: LessonPlanItem[] = [];
+
       if (editingLesson) {
-        const nextList = currentList.map((item) =>
+        nextList = currentList.map((item) =>
           item.id === editingLesson.id
             ? {
                 ...item,
                 date: lessonForm.date || item.date,
                 hours: lessonForm.hours || item.hours,
-                professor: chosenProf,
+                professor: profName,
                 conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
                 estrategias: lessonForm.estrategias || item.estrategias,
                 recursos: lessonForm.recursos || item.recursos,
@@ -904,29 +703,24 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               }
             : item
         );
-        handleUpdateCurrentUnit({ ...currentUnit, lessonPlan: nextList });
       } else {
         const newItem: LessonPlanItem = {
           id: `lp-${Date.now()}`,
           date: lessonForm.date || "12/08/2026",
           hours: lessonForm.hours || "4h",
-          professor: chosenProf,
+          professor: profName,
           conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
           estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
           recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
           capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
         };
-        handleUpdateCurrentUnit({ ...currentUnit, lessonPlan: [...currentList, newItem] });
+        nextList = [...currentList, newItem];
       }
+
+      handleUpdateCurrentUnit({ ...currentUnit, lessonPlan: nextList });
     }
 
     setIsLessonModalOpen(false);
-    setSyncSuccessToast(
-      lessonTargetScope === "Ambos os Professores"
-        ? "Aula gravada e sincronizada nos 2 perfis (Prof. Ricardo Beretella e Prof. Ricardo Gea) mantendo as datas respectivas!"
-        : `Aula gravada para ${lessonTargetScope}!`
-    );
-    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   const handleDeleteLessonItem = (lessonId: string) => {
