@@ -68,52 +68,18 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [schoolEvents, setSchoolEvents] = useState<SchoolCalendarEvent[]>(INITIAL_SCHOOL_EVENTS_2026);
   const [teacherRules, setTeacherRules] = useState<TeacherWeeklyRule[]>(TEACHER_SCHEDULE_RULES);
 
-  // Base units from proeducador merged with custom edits
-  const rawUnits = useMemo(() => {
-    const base = proeducadorUnits && Array.isArray(proeducadorUnits) && proeducadorUnits.length > 0
-      ? proeducadorUnits.map((u) => ({ ...u, lessonPlan: u.lessonPlan ? [...u.lessonPlan] : [] }))
-      : [];
+  const isGeaSyllabus = (syllabus?.professorName && syllabus.professorName.toLowerCase().includes("gea")) ||
+    (syllabus?.id && syllabus.id.includes("gea")) ||
+    (currentUser?.name && currentUser.name.toLowerCase().includes("gea"));
+  const activeProfessorName = isGeaSyllabus ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
 
-    const customContent = syllabus && Array.isArray(syllabus.programmaticContent)
-      ? syllabus.programmaticContent
-      : [];
-
-    customContent.forEach((customUnit) => {
-      if (!customUnit) return;
-      const customAcronym = (customUnit.acronym || "").toUpperCase();
-      const customTitle = (customUnit.unitTitle || "").toUpperCase();
-
-      const idx = base.findIndex((b) => {
-        if (customUnit.id && b.id === customUnit.id) return true;
-        const bAc = (b.acronym || "").toUpperCase();
-        if (customAcronym && bAc && customAcronym === bAc) return true;
-        const bTitle = (b.unitTitle || "").toUpperCase();
-        if (customTitle && bTitle && customTitle === bTitle) return true;
-        return false;
-      });
-
-      if (idx !== -1) {
-        base[idx] = {
-          ...base[idx],
-          ...customUnit,
-          id: base[idx].id || customUnit.id,
-          acronym: base[idx].acronym || customUnit.acronym,
-          unitTitle: customUnit.unitTitle || base[idx].unitTitle,
-        };
-      } else {
-        base.push({ ...customUnit, lessonPlan: customUnit.lessonPlan ? [...customUnit.lessonPlan] : [] });
-      }
-    });
-
-    return base;
-  }, [syllabus]);
-
-  // Synchronize dynamic schedule calculation
-  const { updatedUnits: generatedUnits, masterSchedule } = useMemo(() => {
-    return generateSyllabusSchedule(rawUnits, schoolEvents, teacherRules);
-  }, [rawUnits, schoolEvents, teacherRules]);
-
-  const units = generatedUnits.length > 0 ? generatedUnits : rawUnits;
+  // Programmatic units directly from active syllabus
+  const units = useMemo(() => {
+    if (syllabus && Array.isArray(syllabus.programmaticContent) && syllabus.programmaticContent.length > 0) {
+      return syllabus.programmaticContent;
+    }
+    return proeducadorUnits || [];
+  }, [syllabus?.programmaticContent]);
 
   // View & Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -122,18 +88,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [viewMode, setViewMode] = useState<"calendario" | "semanas" | "tabela">("calendario");
 
   // Separate Teacher Profile state: Prof. Ricardo Beretella OR Prof. Ricardo Gea
-  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<"Prof. Ricardo Beretella" | "Prof. Ricardo Gea">(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) return "Prof. Ricardo Gea";
-    return "Prof. Ricardo Beretella";
-  });
+  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<"Prof. Ricardo Beretella" | "Prof. Ricardo Gea">(
+    activeProfessorName
+  );
 
   useEffect(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) {
-      setSelectedProfessorFilter("Prof. Ricardo Gea");
-    } else if (currentUser?.name?.toLowerCase().includes("beretella")) {
-      setSelectedProfessorFilter("Prof. Ricardo Beretella");
-    }
-  }, [currentUser]);
+    setSelectedProfessorFilter(activeProfessorName);
+  }, [activeProfessorName]);
 
   // Calendar semester state: "1º SEMESTRE" | "2º SEMESTRE"
   const [selectedSemester, setSelectedSemester] = useState<"1º SEMESTRE" | "2º SEMESTRE">("1º SEMESTRE");
@@ -144,9 +105,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const progress = calculateScheduleProgress(schedule);
 
-  // Recalculate schedule based on current rules & calendar
+  // Recalculate schedule based on current rules & calendar for this specific professor
   const handleRecalculateSchedule = () => {
-    const { updatedUnits, masterSchedule: newMasterSchedule } = generateSyllabusSchedule(rawUnits, schoolEvents, teacherRules);
+    const specificRules = teacherRules.filter((r) => r.professor === activeProfessorName);
+    const { updatedUnits, masterSchedule: newMasterSchedule } = generateSyllabusSchedule(
+      JSON.parse(JSON.stringify(units)),
+      schoolEvents,
+      specificRules
+    );
     syllabus.programmaticContent = updatedUnits;
     onChangeSchedule(newMasterSchedule);
   };
