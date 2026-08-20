@@ -180,7 +180,7 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       stages: Array.isArray(u.stages) && u.stages.length > 0
         ? JSON.parse(JSON.stringify(u.stages))
         : baseUnit?.stages ? JSON.parse(JSON.stringify(baseUnit.stages)) : undefined,
-      lessonPlan: Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0
+      lessonPlan: (!isOutdatedFusi && Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
         ? JSON.parse(JSON.stringify(u.lessonPlan))
         : baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : [],
     });
