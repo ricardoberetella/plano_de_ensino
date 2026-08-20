@@ -75,7 +75,7 @@ export const STAGE_THEMES = [
     pillBg: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200",
     dot: "bg-blue-500",
     tag: "E1 • Turma A",
-    label: "Etapa 1 (Turma A)",
+    label: "Etapa 1: Turma A - Torneamento - Capacidades Básicas",
   },
   {
     stageNum: 2,
@@ -89,7 +89,7 @@ export const STAGE_THEMES = [
     pillBg: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200",
     dot: "bg-emerald-500",
     tag: "E2 • Turma B",
-    label: "Etapa 2 (Turma B)",
+    label: "Etapa 2: Turma B - Fresagem - Capacidades Básicas",
   },
   {
     stageNum: 3,
@@ -103,7 +103,7 @@ export const STAGE_THEMES = [
     pillBg: "bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200",
     dot: "bg-purple-500",
     tag: "E3 • Turma A",
-    label: "Etapa 3 (Turma A)",
+    label: "Etapa 3: Turma A - Torneamento - Capacidades Técnicas",
   },
   {
     stageNum: 4,
@@ -117,7 +117,7 @@ export const STAGE_THEMES = [
     pillBg: "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200",
     dot: "bg-amber-500",
     tag: "E4 • Turma B",
-    label: "Etapa 4 (Turma B)",
+    label: "Etapa 4: Turma B - Fresagem - Capacidades Técnicas",
   },
 ];
 
@@ -864,7 +864,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${isStageActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
                           {sIdx + 1}
                         </span>
-                        <span>{stage.title}</span>
+                        <span>{stage.title.replace(/^\d+\.\s*/, '')}</span>
                       </button>
                     );
                   })}
