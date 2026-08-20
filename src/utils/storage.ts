@@ -52,7 +52,7 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   return list.map((s) => {
     if (!s) return s;
 
-    // Preserving all user programmatic units
+    // Preserving all user programmatic units exactly as customized
     let currentUnits = Array.isArray(s.programmaticContent) && s.programmaticContent.length > 0
       ? s.programmaticContent
       : (proeducadorUnits || []).map((pu) => ({ ...pu }));
@@ -62,8 +62,12 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       ? s.schedule
       : [];
 
-    // If both units and schedule are empty initial state, generate defaults
-    if (currentSchedule.length === 0 && currentUnits.length > 0) {
+    // ONLY generate initial default schedule & lesson plans if BOTH schedule and unit lesson plans are completely empty
+    const hasAnyLessonPlans = currentUnits.some(
+      (u) => Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0
+    );
+
+    if (currentSchedule.length === 0 && !hasAnyLessonPlans) {
       const isGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
       const targetProfessor = isGea ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
       const teacherRules = TEACHER_SCHEDULE_RULES.filter((r) => r.professor === targetProfessor);
@@ -134,7 +138,8 @@ export async function saveSyllabusToCloud(syllabus: Syllabus): Promise<boolean> 
   try {
     if (!syllabus || !syllabus.id) return false;
     const cleanData = stripUndefined(syllabus);
-    await setDoc(doc(db, "syllabi", syllabus.id), cleanData, { merge: true });
+    // Replace full doc so modifications/deletions inside arrays/objects are cleanly persisted
+    await setDoc(doc(db, "syllabi", syllabus.id), cleanData);
     console.log(`[Firebase Cloud] Syllabus salvo com sucesso: ${syllabus.id}`);
     return true;
   } catch (err) {
@@ -197,7 +202,7 @@ export async function fetchCloudSyllabiNow(): Promise<Syllabus[] | null> {
 
 /**
  * Subscribes to real-time changes in Firestore syllabi collection.
- * Syncs automatically between different computers/browsers and Netlify deployments.
+ * Syncs automatically between different computers/browsers and deployments.
  */
 export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void): () => void {
   try {
@@ -212,10 +217,37 @@ export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void)
             list.push(docSnap.data() as Syllabus);
           });
           const sanitized = sanitizeSyllabi(list);
+
+          // Check if local storage has more recent edits to avoid stale cloud overwrites
+          try {
+            const rawLocal = localStorage.getItem(STORAGE_KEY);
+            if (rawLocal) {
+              const localList: Syllabus[] = JSON.parse(rawLocal);
+              const merged = sanitized.map((cloudItem) => {
+                const localMatch = localList.find((loc) => loc.id === cloudItem.id);
+                if (localMatch && localMatch.updatedAt && cloudItem.updatedAt) {
+                  const localTime = new Date(localMatch.updatedAt).getTime();
+                  const cloudTime = new Date(cloudItem.updatedAt).getTime();
+                  if (localTime > cloudTime) {
+                    // Local is newer: save local to cloud and keep local
+                    saveSyllabusToCloud(localMatch);
+                    return localMatch;
+                  }
+                }
+                return cloudItem;
+              });
+              saveSyllabiToStorage(merged);
+              onUpdate(merged);
+              return;
+            }
+          } catch (e) {
+            console.warn("Aviso ao comparar timestamps local/cloud:", e);
+          }
+
           saveSyllabiToStorage(sanitized);
           onUpdate(sanitized);
         } else {
-          // If cloud database is empty, seed it with initial syllabi
+          // If cloud database is empty, seed it with local storage
           const initial = sanitizeSyllabi(loadSyllabiFromStorage());
           saveAllSyllabiToCloud(initial);
           onUpdate(initial);
