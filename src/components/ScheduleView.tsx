@@ -164,8 +164,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   });
 
   const masterDateMap: Record<string, DateEntry[]> = {};
+  const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
 
-  // Build calendar data strictly from the active semester & selected teacher
+  // 1. Build calendar data from programmatic content (unit lessonPlan)
   semesterUnits.forEach((unit) => {
     const ucAcronym = getAcronym(unit);
     const ucColor = getAcronymColor(ucAcronym);
@@ -183,24 +184,86 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       if (selectedSemester === "1º SEMESTRE" && !isFirstSemesterDate) return;
       if (selectedSemester === "2º SEMESTRE" && isFirstSemesterDate) return;
 
-      // Filter by teacher profile
+      // Filter by teacher profile if lesson has professor specified
       if (lesson.professor) {
-        const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
         if (!lesson.professor.toLowerCase().includes(profKeyword)) return;
       }
 
       if (!masterDateMap[iso]) masterDateMap[iso] = [];
-      masterDateMap[iso].push({
-        unit,
-        lesson,
-        ucAcronym,
-        ucColor,
-      });
+      const alreadyExists = masterDateMap[iso].some(
+        (e) => e.ucAcronym === ucAcronym && e.lesson.conhecimentos === lesson.conhecimentos
+      );
+      if (!alreadyExists) {
+        masterDateMap[iso].push({
+          unit,
+          lesson,
+          ucAcronym,
+          ucColor,
+        });
+      }
     });
   });
 
+  // 2. Also incorporate items from schedule if not already present
+  if (Array.isArray(schedule)) {
+    schedule.forEach((item) => {
+      const iso = parseDateToISO(item.date);
+      if (!iso) return;
+
+      const dateObj = new Date(iso + "T12:00:00");
+      const monthIdx = dateObj.getMonth();
+      const isFirstSemesterDate = monthIdx < 6;
+      if (selectedSemester === "1º SEMESTRE" && !isFirstSemesterDate) return;
+      if (selectedSemester === "2º SEMESTRE" && isFirstSemesterDate) return;
+
+      if (item.professor) {
+        if (!item.professor.toLowerCase().includes(profKeyword)) return;
+      }
+
+      const unitMatch = units.find(
+        (u) =>
+          getAcronym(u) === (item.unit || "").toUpperCase() ||
+          (u.unitTitle && item.topic && item.topic.includes(u.unitTitle))
+      );
+
+      const ucAcronym = item.unit || (unitMatch ? getAcronym(unitMatch) : "AULA");
+      const ucColor = getAcronymColor(ucAcronym);
+
+      if (!masterDateMap[iso]) masterDateMap[iso] = [];
+      const alreadyMapped = masterDateMap[iso].some(
+        (e) => e.ucAcronym === ucAcronym || e.lesson.conhecimentos === item.topic
+      );
+      if (!alreadyMapped) {
+        const fallbackUnit: ProgrammaticUnit = unitMatch || {
+          id: `unit-${ucAcronym.toLowerCase()}`,
+          acronym: ucAcronym,
+          unitTitle: item.topic || "Unidade Curricular",
+          workload: "4h",
+          objective: "",
+          topics: [item.topic],
+        };
+
+        masterDateMap[iso].push({
+          unit: fallbackUnit,
+          lesson: {
+            id: `sched-lesson-${item.id}`,
+            date: item.date,
+            hours: "4h",
+            capacities: "Desenvolvimento técnico e teórico",
+            conhecimentos: item.topic,
+            estrategias: item.activities || "Aula expositiva dialogada e prática orientada",
+            recursos: item.notes || "Quadro, projetor, máquinas e ferramentas",
+            professor: item.professor || selectedProfessorFilter,
+          },
+          ucAcronym,
+          ucColor,
+        });
+      }
+    });
+  }
+
   // Filtered schedule for semanas / tabela view
-  const filteredSchedule = (masterSchedule.length > 0 ? masterSchedule : schedule).filter((item) => {
+  const filteredSchedule = schedule.filter((item) => {
     const matchesSearch =
       item.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.activities && item.activities.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -212,16 +275,18 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     // Filter by professor
     let matchesProf = true;
     if (item.professor) {
-      const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
       matchesProf = item.professor.toLowerCase().includes(profKeyword);
     }
 
     // Filter by semester
     let matchesSem = true;
     if (item.date) {
-      const m = parseInt(item.date.split("-")[1], 10) - 1;
-      if (selectedSemester === "1º SEMESTRE" && m >= 6) matchesSem = false;
-      if (selectedSemester === "2º SEMESTRE" && m < 6) matchesSem = false;
+      const iso = parseDateToISO(item.date);
+      if (iso) {
+        const m = parseInt(iso.split("-")[1], 10) - 1;
+        if (selectedSemester === "1º SEMESTRE" && m >= 6) matchesSem = false;
+        if (selectedSemester === "2º SEMESTRE" && m < 6) matchesSem = false;
+      }
     }
 
     return matchesSearch && matchesType && matchesStatus && matchesProf && matchesSem;
@@ -355,6 +420,56 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
               2º SEMESTRE (JUL - DEZ)
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* View Mode Switcher and Calendar Action Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <button
+            onClick={() => setViewMode("calendario")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              viewMode === "calendario"
+                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Calendário Mensal</span>
+          </button>
+          <button
+            onClick={() => setViewMode("semanas")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              viewMode === "semanas"
+                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Visão por Semanas</span>
+          </button>
+          <button
+            onClick={() => setViewMode("tabela")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              viewMode === "tabela"
+                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <span>Tabela Completa</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRecalculateSchedule}
+            title="Recalcular cronograma baseado no calendário oficial de 2026 e regras semanais"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Sincronizar Aulas</span>
+          </button>
         </div>
       </div>
 
