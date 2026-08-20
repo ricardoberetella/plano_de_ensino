@@ -36,8 +36,14 @@ interface ToastNotification {
 export default function App() {
   const [syllabi, setSyllabi] = useState<Syllabus[]>(() => loadSyllabiFromStorage());
   const [activeId, setActiveId] = useState<string>(() => {
-    const defaultFirst = syllabi[0]?.id || "senai-usinagem-800h-beretella";
-    return getActiveSyllabusId(defaultFirst);
+    const savedUser = localStorage.getItem("senai_authenticated_user");
+    const isGea = savedUser && savedUser.toLowerCase().includes("gea");
+    const defaultFirst = isGea ? "senai-usinagem-800h-gea" : "senai-usinagem-800h-beretella";
+    const saved = getActiveSyllabusId(defaultFirst);
+    if (!saved || saved.startsWith("syllabus-") || saved === "senai-usinagem-800h") {
+      return defaultFirst;
+    }
+    return saved;
   });
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("menu");
@@ -274,6 +280,14 @@ export default function App() {
   const handleDeleteSyllabus = (id: string) => {
     if (currentUser?.role !== "admin") {
       setIsLoginModalOpen(true);
+      return;
+    }
+    const isBase =
+      id === "senai-usinagem-800h-beretella" ||
+      id === "senai-usinagem-800h-gea" ||
+      id.includes("usinagem-800h");
+    if (isBase) {
+      showToast("Os Planos de Curso Oficiais de Usinagem 800h são permanentes e não podem ser excluídos.", "info");
       return;
     }
     if (syllabi.length <= 1) return;
