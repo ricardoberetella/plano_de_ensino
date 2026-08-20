@@ -211,16 +211,32 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // Stage Selector State (for multi-stage UCs like FUSI)
   const [selectedStageId, setSelectedStageId] = useState<string>("");
 
-  // Keep selected stage in sync when unit changes
+  // Keep selected stage in sync when unit or active professor in sidebar changes
   useEffect(() => {
     if (currentUnit?.stages && currentUnit.stages.length > 0) {
-      if (!selectedStageId || !currentUnit.stages.some((s) => s.id === selectedStageId)) {
+      const isGea = currentUser?.name?.toLowerCase().includes("gea");
+      const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+
+      let matchingStage = null;
+      if (isGea) {
+        matchingStage = currentUnit.stages.find(
+          (s) => s.turma === "Turma B" || s.title?.toLowerCase().includes("turma b") || s.title?.toLowerCase().includes("fresagem")
+        );
+      } else if (isBeretella) {
+        matchingStage = currentUnit.stages.find(
+          (s) => s.turma === "Turma A" || s.title?.toLowerCase().includes("turma a") || s.title?.toLowerCase().includes("torneamento")
+        );
+      }
+
+      if (matchingStage) {
+        setSelectedStageId(matchingStage.id);
+      } else if (!selectedStageId || !currentUnit.stages.some((s) => s.id === selectedStageId)) {
         setSelectedStageId(currentUnit.stages[0].id);
       }
     } else {
       setSelectedStageId("");
     }
-  }, [currentUnit?.id, currentUnit?.stages]);
+  }, [currentUnit?.id, currentUnit?.stages, currentUser?.name]);
 
   const activeStage =
     currentUnit?.stages && currentUnit.stages.length > 0
@@ -979,21 +995,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
   };
 
-  // Professor Profile Filter state
-  const [selectedProfessorFilter, setSelectedProfessorFilter] = useState<string>(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) return "Prof. Ricardo Gea";
-    if (currentUser?.name?.toLowerCase().includes("beretella")) return "Prof. Ricardo Beretella";
-    return "todos";
-  });
-
-  useEffect(() => {
-    if (currentUser?.name?.toLowerCase().includes("gea")) {
-      setSelectedProfessorFilter("Prof. Ricardo Gea");
-    } else if (currentUser?.name?.toLowerCase().includes("beretella")) {
-      setSelectedProfessorFilter("Prof. Ricardo Beretella");
-    }
-  }, [currentUser]);
-
   // Replication / Synchronize State across Stages & Professors
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncSourceStageId, setSyncSourceStageId] = useState<string>("");
@@ -1141,7 +1142,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setTimeout(() => setSyncSuccessToast(null), 5000);
   };
 
-  // Active Lesson Plan filtered by selected professor
+  // Active Lesson Plan filtered by lateral active professor (currentUser)
   const rawLessonPlan: LessonPlanItem[] =
     currentUnit && Array.isArray(currentUnit.lessonPlan)
       ? currentUnit.lessonPlan
@@ -1149,8 +1150,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   const activeLessonPlan = rawLessonPlan.filter((item) => {
     if (!item) return false;
-    if (selectedProfessorFilter === "todos") return true;
-    const targetProf = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+    const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+    const isGea = currentUser?.name?.toLowerCase().includes("gea");
+
+    if (!isBeretella && !isGea) return true;
+
     const profStr = (item.professor || "").toLowerCase();
     
     // If assigned to both professors or shared, always include
@@ -1158,14 +1162,21 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     
     if (!item.professor || typeof item.professor !== "string" || item.professor.trim() === "") {
       // Default to matching stage turma or ID
-      if (selectedProfessorFilter.includes("Beretella")) {
+      if (isBeretella) {
         return item.stageTurma === "Turma A" || !item.id?.toLowerCase().includes("gea");
-      } else if (selectedProfessorFilter.includes("Gea")) {
+      } else if (isGea) {
         return item.stageTurma === "Turma B" || item.id?.toLowerCase().includes("gea");
       }
       return true;
     }
-    return profStr.includes(targetProf);
+
+    if (isBeretella) {
+      return profStr.includes("beretella");
+    }
+    if (isGea) {
+      return profStr.includes("gea");
+    }
+    return true;
   });
 
   // Calculate total hours/aulas in the current unit schedule
@@ -1929,8 +1940,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 4: PLANO DE ENSINO */}
               {activeUcTab === "PLANO DE ENSINO" && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                  {/* Top Bar with Title, Professor Filter, Search and Global Add Button */}
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  {/* Top Bar with Title, Search and Global Add Button */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-blue-600" />
@@ -1943,42 +1954,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       </p>
                     </div>
 
-                    {/* Professor View Selector Pills */}
-                    <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                      <span className="text-[10px] font-black uppercase text-slate-400 pl-2 pr-1">Docente:</span>
-                      <button
-                        onClick={() => setSelectedProfessorFilter("todos")}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                          selectedProfessorFilter === "todos"
-                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        }`}
-                      >
-                        Todos os Docentes
-                      </button>
-                      <button
-                        onClick={() => setSelectedProfessorFilter("Prof. Ricardo Beretella")}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                          selectedProfessorFilter.includes("Beretella")
-                            ? "bg-blue-600 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-blue-600"
-                        }`}
-                      >
-                        Prof. Ricardo Beretella (Turma A)
-                      </button>
-                      <button
-                        onClick={() => setSelectedProfessorFilter("Prof. Ricardo Gea")}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                          selectedProfessorFilter.includes("Gea")
-                            ? "bg-emerald-600 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-emerald-600"
-                        }`}
-                      >
-                        Prof. Ricardo Gea (Turma B)
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                       {/* Search Bar */}
                       <div className="relative w-full sm:w-64">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
