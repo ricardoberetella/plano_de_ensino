@@ -177,9 +177,25 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       rubrics: (!isOutdatedFusi && Array.isArray(u.rubrics) && u.rubrics.length > 0)
         ? JSON.parse(JSON.stringify(u.rubrics))
         : baseUnit?.rubrics ? JSON.parse(JSON.stringify(baseUnit.rubrics)) : [],
-      stages: Array.isArray(u.stages) && u.stages.length > 0
+      stages: (Array.isArray(u.stages) && u.stages.length > 0
         ? JSON.parse(JSON.stringify(u.stages))
-        : baseUnit?.stages ? JSON.parse(JSON.stringify(baseUnit.stages)) : undefined,
+        : baseUnit?.stages ? JSON.parse(JSON.stringify(baseUnit.stages)) : undefined)?.map((st: any, sIdx: number) => {
+          // Standardize stage titles if this is FUSI
+          if (key === "FUSI") {
+            const defaultTitles = [
+              "Turma A - Torneamento - Capacidades Básicas",
+              "Turma B - Fresagem - Capacidades Básicas",
+              "Turma A - Torneamento - Capacidades Técnicas",
+              "Turma B - Fresagem - Capacidades Técnicas",
+            ];
+            const newTitle = defaultTitles[sIdx] || st.title;
+            return {
+              ...st,
+              title: newTitle,
+            };
+          }
+          return st;
+        }),
       lessonPlan: (!isOutdatedFusi && Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
         ? JSON.parse(JSON.stringify(u.lessonPlan))
         : baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : [],
