@@ -218,6 +218,29 @@ export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void)
           });
           const sanitized = sanitizeSyllabi(list);
 
+          const hasBeretella = list.some(
+            (s) =>
+              s &&
+              (s.id === "senai-usinagem-800h-beretella" ||
+                (s.professorName && s.professorName.toLowerCase().includes("beretella")))
+          );
+          const hasGea = list.some(
+            (s) =>
+              s &&
+              (s.id === "senai-usinagem-800h-gea" ||
+                (s.professorName && s.professorName.toLowerCase().includes("gea")))
+          );
+          const initialBeretella = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-beretella");
+          const initialGea = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-gea");
+
+          // If any core teacher syllabus was missing in cloud, persist them to Firestore
+          if (!hasBeretella && initialBeretella) {
+            saveSyllabusToCloud(initialBeretella);
+          }
+          if (!hasGea && initialGea) {
+            saveSyllabusToCloud(initialGea);
+          }
+
           // Check if local storage has more recent edits to avoid stale cloud overwrites
           try {
             const rawLocal = localStorage.getItem(STORAGE_KEY);
