@@ -278,7 +278,98 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       ? activeStage.topics
       : currentUnit?.topics || defaultMatchingUnit?.topics) || [];
 
-  // Handle topic deletion
+  // Target Scope Types and Helper
+  type TargetScopeType = "Prof. Ricardo Beretella" | "Prof. Ricardo Gea" | "Ambos os Professores";
+
+  const getStagesByScope = (stages: any[], scope: TargetScopeType) => {
+    if (scope === "Ambos os Professores") return stages;
+    if (scope === "Prof. Ricardo Beretella") {
+      return stages.filter((st, idx) => st.turma === "Turma A" || idx % 2 === 0 || st.title?.toLowerCase().includes("torneamento") || st.title?.toLowerCase().includes("turma a"));
+    }
+    if (scope === "Prof. Ricardo Gea") {
+      return stages.filter((st, idx) => st.turma === "Turma B" || idx % 2 === 1 || st.title?.toLowerCase().includes("fresagem") || st.title?.toLowerCase().includes("turma b"));
+    }
+    return stages;
+  };
+
+  // 1. TOPICS (CONHECIMENTOS) MODAL STATE
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
+  const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
+  const [topicModalText, setTopicModalText] = useState("");
+  const [topicTargetScope, setTopicTargetScope] = useState<TargetScopeType>("Ambos os Professores");
+
+  const handleOpenAddTopic = () => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingTopicIndex(null);
+    setTopicModalText("");
+    setTopicTargetScope("Ambos os Professores");
+    setIsTopicModalOpen(true);
+  };
+
+  const handleOpenEditTopic = (index: number, currentText: string) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingTopicIndex(index);
+    setTopicModalText(currentText);
+    setTopicTargetScope("Ambos os Professores");
+    setIsTopicModalOpen(true);
+  };
+
+  const handleSaveTopicModal = () => {
+    if (!currentUnit || !topicModalText.trim()) return;
+    const text = topicModalText.trim();
+    const isAdding = editingTopicIndex === null;
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const targetStages = getStagesByScope(currentUnit.stages, topicTargetScope);
+      const targetStageIds = targetStages.map((s) => s.id);
+
+      const nextStages = currentUnit.stages.map((st) => {
+        if (!targetStageIds.includes(st.id)) return st;
+        const currentTopics = [...(st.topics || [])];
+        if (isAdding) {
+          return { ...st, topics: [...currentTopics, text] };
+        } else {
+          const updated = [...currentTopics];
+          if (editingTopicIndex !== null && editingTopicIndex < updated.length) {
+            updated[editingTopicIndex] = text;
+          } else {
+            updated.push(text);
+          }
+          return { ...st, topics: updated };
+        }
+      });
+
+      const nextUnitTopics = isAdding
+        ? [...(currentUnit.topics || []), text]
+        : (currentUnit.topics || []).map((t, idx) => (idx === editingTopicIndex ? text : t));
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        topics: nextUnitTopics,
+        stages: nextStages,
+      });
+    } else {
+      const nextTopics = isAdding
+        ? [...(currentUnit.topics || []), text]
+        : (currentUnit.topics || []).map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    }
+
+    setIsTopicModalOpen(false);
+    setSyncSuccessToast(
+      topicTargetScope === "Ambos os Professores"
+        ? "Conhecimento gravado automaticamente nos perfis dos 2 professores!"
+        : `Conhecimento gravado para ${topicTargetScope}!`
+    );
+    setTimeout(() => setSyncSuccessToast(null), 4000);
+  };
+
   const handleDeleteTopic = (index: number) => {
     if (!isAdmin) {
       onOpenLoginModal();
@@ -294,21 +385,130 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
   };
 
-  // Handle saving topic edit
-  const handleSaveTopicEdit = (index: number) => {
-    if (!currentUnit || !editingTopicText.trim()) return;
-    const currentTopics = activeTopicsList;
-    const nextTopics = [...currentTopics];
-    nextTopics[index] = editingTopicText.trim();
-    if (activeStage) {
-      handleUpdateActiveStage({ topics: nextTopics });
-    } else {
-      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+  // 2. CAPACITIES (BÁSICAS/TÉCNICAS E SOCIOEMOCIONAIS) MODAL STATE
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+  const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
+  const [capacityCategory, setCapacityCategory] = useState<"basic_technical" | "socioemotional">("basic_technical");
+  const [capacityModalText, setCapacityModalText] = useState("");
+  const [capacityTargetScope, setCapacityTargetScope] = useState<TargetScopeType>("Ambos os Professores");
+
+  const handleOpenAddCapacity = (category: "basic_technical" | "socioemotional") => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
     }
-    setEditingTopicIndex(null);
+    setEditingCapacityIndex(null);
+    setCapacityCategory(category);
+    setCapacityModalText("");
+    setCapacityTargetScope("Ambos os Professores");
+    setIsCapacityModalOpen(true);
   };
 
-  // Active Situation-Problem with automatic fallback (stage aware)
+  const handleOpenEditCapacity = (category: "basic_technical" | "socioemotional", index: number, currentText: string) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingCapacityIndex(index);
+    setCapacityCategory(category);
+    setCapacityModalText(currentText);
+    setCapacityTargetScope("Ambos os Professores");
+    setIsCapacityModalOpen(true);
+  };
+
+  const handleSaveCapacityModal = () => {
+    if (!currentUnit || !capacityModalText.trim()) return;
+    const text = capacityModalText.trim();
+    const isAdding = editingCapacityIndex === null;
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const targetStages = getStagesByScope(currentUnit.stages, capacityTargetScope);
+      const targetStageIds = targetStages.map((s) => s.id);
+
+      const nextStages = currentUnit.stages.map((st) => {
+        if (!targetStageIds.includes(st.id)) return st;
+        const updated = { ...st };
+
+        if (capacityCategory === "socioemotional") {
+          const list = [...(st.socioemotionalCapacities || [])];
+          if (isAdding) {
+            updated.socioemotionalCapacities = [...list, text];
+          } else {
+            const nextList = [...list];
+            if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
+              nextList[editingCapacityIndex] = text;
+            } else {
+              nextList.push(text);
+            }
+            updated.socioemotionalCapacities = nextList;
+          }
+        } else {
+          // basic or technical
+          const hasBasic = Array.isArray(st.basicCapacities) && st.basicCapacities.length > 0;
+          if (hasBasic) {
+            const list = [...(st.basicCapacities || [])];
+            if (isAdding) {
+              updated.basicCapacities = [...list, text];
+            } else {
+              const nextList = [...list];
+              if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
+                nextList[editingCapacityIndex] = text;
+              } else {
+                nextList.push(text);
+              }
+              updated.basicCapacities = nextList;
+            }
+          } else {
+            const list = [...(st.technicalCapacities || [])];
+            if (isAdding) {
+              updated.technicalCapacities = [...list, text];
+            } else {
+              const nextList = [...list];
+              if (editingCapacityIndex !== null && editingCapacityIndex < nextList.length) {
+                nextList[editingCapacityIndex] = text;
+              } else {
+                nextList.push(text);
+              }
+              updated.technicalCapacities = nextList;
+            }
+          }
+        }
+        return updated;
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        stages: nextStages,
+      });
+    } else {
+      if (capacityCategory === "socioemotional") {
+        const list = currentUnit.socioemotionalCapacities || [];
+        const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+        handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: nextList });
+      } else {
+        const hasTech = Array.isArray(currentUnit.technicalCapacities) && currentUnit.technicalCapacities.length > 0;
+        if (hasTech) {
+          const list = currentUnit.technicalCapacities || [];
+          const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: nextList });
+        } else {
+          const list = currentUnit.basicCapacities || [];
+          const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+          handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: nextList });
+        }
+      }
+    }
+
+    setIsCapacityModalOpen(false);
+    setSyncSuccessToast(
+      capacityTargetScope === "Ambos os Professores"
+        ? "Capacidade gravada automaticamente nos perfis dos 2 professores!"
+        : `Capacidade gravada para ${capacityTargetScope}!`
+    );
+    setTimeout(() => setSyncSuccessToast(null), 4000);
+  };
+
+  // 3. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
   const activeSituationProblem: SituationProblem =
     activeStage?.situationProblem ||
     currentUnit?.situationProblem ||
@@ -319,8 +519,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       expectedResults: ["Relatório técnico e inspeção dimensional."],
     };
 
-  // Situation Problem Edit State
   const [isSPModalOpen, setIsSPModalOpen] = useState(false);
+  const [spTargetScope, setSPTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [spForm, setSPForm] = useState<SituationProblem>({
     title: "",
     contextualization: "",
@@ -341,6 +541,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         expectedResults: activeSituationProblem.expectedResults ? [...activeSituationProblem.expectedResults] : [""],
       });
     }
+    setSPTargetScope("Ambos os Professores");
     setIsSPModalOpen(true);
   };
 
@@ -352,26 +553,48 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       challenge: spForm.challenge.map((c) => c.trim()).filter(Boolean),
       expectedResults: spForm.expectedResults.map((r) => r.trim()).filter(Boolean),
     };
-    if (activeStage) {
-      handleUpdateActiveStage({ situationProblem: cleanedSP });
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const targetStages = getStagesByScope(currentUnit.stages, spTargetScope);
+      const targetStageIds = targetStages.map((s) => s.id);
+
+      const nextStages = currentUnit.stages.map((st) => {
+        if (targetStageIds.includes(st.id)) {
+          return { ...st, situationProblem: JSON.parse(JSON.stringify(cleanedSP)) };
+        }
+        return st;
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        situationProblem: cleanedSP,
+        stages: nextStages,
+      });
     } else {
       handleUpdateCurrentUnit({
         ...currentUnit,
         situationProblem: cleanedSP,
       });
     }
+
     setIsSPModalOpen(false);
+    setSyncSuccessToast(
+      spTargetScope === "Ambos os Professores"
+        ? "Situação-Problema gravada automaticamente nos perfis dos 2 professores!"
+        : `Situação-Problema gravada para ${spTargetScope}!`
+    );
+    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
-  // Active Rubrics list (stage aware)
+  // 4. RUBRICS EDIT STATE & HANDLERS
   const activeRubricsList: RubricItem[] =
     (activeStage?.rubrics && activeStage.rubrics.length > 0
       ? activeStage.rubrics
       : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
 
-  // Rubric Edit State
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
   const [editingRubricIndex, setEditingRubricIndex] = useState<number | null>(null);
+  const [rubricTargetScope, setRubricTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [rubricForm, setRubricForm] = useState<RubricItem>({
     capacity: "",
     nsa: "",
@@ -393,6 +616,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       par: "Demonstrou a capacidade de forma parcialmente autônoma com pequenos ajustes.",
       aut: "Demonstrou a capacidade de forma plena, autônoma e com rigorosa precisão.",
     });
+    setRubricTargetScope("Ambos os Professores");
     setIsRubricModalOpen(true);
   };
 
@@ -403,6 +627,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingRubricIndex(index);
     setRubricForm({ ...rubric });
+    setRubricTargetScope("Ambos os Professores");
     setIsRubricModalOpen(true);
   };
 
@@ -417,15 +642,40 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       nextList = [...currentList, { ...rubricForm }];
     }
 
-    if (activeStage) {
-      handleUpdateActiveStage({ rubrics: nextList });
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const targetStages = getStagesByScope(currentUnit.stages, rubricTargetScope);
+      const targetStageIds = targetStages.map((s) => s.id);
+
+      const nextStages = currentUnit.stages.map((st) => {
+        if (!targetStageIds.includes(st.id)) return st;
+        const stList = [...(st.rubrics || [])];
+        if (editingRubricIndex !== null && editingRubricIndex < stList.length) {
+          stList[editingRubricIndex] = { ...rubricForm };
+        } else {
+          stList.push({ ...rubricForm });
+        }
+        return { ...st, rubrics: stList };
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        rubrics: nextList,
+        stages: nextStages,
+      });
     } else {
       handleUpdateCurrentUnit({
         ...currentUnit,
         rubrics: nextList,
       });
     }
+
     setIsRubricModalOpen(false);
+    setSyncSuccessToast(
+      rubricTargetScope === "Ambos os Professores"
+        ? "Rubrica MSEP gravada automaticamente nos perfis dos 2 professores!"
+        : `Rubrica MSEP gravada para ${rubricTargetScope}!`
+    );
+    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   const handleDeleteRubric = (index: number) => {
@@ -445,11 +695,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
   };
 
-  // Lesson Plan Editing / Creation state
+  // 5. LESSON PLAN EDITING / CREATION STATE & HANDLERS
   const [editingLesson, setEditingLesson] = useState<LessonPlanItem | null>(null);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [lessonPlanStageFilter, setLessonPlanStageFilter] = useState<string>("todas");
   const [calendarStageFilter, setCalendarStageFilter] = useState<string>("todas");
+  const [lessonTargetScope, setLessonTargetScope] = useState<TargetScopeType>("Ambos os Professores");
   const [lessonForm, setLessonForm] = useState<Partial<LessonPlanItem & { stageId?: string }>>({
     date: "",
     hours: "4h",
@@ -477,6 +728,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       capacities: "Demonstrar responsabilidade e autocontrole operacional.",
       stageId: preselectedStageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
     });
+    setLessonTargetScope("Ambos os Professores");
     setIsLessonModalOpen(true);
   };
 
@@ -487,28 +739,41 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingLesson(lesson);
     setLessonForm({ ...lesson });
+    setLessonTargetScope("Ambos os Professores");
     setIsLessonModalOpen(true);
   };
 
   const handleSaveLessonModal = () => {
     if (!currentUnit) return;
     const currentList = currentUnit.lessonPlan || [];
+    const chosenProf =
+      lessonTargetScope === "Ambos os Professores"
+        ? "Prof. Ricardo Beretella / Prof. Ricardo Gea"
+        : lessonTargetScope;
 
     if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const targetStageId = lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
-      
+      const sourceStageId = lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
+      const sourceStage = currentUnit.stages.find((s) => s.id === sourceStageId) || currentUnit.stages[0];
+      const sourceLessons = sourceStage.lessonPlan || [];
+      const sourceLessonIndex = editingLesson ? sourceLessons.findIndex((l) => l.id === editingLesson.id) : -1;
+
+      const targetStages = getStagesByScope(currentUnit.stages, lessonTargetScope);
+      const targetStageIds = targetStages.map((s) => s.id);
+
       const nextStages = currentUnit.stages.map((st) => {
+        const isTarget = targetStageIds.includes(st.id);
         const stageLessons = st.lessonPlan || [];
+
         if (editingLesson) {
-          // If this stage contains the lesson being edited or is the target stage
-          if (st.id === targetStageId || stageLessons.some((l) => l.id === editingLesson.id)) {
-            const updatedStageLessons = stageLessons.map((item) =>
+          // If this stage is the exact source of the edited lesson
+          if (st.id === sourceStage.id) {
+            const updated = stageLessons.map((item) =>
               item.id === editingLesson.id
                 ? {
                     ...item,
                     date: lessonForm.date || item.date,
                     hours: lessonForm.hours || item.hours,
-                    professor: lessonForm.professor || item.professor,
+                    professor: chosenProf,
                     conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
                     estrategias: lessonForm.estrategias || item.estrategias,
                     recursos: lessonForm.recursos || item.recursos,
@@ -519,17 +784,38 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   }
                 : item
             );
-            return { ...st, lessonPlan: updatedStageLessons };
+            return { ...st, lessonPlan: updated };
+          }
+
+          // If lessonTargetScope is "Ambos os Professores", synchronize the pedagogical content into partner stage!
+          if (lessonTargetScope === "Ambos os Professores" && isTarget) {
+            const updated = stageLessons.map((item, idx) => {
+              // Match by index or matching lesson position
+              if (idx === sourceLessonIndex && sourceLessonIndex !== -1) {
+                return {
+                  ...item,
+                  // Keep partner stage's own calendar date intact
+                  hours: lessonForm.hours || item.hours,
+                  professor: chosenProf,
+                  conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
+                  estrategias: lessonForm.estrategias || item.estrategias,
+                  recursos: lessonForm.recursos || item.recursos,
+                  capacities: lessonForm.capacities || item.capacities,
+                };
+              }
+              return item;
+            });
+            return { ...st, lessonPlan: updated };
           }
         } else {
-          // Creating a new lesson in this target stage
-          if (st.id === targetStageId) {
+          // Creating a new lesson
+          if (isTarget) {
             const newItem: LessonPlanItem = {
-              id: `lp-${Date.now()}`,
+              id: `lp-${st.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
               date: lessonForm.date || "12/08/2026",
               hours: lessonForm.hours || "4h",
-              professor: lessonForm.professor || "Prof. Ricardo Beretella",
-              conhecimentos: lessonForm.conhecimentos || "Novo tópico lecionado",
+              professor: chosenProf,
+              conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
               estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
               recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
               capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
@@ -562,7 +848,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 ...item,
                 date: lessonForm.date || item.date,
                 hours: lessonForm.hours || item.hours,
-                professor: lessonForm.professor || item.professor,
+                professor: chosenProf,
                 conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
                 estrategias: lessonForm.estrategias || item.estrategias,
                 recursos: lessonForm.recursos || item.recursos,
@@ -576,8 +862,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           id: `lp-${Date.now()}`,
           date: lessonForm.date || "12/08/2026",
           hours: lessonForm.hours || "4h",
-          professor: lessonForm.professor || "Prof. Ricardo Beretella",
-          conhecimentos: lessonForm.conhecimentos || "Novo tópico lecionado",
+          professor: chosenProf,
+          conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
           estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
           recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
           capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
@@ -587,6 +873,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
 
     setIsLessonModalOpen(false);
+    setSyncSuccessToast(
+      lessonTargetScope === "Ambos os Professores"
+        ? "Aula gravada e sincronizada nos 2 perfis (Prof. Ricardo Beretella e Prof. Ricardo Gea) mantendo as datas respectivas!"
+        : `Aula gravada para ${lessonTargetScope}!`
+    );
+    setTimeout(() => setSyncSuccessToast(null), 4000);
   };
 
   const handleDeleteLessonItem = (lessonId: string) => {
@@ -1141,25 +1433,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                         {isAdmin && (
                           <button
-                            onClick={() => {
-                              const promptText = prompt("Digite a nova Capacidade:");
-                              if (promptText && promptText.trim()) {
-                                const next = [...activePrimaryCapacities, promptText.trim()];
-                                if (activeStage) {
-                                  if (activeStage.basicCapacities) {
-                                    handleUpdateActiveStage({ basicCapacities: next });
-                                  } else {
-                                    handleUpdateActiveStage({ technicalCapacities: next });
-                                  }
-                                } else {
-                                  if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
-                                    handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                  } else {
-                                    handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
-                                  }
-                                }
-                              }
-                            }}
+                            onClick={() => handleOpenAddCapacity("basic_technical")}
                             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -1174,31 +1448,41 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           activePrimaryCapacities.map((cap, i) => (
                             <div
                               key={i}
-                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2"
+                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
                             >
-                              <span>{cap}</span>
+                              <span className="leading-relaxed">{cap}</span>
                               {isAdmin && (
-                                <button
-                                  onClick={() => {
-                                    const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
-                                    if (activeStage) {
-                                      if (activeStage.basicCapacities) {
-                                        handleUpdateActiveStage({ basicCapacities: next });
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
+                                    className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                    title="Editar capacidade"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
+                                      if (activeStage) {
+                                        if (activeStage.basicCapacities) {
+                                          handleUpdateActiveStage({ basicCapacities: next });
+                                        } else {
+                                          handleUpdateActiveStage({ technicalCapacities: next });
+                                        }
                                       } else {
-                                        handleUpdateActiveStage({ technicalCapacities: next });
+                                        if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                        } else {
+                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                        }
                                       }
-                                    } else {
-                                      if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
-                                        handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                      } else {
-                                        handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
-                                      }
-                                    }
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                    title="Excluir capacidade"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                           ))
@@ -1220,17 +1504,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                         {isAdmin && (
                           <button
-                            onClick={() => {
-                              const promptText = prompt("Digite a nova Capacidade Socioemocional:");
-                              if (promptText && promptText.trim()) {
-                                const next = [...activeSocioemotionalCapacities, promptText.trim()];
-                                if (activeStage) {
-                                  handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                } else {
-                                  handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                }
-                              }
-                            }}
+                            onClick={() => handleOpenAddCapacity("socioemotional")}
                             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -1245,23 +1519,33 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           activeSocioemotionalCapacities.map((cap, i) => (
                             <div
                               key={i}
-                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2"
+                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
                             >
-                              <span>{cap}</span>
+                              <span className="leading-relaxed">{cap}</span>
                               {isAdmin && (
-                                <button
-                                  onClick={() => {
-                                    const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
-                                    if (activeStage) {
-                                      handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                    } else {
-                                      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                    }
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
+                                    className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                    title="Editar capacidade socioemocional"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                      if (activeStage) {
+                                        handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                      } else {
+                                        handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                      }
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                    title="Excluir capacidade socioemocional"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                           ))
@@ -1285,17 +1569,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                       {isAdmin && (
                         <button
-                          onClick={() => {
-                            const promptText = prompt("Digite o novo Tópico / Conhecimento:");
-                            if (promptText && promptText.trim()) {
-                              const next = [...activeTopicsList, promptText.trim()];
-                              if (activeStage) {
-                                handleUpdateActiveStage({ topics: next });
-                              } else {
-                                handleUpdateCurrentUnit({ ...currentUnit, topics: next });
-                              }
-                            }
-                          }}
+                          onClick={handleOpenAddTopic}
                           className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
                         >
                           <Plus className="w-4 h-4" />
@@ -1312,50 +1586,24 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             key={i}
                             className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
                           >
-                            {editingTopicIndex === i ? (
-                              <div className="flex-1 flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editingTopicText}
-                                  onChange={(e) => setEditingTopicText(e.target.value)}
-                                  className="flex-1 px-3 py-1.5 border border-blue-500 rounded-lg font-bold text-xs bg-slate-50 dark:bg-slate-800"
-                                />
+                            <span className="leading-relaxed">{topic}</span>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 shrink-0">
                                 <button
-                                  onClick={() => handleSaveTopicEdit(i)}
-                                  className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold cursor-pointer"
+                                  onClick={() => handleOpenEditTopic(i, topic)}
+                                  className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
+                                  title="Editar tópico/conhecimento"
                                 >
-                                  Salvar
+                                  <Edit className="w-3.5 h-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => setEditingTopicIndex(null)}
-                                  className="text-xs text-slate-500 cursor-pointer"
+                                  onClick={() => handleDeleteTopic(i)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                  title="Excluir tópico"
                                 >
-                                  Cancelar
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                            ) : (
-                              <>
-                                <span className="leading-relaxed">{topic}</span>
-                                {isAdmin && (
-                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      onClick={() => {
-                                        setEditingTopicIndex(i);
-                                        setEditingTopicText(topic);
-                                      }}
-                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                    >
-                                      <Edit className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteTopic(i)}
-                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                )}
-                              </>
                             )}
                           </div>
                         ))
