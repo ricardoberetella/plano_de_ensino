@@ -15,7 +15,105 @@ function stripUndefined<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
-function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUnit[] {
+export function getStandardUcKey(u?: Partial<ProgrammaticUnit> | null): string {
+  if (!u) return "UC";
+  const ac = (u.acronym || "").toUpperCase().trim();
+  const id = (u.id || "").toLowerCase().trim();
+  const title = (u.unitTitle || "").toUpperCase().trim();
+  const wl = (u.workload || "").toLowerCase().replace(/\s+/g, "");
+
+  // 1. Direct IDs
+  if (id === "uc-fusi") return "FUSI";
+  if (id === "uc-lidt") return "LIDT";
+  if (id === "uc-crd" || id === "uc-cdmat") return "CRD";
+  if (id === "uc-map") return "MAP";
+  if (id === "uc-ciema") return "CIEMA";
+  if (id === "uc-prusc" || id === "uc-proc") return "PRUSC";
+  if (id === "uc-mindu" || id === "uc-metr") return "MINDU";
+
+  // 2. Strict 40h checks (resolves historical misclassification where 40h CRD was named MINDU, or 40h MAP was named PRUSC)
+  if (wl === "40h" || wl === "40") {
+    if (ac === "CIEMA" || title.includes("CIÊNCI") || title.includes("CIENCIA") || title.includes("MATERIAIS")) {
+      return "CIEMA";
+    }
+    if (ac === "LIDT" || title.includes("DESENHO") || title.includes("LEITURA")) {
+      return "LIDT";
+    }
+    if (
+      ac === "MAP" ||
+      title.includes("MATEMÁT") ||
+      title.includes("MATEMAT") ||
+      title.includes("CÁLCUL") ||
+      title.includes("CALCUL") ||
+      ac === "PRUSC" ||
+      ac === "PROC"
+    ) {
+      return "MAP";
+    }
+    if (
+      ac === "CRD" ||
+      ac === "CDMAT" ||
+      ac === "MINDU" ||
+      ac === "METR" ||
+      title.includes("CONTROLE") ||
+      title.includes("DIMENSIONAL") ||
+      title.includes("METROLOGIA")
+    ) {
+      return "CRD";
+    }
+  }
+
+  // 3. Workload based resolution for major units
+  if (wl === "240h" || wl === "240") return "FUSI";
+  if (wl === "160h" || wl === "280h" || wl === "160" || wl === "280") return "PRUSC";
+  if (wl === "80h" || wl === "120h" || wl === "80" || wl === "120") return "MINDU";
+
+  // 4. Title Keyword matching
+  if (title.includes("FUNDAMENTOS DA USINAGEM") || title.includes("AJUSTAGEM")) return "FUSI";
+  if (title.includes("LEITURA E INTERPRETAÇÃO") || title.includes("DESENHO TÉCNICO")) return "LIDT";
+  if (
+    title.includes("CONTROLE DIMENSIONAL") ||
+    title.includes("METROLOGIA BÁSICA") ||
+    title.includes("METROLOGIA BASICA")
+  ) {
+    return "CRD";
+  }
+  if (title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
+  if (
+    title.includes("CIÊNCIAS DOS MATERIAIS") ||
+    title.includes("CIENCIAS DOS MATERIAIS") ||
+    title.includes("CIÊNCIA DOS MATERIAIS")
+  ) {
+    return "CIEMA";
+  }
+  if (
+    title.includes("PROCESSOS DE USINAGEM") ||
+    title.includes("TORNEAMENTO") ||
+    title.includes("FRESAMENTO")
+  ) {
+    return "PRUSC";
+  }
+  if (
+    title.includes("METROLOGIA INDUSTRIAL") ||
+    title.includes("CONTROLE GEOMÉTRICO") ||
+    title.includes("CONTROLE GEOMETRICO")
+  ) {
+    return "MINDU";
+  }
+
+  // 5. Acronym Fallback
+  if (ac === "FUSI") return "FUSI";
+  if (ac === "LIDT") return "LIDT";
+  if (ac === "CRD" || ac === "CDMAT") return "CRD";
+  if (ac === "MAP") return "MAP";
+  if (ac === "CIEMA") return "CIEMA";
+  if (ac === "PRUSC" || ac === "PROC") return "PRUSC";
+  if (ac === "MINDU" || ac === "METR") return "MINDU";
+
+  return ac || id || "UC";
+}
+
+export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUnit[] {
   if (!Array.isArray(units) || units.length === 0) {
     return (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
   }
@@ -23,29 +121,12 @@ function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUni
   const seenKeys = new Set<string>();
   const cleaned: ProgrammaticUnit[] = [];
 
-  const getUnitKey = (u: ProgrammaticUnit): string => {
-    if (!u) return "UC";
-    const ac = (u.acronym || "").toUpperCase().trim();
-    const id = (u.id || "").toLowerCase().trim();
-    const title = (u.unitTitle || "").toUpperCase().trim();
-
-    if (ac === "FUSI" || id === "uc-fusi" || title.includes("FUNDAMENTOS DA USINAGEM") || title.includes("AJUSTAGEM")) return "FUSI";
-    if (ac === "LIDT" || id === "uc-lidt" || title.includes("LEITURA E INTERPRETAÇÃO") || title.includes("DESENHO TÉCNICO")) return "LIDT";
-    if (ac === "CRD" || ac === "CDMAT" || id === "uc-crd" || title.includes("CONTROLE DIMENSIONAL") || title.includes("METROLOGIA BÁSICA")) return "CRD";
-    if (ac === "MAP" || id === "uc-map" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
-    if (ac === "CIEMA" || id === "uc-ciema" || title.includes("CIÊNCIAS DOS MATERIAIS") || title.includes("CIENCIAS DOS MATERIAIS") || title.includes("CIÊNCIA DOS MATERIAIS")) return "CIEMA";
-    if (ac === "PRUSC" || ac === "PROC" || id === "uc-proc" || id === "uc-prusc" || title.includes("PROCESSOS DE USINAGEM") || title.includes("TORNEAMENTO E FRESAMENTO")) return "PRUSC";
-    if (ac === "MINDU" || ac === "METR" || id === "uc-metr" || id === "uc-mindu" || title.includes("METROLOGIA INDUSTRIAL") || title.includes("CONTROLE GEOMÉTRICO") || title.includes("CONTROLE GEOMETRICO")) return "MINDU";
-
-    return (u.id || u.unitTitle || ac).toLowerCase();
-  };
-
   for (const u of units) {
     if (!u) continue;
-    const key = getUnitKey(u);
+    const key = getStandardUcKey(u);
     if (seenKeys.has(key)) {
       // Duplicate UC found - merge any lesson plans/topics into existing and skip
-      const existing = cleaned.find((c) => getUnitKey(c) === key);
+      const existing = cleaned.find((c) => getStandardUcKey(c) === key);
       if (existing) {
         if (Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0) {
           const existingDates = new Set((existing.lessonPlan || []).map((lp) => `${lp.date}-${lp.hours}`));
@@ -57,13 +138,13 @@ function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUni
     }
     seenKeys.add(key);
 
-    const baseUnit = rawProeducadorUnits.find((pu) => getUnitKey(pu) === key);
+    const baseUnit = rawProeducadorUnits.find((pu) => getStandardUcKey(pu) === key);
     cleaned.push({
       ...(baseUnit || {}),
       ...u,
       id: baseUnit?.id || u.id,
-      acronym: baseUnit?.acronym || u.acronym,
-      semester: baseUnit?.semester || u.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
+      acronym: baseUnit?.acronym || key,
+      semester: baseUnit?.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
       unitTitle: baseUnit?.unitTitle || u.unitTitle,
       workload: baseUnit?.workload || u.workload,
       objective: u.objective || baseUnit?.objective,
@@ -79,7 +160,7 @@ function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUni
 
   // Ensure all 7 official base units exist
   for (const base of rawProeducadorUnits) {
-    const key = getUnitKey(base);
+    const key = getStandardUcKey(base);
     if (!seenKeys.has(key)) {
       cleaned.push({ ...base });
       seenKeys.add(key);
@@ -100,8 +181,8 @@ function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUni
   };
 
   cleaned.sort((a, b) => {
-    const keyA = getUnitKey(a);
-    const keyB = getUnitKey(b);
+    const keyA = getStandardUcKey(a);
+    const keyB = getStandardUcKey(b);
     return (orderMap[keyA] || 99) - (orderMap[keyB] || 99);
   });
 
