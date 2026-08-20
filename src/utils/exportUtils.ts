@@ -359,7 +359,7 @@ export function printUnidadeCurricularPDF(
         </div>
         <div>
           <div class="signature-line">Coordenação Pedagógica SENAI</div>
-          <div>SENAI - SP</div>
+          <div>SENAI - SP - Prof. Carlos Eduardo Servidoni</div>
         </div>
       </div>
 
