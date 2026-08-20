@@ -26,7 +26,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLoginModal,
   onToggleMobileSidebar,
 }) => {
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = currentUser?.role === "admin";
+  const isViewer = currentUser?.role === "viewer";
 
   const tabLabels: Record<ActiveTab, string> = {
     menu: "MENU",
@@ -37,31 +38,45 @@ export const Header: React.FC<HeaderProps> = ({
     visao_aluno: "IMPRIMIR (PDF)",
   };
 
-  const isBeretella = currentUser.name.toLowerCase().includes("beretella");
+  const isBeretella = currentUser?.name ? currentUser.name.toLowerCase().includes("beretella") : true;
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (!onChangeUser) return;
     const val = e.target.value;
     if (val === "gea") {
       onChangeUser({
-        ...currentUser,
         id: "user-gea",
         name: "Prof. Ricardo Gea",
         email: "ricardo.gea@sp.senai.br",
-        role: "admin",
+        role: currentUser?.role || "admin",
         unit: "Departamento Regional SENAI - SP",
       });
     } else {
       onChangeUser({
-        ...currentUser,
         id: "user-beretella",
         name: "Prof. Ricardo Beretella",
         email: "ricardo.beretella@sp.senai.br",
-        role: "admin",
+        role: currentUser?.role || "admin",
         unit: "Escola SENAI Roberto Mange - Campinas",
       });
     }
   };
+
+  const visibleSyllabi = syllabi.filter((s) => {
+    if (!s) return false;
+    const isGea = currentUser?.name?.toLowerCase().includes("gea");
+    const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+    const sIsGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
+    const sIsBeretella = (s.professorName && s.professorName.toLowerCase().includes("beretella")) || s.id.includes("beretella");
+
+    if (isGea) {
+      return sIsGea || (!sIsBeretella && s.id !== "senai-usinagem-800h-beretella");
+    }
+    if (isBeretella) {
+      return sIsBeretella || (!sIsGea && s.id !== "senai-usinagem-800h-gea");
+    }
+    return true;
+  });
 
   return (
     <header className="no-print bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs">
@@ -87,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onChange={(e) => onSelectSyllabus(e.target.value)}
                 className="bg-transparent font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider focus:outline-none cursor-pointer pr-4 hover:text-blue-600"
               >
-                {syllabi.map((s) => (
+                {visibleSyllabi.map((s) => (
                   <option key={s.id} value={s.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {(s.courseTitle.split(" - ")[0] || s.courseTitle).toUpperCase()}
                   </option>
