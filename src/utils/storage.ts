@@ -115,7 +115,7 @@ export function getStandardUcKey(u?: Partial<ProgrammaticUnit> | null): string {
 
 export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUnit[] {
   if (!Array.isArray(units) || units.length === 0) {
-    return (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
+    return JSON.parse(JSON.stringify(rawProeducadorUnits || []));
   }
 
   const seenKeys = new Set<string>();
@@ -125,44 +125,59 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
     if (!u) continue;
     const key = getStandardUcKey(u);
     if (seenKeys.has(key)) {
-      // Duplicate UC found - merge any lesson plans/topics into existing and skip
+      // Duplicate UC found - merge any lesson plans into existing and skip
       const existing = cleaned.find((c) => getStandardUcKey(c) === key);
       if (existing) {
         if (Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0) {
           const existingDates = new Set((existing.lessonPlan || []).map((lp) => `${lp.date}-${lp.hours}`));
           const newLessons = u.lessonPlan.filter((lp) => !existingDates.has(`${lp.date}-${lp.hours}`));
-          existing.lessonPlan = [...(existing.lessonPlan || []), ...newLessons];
+          existing.lessonPlan = [...(existing.lessonPlan || []), ...JSON.parse(JSON.stringify(newLessons))];
         }
       }
       continue;
     }
     seenKeys.add(key);
 
-    const baseUnit = rawProeducadorUnits.find((pu) => getStandardUcKey(pu) === key);
+    const baseUnitMatch = rawProeducadorUnits.find((pu) => getStandardUcKey(pu) === key);
+    const baseUnit = baseUnitMatch ? JSON.parse(JSON.stringify(baseUnitMatch)) : null;
+
     cleaned.push({
-      ...(baseUnit || {}),
-      ...u,
-      id: baseUnit?.id || u.id,
-      acronym: baseUnit?.acronym || key,
-      semester: baseUnit?.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
-      unitTitle: baseUnit?.unitTitle || u.unitTitle,
-      workload: baseUnit?.workload || u.workload,
-      objective: u.objective || baseUnit?.objective,
-      basicCapacities: Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0 ? u.basicCapacities : baseUnit?.basicCapacities || [],
-      technicalCapacities: Array.isArray(u.technicalCapacities) && u.technicalCapacities.length > 0 ? u.technicalCapacities : baseUnit?.technicalCapacities || [],
-      socioemotionalCapacities: Array.isArray(u.socioemotionalCapacities) && u.socioemotionalCapacities.length > 0 ? u.socioemotionalCapacities : baseUnit?.socioemotionalCapacities || [],
-      topics: Array.isArray(u.topics) && u.topics.length > 0 ? u.topics : baseUnit?.topics || [],
-      situationProblem: u.situationProblem || baseUnit?.situationProblem,
-      rubrics: Array.isArray(u.rubrics) && u.rubrics.length > 0 ? u.rubrics : baseUnit?.rubrics || [],
-      lessonPlan: Array.isArray(u.lessonPlan) ? u.lessonPlan : baseUnit?.lessonPlan || [],
+      id: u.id || baseUnit?.id || `uc-${key.toLowerCase()}`,
+      acronym: u.acronym || baseUnit?.acronym || key,
+      semester: u.semester || baseUnit?.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
+      module: u.module || baseUnit?.module || (["PRUSC", "MINDU"].includes(key) ? "Módulo Específico" : "Módulo Introdutório"),
+      unitTitle: u.unitTitle || baseUnit?.unitTitle || "Unidade Curricular",
+      workload: u.workload || baseUnit?.workload || (key === "FUSI" ? "240h" : key === "PRUSC" ? "160h" : key === "MINDU" ? "80h" : "40h"),
+      objective: u.objective !== undefined ? u.objective : baseUnit?.objective || "",
+      basicCapacities: Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0
+        ? JSON.parse(JSON.stringify(u.basicCapacities))
+        : baseUnit?.basicCapacities ? JSON.parse(JSON.stringify(baseUnit.basicCapacities)) : [],
+      technicalCapacities: Array.isArray(u.technicalCapacities) && u.technicalCapacities.length > 0
+        ? JSON.parse(JSON.stringify(u.technicalCapacities))
+        : baseUnit?.technicalCapacities ? JSON.parse(JSON.stringify(baseUnit.technicalCapacities)) : [],
+      socioemotionalCapacities: Array.isArray(u.socioemotionalCapacities) && u.socioemotionalCapacities.length > 0
+        ? JSON.parse(JSON.stringify(u.socioemotionalCapacities))
+        : baseUnit?.socioemotionalCapacities ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacities)) : [],
+      topics: Array.isArray(u.topics) && u.topics.length > 0
+        ? JSON.parse(JSON.stringify(u.topics))
+        : baseUnit?.topics ? JSON.parse(JSON.stringify(baseUnit.topics)) : [],
+      situationProblem: u.situationProblem
+        ? JSON.parse(JSON.stringify(u.situationProblem))
+        : baseUnit?.situationProblem ? JSON.parse(JSON.stringify(baseUnit.situationProblem)) : undefined,
+      rubrics: Array.isArray(u.rubrics) && u.rubrics.length > 0
+        ? JSON.parse(JSON.stringify(u.rubrics))
+        : baseUnit?.rubrics ? JSON.parse(JSON.stringify(baseUnit.rubrics)) : [],
+      lessonPlan: Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0
+        ? JSON.parse(JSON.stringify(u.lessonPlan))
+        : baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : [],
     });
   }
 
-  // Ensure all 7 official base units exist
+  // Ensure all 7 official base units exist if missing
   for (const base of rawProeducadorUnits) {
     const key = getStandardUcKey(base);
     if (!seenKeys.has(key)) {
-      cleaned.push({ ...base });
+      cleaned.push(JSON.parse(JSON.stringify(base)));
       seenKeys.add(key);
     }
   }
@@ -191,10 +206,10 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
 
 export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   if (!Array.isArray(syllabiList) || syllabiList.length === 0) {
-    return initialSyllabi;
+    return JSON.parse(JSON.stringify(initialSyllabi));
   }
 
-  let list = [...syllabiList];
+  let list = JSON.parse(JSON.stringify(syllabiList)) as Syllabus[];
 
   // Filter out unconfigured dummy placeholders
   list = list.filter((s) => {
@@ -205,7 +220,7 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
     return !isDummy;
   });
 
-  // Clean course titles so they don't have "- Prof. Ricardo..." in the main title
+  // Clean course titles
   list = list.map((s) => {
     if (!s) return s;
     let cleanTitle = s.courseTitle || "Mecânico de Usinagem Convencional";
@@ -234,10 +249,10 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   const initialGea = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-gea");
 
   if (!hasBeretella && initialBeretella) {
-    list.unshift(initialBeretella);
+    list.unshift(JSON.parse(JSON.stringify(initialBeretella)));
   }
   if (!hasGea && initialGea) {
-    list.push(initialGea);
+    list.push(JSON.parse(JSON.stringify(initialGea)));
   }
 
   // Remove obsolete single-doc syllabus if both specific ones are present
@@ -258,7 +273,7 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
 
     // Preserving user schedule
     let currentSchedule = Array.isArray(s.schedule) && s.schedule.length > 0
-      ? s.schedule
+      ? JSON.parse(JSON.stringify(s.schedule))
       : [];
 
     // ONLY generate initial default schedule & lesson plans if BOTH schedule and unit lesson plans are completely empty
@@ -280,7 +295,9 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
     }
 
     // Preserve coursePlanData directly if user has edited it
-    const finalCoursePlan = s.coursePlanData || JSON.parse(JSON.stringify(defaultCoursePlanData));
+    const finalCoursePlan = s.coursePlanData
+      ? JSON.parse(JSON.stringify(s.coursePlanData))
+      : JSON.parse(JSON.stringify(defaultCoursePlanData));
 
     return {
       ...s,
