@@ -42,6 +42,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const isAdmin = currentUser?.role === "admin";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Filter courses for the currently active professor so only 1 entry appears for the course
+  const isGea = currentUser?.name?.toLowerCase().includes("gea");
+  const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+
+  const visibleSyllabi = syllabi.filter((s) => {
+    if (!s) return false;
+    const sIsGea = (s.professorName && s.professorName.toLowerCase().includes("gea")) || s.id.includes("gea");
+    const sIsBeretella = (s.professorName && s.professorName.toLowerCase().includes("beretella")) || s.id.includes("beretella");
+
+    if (isGea) {
+      return sIsGea || (!sIsBeretella && s.id !== "senai-usinagem-800h-beretella");
+    }
+    if (isBeretella) {
+      return sIsBeretella || (!sIsGea && s.id !== "senai-usinagem-800h-gea");
+    }
+    return true;
+  });
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && onImportBackup) {
@@ -127,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             PLANOS REGISTRADOS
           </span>
           <div className="text-4xl font-black text-slate-900 dark:text-white">
-            {syllabi.length}
+            {visibleSyllabi.length}
           </div>
           <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
             PERFIS INDEPENDENTES POR PROFESSOR
@@ -179,7 +197,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Table Rows */}
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {syllabi.map((s) => {
+          {visibleSyllabi.map((s) => {
             const isSelected = s.id === activeSyllabus.id;
             const isBaseCourse =
               s.id === "senai-usinagem-800h-beretella" ||
