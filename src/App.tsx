@@ -158,7 +158,11 @@ export default function App() {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
-    setSyllabi((prev) => prev.map((s) => (s.id === withTimestamp.id ? withTimestamp : s)));
+    setSyllabi((prev) => {
+      const next = prev.map((s) => (s.id === withTimestamp.id ? withTimestamp : s));
+      saveSyllabiToStorage(next);
+      return next;
+    });
     // Save to Firebase Cloud Firestore immediately for this specific professor/syllabus
     const success = await saveSyllabusToCloud(withTimestamp);
     if (success) {
