@@ -576,6 +576,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   // 5. LESSON PLAN EDITING / CREATION STATE & HANDLERS
   const [editingLesson, setEditingLesson] = useState<LessonPlanItem | null>(null);
+  const [insertAfterLessonId, setInsertAfterLessonId] = useState<string | null>(null);
+  const [isCopyingLesson, setIsCopyingLesson] = useState<boolean>(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [lessonPlanStageFilter, setLessonPlanStageFilter] = useState<string>("todas");
   const [calendarStageFilter, setCalendarStageFilter] = useState<string>("todas");
@@ -596,6 +598,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       return;
     }
     setEditingLesson(null);
+    setInsertAfterLessonId(null);
+    setIsCopyingLesson(false);
     setLessonForm({
       date: defaultDate || "12/08/2026",
       hours: "4h",
@@ -609,12 +613,56 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsLessonModalOpen(true);
   };
 
+  const handleOpenInsertLessonBelow = (referenceLesson: LessonPlanItem) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingLesson(null);
+    setIsCopyingLesson(false);
+    setInsertAfterLessonId(referenceLesson.id);
+    setLessonForm({
+      date: referenceLesson.date || "12/08/2026",
+      hours: referenceLesson.hours || "4h",
+      professor: referenceLesson.professor || (currentUser?.name?.includes("Gea") ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella"),
+      conhecimentos: "",
+      estrategias: referenceLesson.estrategias || "Apresentação expositiva dialogada e prática supervisionada em oficina.",
+      recursos: referenceLesson.recursos || "Máquinas, ferramentas de usinagem, paquímetro e EPIs.",
+      capacities: referenceLesson.capacities || "Demonstrar responsabilidade e autocontrole operacional.",
+      stageId: referenceLesson.stageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
+    });
+    setIsLessonModalOpen(true);
+  };
+
+  const handleOpenCopyLesson = (referenceLesson: LessonPlanItem) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingLesson(null);
+    setIsCopyingLesson(true);
+    setInsertAfterLessonId(referenceLesson.id);
+    setLessonForm({
+      date: referenceLesson.date || "12/08/2026",
+      hours: referenceLesson.hours || "4h",
+      professor: referenceLesson.professor || (currentUser?.name?.includes("Gea") ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella"),
+      conhecimentos: referenceLesson.conhecimentos || "",
+      estrategias: referenceLesson.estrategias || "",
+      recursos: referenceLesson.recursos || "",
+      capacities: referenceLesson.capacities || "",
+      stageId: referenceLesson.stageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
+    });
+    setIsLessonModalOpen(true);
+  };
+
   const handleOpenEditLesson = (lesson: LessonPlanItem) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
     setEditingLesson(lesson);
+    setInsertAfterLessonId(null);
+    setIsCopyingLesson(false);
     setLessonForm({ ...lesson });
     setIsLessonModalOpen(true);
   };
@@ -666,7 +714,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             stageTitle: st.title,
             stageTurma: st.turma,
           };
-          return { ...st, lessonPlan: [...stageLessons, newItem] };
+
+          const updatedList = [...stageLessons];
+          if (insertAfterLessonId) {
+            const targetIdx = updatedList.findIndex((item) => item.id === insertAfterLessonId);
+            if (targetIdx !== -1) {
+              updatedList.splice(targetIdx + 1, 0, newItem);
+            } else {
+              updatedList.push(newItem);
+            }
+          } else {
+            updatedList.push(newItem);
+          }
+
+          return { ...st, lessonPlan: updatedList };
         }
       });
 
@@ -714,12 +775,25 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
           capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
         };
-        nextList = [...currentList, newItem];
+
+        nextList = [...currentList];
+        if (insertAfterLessonId) {
+          const targetIdx = nextList.findIndex((item) => item.id === insertAfterLessonId);
+          if (targetIdx !== -1) {
+            nextList.splice(targetIdx + 1, 0, newItem);
+          } else {
+            nextList.push(newItem);
+          }
+        } else {
+          nextList.push(newItem);
+        }
       }
 
       handleUpdateCurrentUnit({ ...currentUnit, lessonPlan: nextList });
     }
 
+    setInsertAfterLessonId(null);
+    setIsCopyingLesson(false);
     setIsLessonModalOpen(false);
   };
 
@@ -1740,7 +1814,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     <th className="p-4">Conhecimentos / Conteúdo</th>
                                     <th className="p-4">Estratégias Pedagógicas</th>
                                     <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
-                                    <th className="p-3 w-24 text-center">Ações</th>
+                                    <th className="p-3 w-28 text-center">Ações</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
@@ -1816,15 +1890,29 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                               {isAdmin && (
                                                 <div className="flex items-center gap-1">
                                                   <button
+                                                    onClick={() => handleOpenCopyLesson(lesson)}
+                                                    className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg transition-colors cursor-pointer"
+                                                    title="Copiar linha inteira (Duplicar conteúdo para novo dia)"
+                                                  >
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleOpenInsertLessonBelow(lesson)}
+                                                    className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors cursor-pointer"
+                                                    title="Inserir nova linha abaixo desta"
+                                                  >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
                                                     onClick={() => handleOpenEditLesson(lesson)}
-                                                    className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                                    className="p-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
                                                     title="Editar esta aula"
                                                   >
                                                     <Edit className="w-3.5 h-3.5" />
                                                   </button>
                                                   <button
                                                     onClick={() => handleDeleteLessonItem(lesson.id)}
-                                                    className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                                    className="p-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
                                                     title="Excluir aula"
                                                   >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1950,7 +2038,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                         <th className="p-4">Conhecimentos / Conteúdo</th>
                                         <th className="p-4">Estratégias Pedagógicas</th>
                                         <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
-                                        <th className="p-3 w-24 text-center">Ações</th>
+                                        <th className="p-3 w-28 text-center">Ações</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
@@ -2024,15 +2112,29 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                                   {isAdmin && (
                                                     <div className="flex items-center gap-1">
                                                       <button
+                                                        onClick={() => handleOpenCopyLesson(lesson)}
+                                                        className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg transition-colors cursor-pointer"
+                                                        title="Copiar linha inteira (Duplicar conteúdo para novo dia)"
+                                                      >
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                      </button>
+                                                      <button
+                                                        onClick={() => handleOpenInsertLessonBelow(lesson)}
+                                                        className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors cursor-pointer"
+                                                        title="Inserir nova linha abaixo desta"
+                                                      >
+                                                        <Plus className="w-3.5 h-3.5" />
+                                                      </button>
+                                                      <button
                                                         onClick={() => handleOpenEditLesson(lesson)}
-                                                        className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                                        className="p-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
                                                         title="Editar esta aula"
                                                       >
                                                         <Edit className="w-3.5 h-3.5" />
                                                       </button>
                                                       <button
                                                         onClick={() => handleDeleteLessonItem(lesson.id)}
-                                                        className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                                        className="p-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
                                                         title="Excluir aula"
                                                       >
                                                         <Trash2 className="w-3.5 h-3.5" />
@@ -2070,7 +2172,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <th className="p-4">Conhecimentos</th>
                             <th className="p-4">Estratégias</th>
                             <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
-                            <th className="p-3 w-24 text-center">Ações</th>
+                            <th className="p-3 w-28 text-center">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
@@ -2139,15 +2241,29 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                       {isAdmin && (
                                         <div className="flex items-center gap-1">
                                           <button
+                                            onClick={() => handleOpenCopyLesson(lesson)}
+                                            className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg transition-colors cursor-pointer"
+                                            title="Copiar linha inteira (Duplicar conteúdo para novo dia)"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleOpenInsertLessonBelow(lesson)}
+                                            className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors cursor-pointer"
+                                            title="Inserir nova linha abaixo desta"
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
                                             onClick={() => handleOpenEditLesson(lesson)}
-                                            className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                            className="p-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
                                             title="Editar esta aula"
                                           >
                                             <Edit className="w-3.5 h-3.5" />
                                           </button>
                                           <button
                                             onClick={() => handleDeleteLessonItem(lesson.id)}
-                                            className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                            className="p-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
                                             title="Excluir aula"
                                           >
                                             <Trash2 className="w-3.5 h-3.5" />
@@ -2494,8 +2610,22 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>{editingLesson ? "Editar Encontro do Cronograma" : "Adicionar Encontro ao Cronograma"}</span>
+                {isCopyingLesson ? (
+                  <>
+                    <Copy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span>Copiar Linha & Inserir Encontro</span>
+                  </>
+                ) : insertAfterLessonId ? (
+                  <>
+                    <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Inserir Linha no Meio do Cronograma</span>
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <span>{editingLesson ? "Editar Encontro do Cronograma" : "Adicionar Encontro ao Cronograma"}</span>
+                  </>
+                )}
               </h3>
               <button
                 onClick={() => setIsLessonModalOpen(false)}
@@ -2506,6 +2636,31 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
+              {/* Context banner for copying or inserting in the middle */}
+              {isCopyingLesson && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
+                  <Copy className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div>
+                    <span className="font-bold">Conteúdo copiado com sucesso!</span>
+                    <span className="block text-[11px] opacity-90">
+                      Basta alterar a <strong>Data</strong> para o novo dia da aula (caso consecutivo) e salvar. A nova linha será inserida diretamente após a aula de origem.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {insertAfterLessonId && !isCopyingLesson && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 rounded-xl text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-2.5">
+                  <Plus className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="font-bold">Inserindo linha intermediária</span>
+                    <span className="block text-[11px] opacity-90">
+                      Esta nova aula será inserida exatamente abaixo da linha selecionada no cronograma.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Select Stage if UC has stages */}
               {currentUnit && currentUnit.stages && currentUnit.stages.length > 0 && (
                 <div>
@@ -2620,10 +2775,24 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               </button>
               <button
                 onClick={handleSaveLessonModal}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                className={`px-5 py-2 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 ${
+                  isCopyingLesson
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : insertAfterLessonId
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
                 <Save className="w-4 h-4" />
-                <span>Salvar Encontro</span>
+                <span>
+                  {editingLesson
+                    ? "Salvar Alterações"
+                    : isCopyingLesson
+                    ? "Inserir Linha Copiada"
+                    : insertAfterLessonId
+                    ? "Inserir Linha Abaixo"
+                    : "Salvar Encontro"}
+                </span>
               </button>
             </div>
           </div>
