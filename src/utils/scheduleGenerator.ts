@@ -174,14 +174,24 @@ export function generateSyllabusSchedule(
     curr.setDate(curr.getDate() + 1);
   }
 
-  // Update units with their clean synchronized lesson plans, preserving any extra custom lesson items
+  // Update units with their clean synchronized lesson plans, respecting max workload limit
   updatedUnits.forEach((u) => {
+    const maxWorkload = getMaxHours(u);
     const generatedList = newLessonPlansPerUnit[u.id] || [];
-    const generatedIds = new Set(generatedList.map((l) => l.id));
-    const extraCustomLessons = (u.lessonPlan || []).filter(
-      (lp) => lp && lp.id && !generatedIds.has(lp.id)
-    );
-    u.lessonPlan = [...generatedList, ...extraCustomLessons];
+    
+    // Calculate total hours in generated list
+    let accumulated = 0;
+    const cleanList: LessonPlanItem[] = [];
+    
+    for (const item of generatedList) {
+      const h = parseInt(String(item.hours || "4").replace(/\D/g, ""), 10) || 4;
+      if (accumulated + h <= maxWorkload) {
+        cleanList.push(item);
+        accumulated += h;
+      }
+    }
+    
+    u.lessonPlan = cleanList;
   });
 
   return { updatedUnits, masterSchedule };
