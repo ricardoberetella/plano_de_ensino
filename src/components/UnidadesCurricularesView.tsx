@@ -789,153 +789,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
   };
 
-  // Replication / Synchronize State across Stages & Professors
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-  const [syncSourceStageId, setSyncSourceStageId] = useState<string>("");
-  const [syncTargetStageIds, setSyncTargetStageIds] = useState<string[]>([]);
-  const [syncOptions, setSyncOptions] = useState({
-    situationProblem: true,
-    capacities: true,
-    topics: true,
-    rubrics: true,
-    lessonPlan: true,
-    lessonPlanMode: "keep_target_dates" as "keep_target_dates" | "replace_all",
-    targetProfessor: "keep" as "keep" | "Prof. Ricardo Beretella" | "Prof. Ricardo Gea" | "Ambos",
-  });
-  const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
-
-  const handleOpenSyncModal = (defaultSourceId?: string) => {
-    if (!isAdmin) {
-      onOpenLoginModal();
-      return;
-    }
-    const stages = currentUnit?.stages || [];
-    const sourceId = defaultSourceId || activeStage?.id || stages[0]?.id || "";
-    setSyncSourceStageId(sourceId);
-    // default target is all other stages
-    const otherStageIds = stages.filter((s) => s.id !== sourceId).map((s) => s.id);
-    setSyncTargetStageIds(otherStageIds);
-    setIsSyncModalOpen(true);
-  };
-
-  const handleExecuteSync = () => {
-    if (!currentUnit || !currentUnit.stages || currentUnit.stages.length === 0) return;
-    const sourceStage = currentUnit.stages.find((s) => s.id === syncSourceStageId);
-    if (!sourceStage) return;
-
-    const updatedStages = currentUnit.stages.map((stage) => {
-      if (!syncTargetStageIds.includes(stage.id)) {
-        return stage;
-      }
-
-      // Clone parts from source to target
-      const updated: any = { ...stage };
-
-      // 1. Situation Problem
-      if (syncOptions.situationProblem && sourceStage.situationProblem) {
-        updated.situationProblem = JSON.parse(JSON.stringify(sourceStage.situationProblem));
-      }
-
-      // 2. Capacities
-      if (syncOptions.capacities) {
-        if (sourceStage.basicCapacities) {
-          updated.basicCapacities = [...sourceStage.basicCapacities];
-        }
-        if (sourceStage.technicalCapacities) {
-          updated.technicalCapacities = [...sourceStage.technicalCapacities];
-        }
-        if (sourceStage.socioemotionalCapacities) {
-          updated.socioemotionalCapacities = [...sourceStage.socioemotionalCapacities];
-        }
-      }
-
-      // 3. Topics / Conhecimentos
-      if (syncOptions.topics && sourceStage.topics) {
-        updated.topics = [...sourceStage.topics];
-      }
-
-      // 4. Rubrics
-      if (syncOptions.rubrics && sourceStage.rubrics) {
-        updated.rubrics = JSON.parse(JSON.stringify(sourceStage.rubrics));
-      }
-
-      // 5. Lesson Plan
-      if (syncOptions.lessonPlan && sourceStage.lessonPlan && sourceStage.lessonPlan.length > 0) {
-        const sourceLessons = sourceStage.lessonPlan;
-        const targetLessons = stage.lessonPlan || [];
-
-        if (syncOptions.lessonPlanMode === "keep_target_dates") {
-          // Replicate content while preserving the target stage dates & hours
-          updated.lessonPlan = sourceLessons.map((srcL, idx) => {
-            const existingTargetLesson = targetLessons[idx];
-            const chosenProf =
-              syncOptions.targetProfessor === "keep"
-                ? (existingTargetLesson?.professor || srcL.professor || "Prof. Ricardo Beretella")
-                : syncOptions.targetProfessor === "Ambos"
-                ? "Prof. Ricardo Beretella / Prof. Ricardo Gea"
-                : syncOptions.targetProfessor;
-
-            return {
-              id: existingTargetLesson?.id || `lp-sync-${stage.id}-${idx}-${Date.now()}`,
-              date: existingTargetLesson?.date || srcL.date || "12/08/2026",
-              hours: existingTargetLesson?.hours || srcL.hours || "4h",
-              professor: chosenProf,
-              conhecimentos: srcL.conhecimentos,
-              estrategias: srcL.estrategias,
-              recursos: srcL.recursos,
-              capacities: srcL.capacities,
-              status: existingTargetLesson?.status || "planejada",
-              stageId: stage.id,
-              stageTitle: stage.title,
-              stageTurma: stage.turma,
-            };
-          });
-        } else {
-          // Replace all with source lessons (generate new IDs)
-          updated.lessonPlan = sourceLessons.map((srcL, idx) => {
-            const chosenProf =
-              syncOptions.targetProfessor === "keep"
-                ? (srcL.professor || "Prof. Ricardo Beretella")
-                : syncOptions.targetProfessor === "Ambos"
-                ? "Prof. Ricardo Beretella / Prof. Ricardo Gea"
-                : syncOptions.targetProfessor;
-
-            return {
-              ...srcL,
-              id: `lp-sync-${stage.id}-${idx}-${Date.now()}`,
-              professor: chosenProf,
-              stageId: stage.id,
-              stageTitle: stage.title,
-              stageTurma: stage.turma,
-            };
-          });
-        }
-      }
-
-      return updated;
-    });
-
-    // Merge unified lessonPlan
-    const mergedList = updatedStages.flatMap((st) =>
-      (st.lessonPlan || []).map((lp: LessonPlanItem) => ({
-        ...lp,
-        stageId: st.id,
-        stageTitle: st.title,
-        stageTurma: st.turma,
-      }))
-    );
-
-    handleUpdateCurrentUnit({
-      ...currentUnit,
-      stages: updatedStages,
-      lessonPlan: mergedList,
-    });
-
-    setIsSyncModalOpen(false);
-    setSyncSuccessToast(`Conteúdo replicado com sucesso da ${sourceStage.title.replace(/^\d+\.\s*/, '')} para ${syncTargetStageIds.length} etapa(s)!`);
-    setTimeout(() => setSyncSuccessToast(null), 5000);
-  };
-
   // Active Lesson Plan filtered by lateral active professor (currentUser)
   const rawLessonPlan: LessonPlanItem[] =
     currentUnit && Array.isArray(currentUnit.lessonPlan)
@@ -1160,35 +1013,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       </button>
                     );
                   })}
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleOpenSyncModal(activeStage?.id)}
-                      className="px-3 py-2 bg-blue-600/90 hover:bg-blue-600 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ml-1"
-                      title="Replicar conteúdo desta etapa para as outras turmas e docentes"
-                    >
-                      <Copy className="w-3.5 h-3.5 text-blue-200" />
-                      <span>Replicar Conteúdo</span>
-                    </button>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Toast Notification Banner */}
-          {syncSuccessToast && (
-            <div className="mx-6 sm:mx-10 mt-4 p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-between text-xs font-bold animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>{syncSuccessToast}</span>
-              </div>
-              <button
-                onClick={() => setSyncSuccessToast(null)}
-                className="p-1 hover:bg-emerald-500/20 rounded-lg cursor-pointer text-emerald-500"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
             </div>
           )}
 
@@ -1227,19 +1053,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 })}
               </div>
 
-              {/* Action Buttons: Sincronizar & Imprimir */}
+              {/* Action Button: Imprimir */}
               <div className="flex items-center gap-2 py-2 sm:py-2 shrink-0">
-                {isAdmin && currentUnit.stages && currentUnit.stages.length > 0 && (
-                  <button
-                    onClick={() => handleOpenSyncModal(activeStage?.id)}
-                    className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                    title="Sincronizar e replicar conteúdos entre perfis de professores e etapas sem redigitar"
-                  >
-                    <ArrowRightLeft className="w-3.5 h-3.5" />
-                    <span>Sincronizar Etapas</span>
-                  </button>
-                )}
-
                 <button
                   onClick={() => {
                     if (currentUnit) {
@@ -1814,219 +1629,436 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     </div>
                   )}
 
-                  {/* Render 4 Distinct Stage Sections when UC has stages */}
+                  {/* Multi-Stage Content: Unified chronological sequence when "todas" is selected, or individual stage */}
                   {currentUnit.stages && currentUnit.stages.length > 0 ? (
-                    <div className="space-y-8">
-                      {currentUnit.stages
-                        .filter((stage) => lessonPlanStageFilter === "todas" || lessonPlanStageFilter === stage.id)
-                        .map((stage) => {
-                          const sIdx = currentUnit.stages!.findIndex((s) => s.id === stage.id);
-                          const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
-                          
-                          // Stage lessons filtered by professor filter & search query
-                          const stageLessons = (stage.lessonPlan || []).filter((item) => {
-                            if (!item) return false;
+                    lessonPlanStageFilter === "todas" ? (
+                      (() => {
+                        // Flatten all lessons from all stages
+                        const allStagesLessons = currentUnit.stages!.flatMap((stage, sIdx) =>
+                          (stage.lessonPlan || []).map((item) => ({
+                            ...item,
+                            stageId: stage.id,
+                            stageTitle: stage.title,
+                            stageTurma: stage.turma,
+                            stageIdx: sIdx,
+                          }))
+                        );
+
+                        // Filter by active professor & search query
+                        const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+                        const isGea = currentUser?.name?.toLowerCase().includes("gea");
+
+                        const filteredAllLessons = allStagesLessons.filter((item) => {
+                          if (!item) return false;
+                          if (isBeretella && item.professor) {
+                            const p = item.professor.toLowerCase();
+                            if (!p.includes("beretella") && !p.includes("ambos")) return false;
+                          }
+                          if (isGea && item.professor) {
+                            const p = item.professor.toLowerCase();
+                            if (!p.includes("gea") && !p.includes("ambos")) return false;
+                          }
+
+                          if (lessonPlanSearch.trim()) {
+                            const q = lessonPlanSearch.toLowerCase();
+                            const matchSearch =
+                              (item.conhecimentos || "").toLowerCase().includes(q) ||
+                              (item.estrategias || "").toLowerCase().includes(q) ||
+                              (item.date || "").includes(q) ||
+                              (item.capacities || "").toLowerCase().includes(q) ||
+                              (item.recursos || "").toLowerCase().includes(q);
+                            if (!matchSearch) return false;
+                          }
+
+                          return true;
+                        });
+
+                        // Sort strictly chronologically by date / day
+                        const sortedAllLessons = [...filteredAllLessons].sort((a, b) => {
+                          const tA = parseDateSortKey(a.date);
+                          const tB = parseDateSortKey(b.date);
+                          if (tA !== tB) return tA - tB;
+                          return (a.id || "").localeCompare(b.id || "");
+                        });
+
+                        const totalAllHours = sortedAllLessons.reduce((acc, lp) => {
+                          const h = lp?.hours;
+                          if (typeof h === "number") return acc + h;
+                          if (typeof h === "string") {
+                            const match = h.match(/\d+/);
+                            return acc + (match ? parseInt(match[0], 10) : 4);
+                          }
+                          return acc + 4;
+                        }, 0);
+
+                        const completedTotalCount = sortedAllLessons.filter((l) => l.status === "concluida").length;
+
+                        return (
+                          <div className="rounded-3xl border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 shadow-sm overflow-hidden space-y-0">
+                            {/* Unified Table Header Banner */}
+                            <div className="p-4 sm:p-6 border-b border-purple-200 dark:border-purple-900/50 bg-purple-50/60 dark:bg-purple-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-purple-600 text-white shadow-xs">
+                                    TODAS AS 4 ETAPAS • CRONOGRAMA POR DIA
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                                    • {sortedAllLessons.length} Aulas classificadas em ordem cronológica ({totalAllHours}h)
+                                  </span>
+                                  {completedTotalCount > 0 && (
+                                    <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black rounded-md">
+                                      ✓ {completedTotalCount}/{sortedAllLessons.length} Concluídas
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                  Sequência Cronológica Completa da Unidade de Aprendizagem
+                                </h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                  Todas as aulas das etapas mescladas e ordenadas dia a dia conforme o calendário letivo.
+                                </p>
+                              </div>
+
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddLesson(undefined, currentUnit.stages?.[0]?.id)}
+                                  className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>Adicionar Aula</span>
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Master Unified Table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                    <th className="p-4 w-36 whitespace-nowrap">Data / Horas & Etapa</th>
+                                    <th className="p-4">Capacidades Desenvolvidas</th>
+                                    <th className="p-4">Conhecimentos / Conteúdo</th>
+                                    <th className="p-4">Estratégias Pedagógicas</th>
+                                    <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
+                                    <th className="p-3 w-24 text-center">Ações</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                                  {sortedAllLessons.length > 0 ? (
+                                    sortedAllLessons.map((lesson) => {
+                                      const isOk = lesson.status === "concluida";
+                                      const sIdx = lesson.stageIdx ?? 0;
+                                      const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
+                                      return (
+                                        <tr
+                                          key={lesson.id}
+                                          className={`transition-all ${
+                                            isOk
+                                              ? "bg-emerald-100/90 dark:bg-emerald-950/70 border-l-4 border-l-emerald-500 font-medium"
+                                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                                          }`}
+                                        >
+                                          {/* 1. Data / Horas & Etapa */}
+                                          <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
+                                            <div className="flex items-center gap-1.5">
+                                              <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                              <span>{lesson.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-bold text-[10px]">
+                                                {lesson.hours}
+                                              </span>
+                                              <span className={`px-2 py-0.5 rounded font-black text-[10px] ${theme.pillBg}`}>
+                                                Etapa {sIdx + 1}: {lesson.stageTurma || `E${sIdx + 1}`}
+                                              </span>
+                                            </div>
+                                          </td>
+
+                                          {/* 2. Capacidades */}
+                                          <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
+                                            {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
+                                          </td>
+
+                                          {/* 3. Conhecimentos */}
+                                          <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
+                                            <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
+                                          </td>
+
+                                          {/* 4. Estratégias */}
+                                          <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
+                                            {renderFormattedText(lesson.estrategias)}
+                                          </td>
+
+                                          {/* 5. Recursos & Ambientes */}
+                                          <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
+                                            {lesson.recursos}
+                                          </td>
+
+                                          {/* 6. Ações */}
+                                          <td className="p-2 text-center whitespace-nowrap align-top">
+                                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                              <button
+                                                onClick={() => {
+                                                  if (!isAdmin) return;
+                                                  handleToggleLessonOk(lesson.id);
+                                                }}
+                                                className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
+                                                  isOk
+                                                    ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
+                                                    : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
+                                                }`}
+                                                title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
+                                              >
+                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                <span>{isOk ? "OK!" : "OK"}</span>
+                                              </button>
+
+                                              {isAdmin && (
+                                                <div className="flex items-center gap-1">
+                                                  <button
+                                                    onClick={() => handleOpenEditLesson(lesson)}
+                                                    className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                                    title="Editar esta aula"
+                                                  >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleDeleteLessonItem(lesson.id)}
+                                                    className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                                    title="Excluir aula"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
+                                        Nenhuma aula encontrada para o filtro aplicado.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      /* Individual Stage View when a specific stage filter is chosen */
+                      <div className="space-y-8">
+                        {currentUnit.stages
+                          .filter((stage) => lessonPlanStageFilter === stage.id)
+                          .map((stage) => {
+                            const sIdx = currentUnit.stages!.findIndex((s) => s.id === stage.id);
+                            const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
                             
-                            // Professor filter by active sidebar professor
-                            const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
-                            const isGea = currentUser?.name?.toLowerCase().includes("gea");
-                            if (isBeretella && item.professor && !item.professor.toLowerCase().includes("beretella") && !item.professor.toLowerCase().includes("ambos")) {
-                              return false;
-                            }
-                            if (isGea && item.professor && !item.professor.toLowerCase().includes("gea") && !item.professor.toLowerCase().includes("ambos")) {
-                              return false;
-                            }
+                            const stageLessons = (stage.lessonPlan || []).filter((item) => {
+                              if (!item) return false;
+                              const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+                              const isGea = currentUser?.name?.toLowerCase().includes("gea");
+                              if (isBeretella && item.professor && !item.professor.toLowerCase().includes("beretella") && !item.professor.toLowerCase().includes("ambos")) {
+                                return false;
+                              }
+                              if (isGea && item.professor && !item.professor.toLowerCase().includes("gea") && !item.professor.toLowerCase().includes("ambos")) {
+                                return false;
+                              }
 
-                            // Search filter
-                            if (lessonPlanSearch.trim()) {
-                              const q = lessonPlanSearch.toLowerCase();
-                              const matchSearch =
-                                (item.conhecimentos || "").toLowerCase().includes(q) ||
-                                (item.estrategias || "").toLowerCase().includes(q) ||
-                                (item.date || "").includes(q) ||
-                                (item.capacities || "").toLowerCase().includes(q) ||
-                                (item.recursos || "").toLowerCase().includes(q);
-                              if (!matchSearch) return false;
-                            }
+                              if (lessonPlanSearch.trim()) {
+                                const q = lessonPlanSearch.toLowerCase();
+                                const matchSearch =
+                                  (item.conhecimentos || "").toLowerCase().includes(q) ||
+                                  (item.estrategias || "").toLowerCase().includes(q) ||
+                                  (item.date || "").includes(q) ||
+                                  (item.capacities || "").toLowerCase().includes(q) ||
+                                  (item.recursos || "").toLowerCase().includes(q);
+                                if (!matchSearch) return false;
+                              }
 
-                            return true;
-                          });
+                              return true;
+                            });
 
-                          const totalStageHours = (stage.lessonPlan || []).reduce((acc, lp) => {
-                            const h = lp?.hours;
-                            if (typeof h === "number") return acc + h;
-                            if (typeof h === "string") {
-                              const match = h.match(/\d+/);
-                              return acc + (match ? parseInt(match[0], 10) : 4);
-                            }
-                            return acc + 4;
-                          }, 0);
+                            const totalStageHours = (stage.lessonPlan || []).reduce((acc, lp) => {
+                              const h = lp?.hours;
+                              if (typeof h === "number") return acc + h;
+                              if (typeof h === "string") {
+                                const match = h.match(/\d+/);
+                                return acc + (match ? parseInt(match[0], 10) : 4);
+                              }
+                              return acc + 4;
+                            }, 0);
 
-                          const completedCount = (stage.lessonPlan || []).filter((l) => l.status === "concluida").length;
+                            const completedCount = (stage.lessonPlan || []).filter((l) => l.status === "concluida").length;
 
-                          return (
-                            <div
-                              key={stage.id}
-                              className={`rounded-3xl border ${theme.border} bg-white dark:bg-slate-900 shadow-sm overflow-hidden`}
-                            >
-                              {/* Stage Header Banner */}
-                              <div className={`p-4 sm:p-6 border-b ${theme.border} ${theme.lightBg} flex flex-col md:flex-row md:items-center justify-between gap-4`}>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${theme.badge}`}>
-                                      ETAPA {sIdx + 1}
-                                    </span>
-                                    <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-slate-900 text-white dark:bg-slate-800`}>
-                                      {stage.turma}
-                                    </span>
-                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                      • {(stage.lessonPlan || []).length} Aulas ({totalStageHours}h)
-                                    </span>
-                                    {completedCount > 0 && (
-                                      <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black rounded-md">
-                                        ✓ {completedCount}/{(stage.lessonPlan || []).length} Concluídas
+                            return (
+                              <div
+                                key={stage.id}
+                                className={`rounded-3xl border ${theme.border} bg-white dark:bg-slate-900 shadow-sm overflow-hidden`}
+                              >
+                                {/* Stage Header Banner */}
+                                <div className={`p-4 sm:p-6 border-b ${theme.border} ${theme.lightBg} flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${theme.badge}`}>
+                                        ETAPA {sIdx + 1}
                                       </span>
+                                      <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-slate-900 text-white dark:bg-slate-800`}>
+                                        {stage.turma}
+                                      </span>
+                                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                        • {(stage.lessonPlan || []).length} Aulas ({totalStageHours}h)
+                                      </span>
+                                      {completedCount > 0 && (
+                                        <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black rounded-md">
+                                          ✓ {completedCount}/{(stage.lessonPlan || []).length} Concluídas
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                      {stage.title}
+                                    </h3>
+                                    {stage.situationProblem?.company && (
+                                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                        Contexto Industrial: <span className="font-bold text-slate-900 dark:text-white">{stage.situationProblem.company}</span>
+                                      </p>
                                     )}
                                   </div>
-                                  <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                    {stage.title}
-                                  </h3>
-                                  {stage.situationProblem?.company && (
-                                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                                      Contexto Industrial: <span className="font-bold text-slate-900 dark:text-white">{stage.situationProblem.company}</span>
-                                    </p>
+
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleOpenAddLesson(undefined, stage.id)}
+                                      className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      <span>Adicionar Aula na Etapa {sIdx + 1}</span>
+                                    </button>
                                   )}
                                 </div>
 
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => handleOpenAddLesson(undefined, stage.id)}
-                                    className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
-                                  >
-                                    <Plus className="w-4 h-4" />
-                                    <span>Adicionar Aula na Etapa {sIdx + 1}</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Stage Lesson Table */}
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                  <thead>
-                                    <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                                      <th className="p-4 w-32 whitespace-nowrap">Horas/Data</th>
-                                      <th className="p-4">Capacidades Desenvolvidas</th>
-                                      <th className="p-4">Conhecimentos / Conteúdo</th>
-                                      <th className="p-4">Estratégias Pedagógicas</th>
-                                      <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
-                                      <th className="p-3 w-24 text-center">Ações</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                                    {stageLessons.length > 0 ? (
-                                      stageLessons.map((lesson) => {
-                                        const isOk = lesson.status === "concluida";
-                                        return (
-                                          <tr
-                                            key={lesson.id}
-                                            className={`transition-all ${
-                                              isOk
-                                                ? "bg-emerald-100/90 dark:bg-emerald-950/70 border-l-4 border-l-emerald-500 font-medium"
-                                                : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                                            }`}
-                                          >
-                                            {/* 1. Horas/Data */}
-                                            <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
-                                              <div className="flex items-center gap-1.5">
-                                                <Calendar className={`w-3.5 h-3.5 ${theme.text}`} />
-                                                <span>{lesson.date}</span>
-                                              </div>
-                                              <div className="flex items-center gap-1 mt-1">
-                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-bold text-[10px]">
-                                                  {lesson.hours}
-                                                </span>
-                                                <span className={`px-1.5 py-0.5 rounded font-black text-[9px] ${theme.pillBg}`}>
-                                                  E{sIdx + 1}
-                                                </span>
-                                              </div>
-                                            </td>
-
-                                            {/* 2. Capacidades */}
-                                            <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
-                                              {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
-                                            </td>
-
-                                            {/* 3. Conhecimentos */}
-                                            <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
-                                              <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
-                                            </td>
-
-                                            {/* 4. Estratégias */}
-                                            <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
-                                              {renderFormattedText(lesson.estrategias)}
-                                            </td>
-
-                                            {/* 5. Recursos & Ambientes */}
-                                            <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
-                                              {lesson.recursos}
-                                            </td>
-
-                                            {/* 6. Ações */}
-                                            <td className="p-2 text-center whitespace-nowrap align-top">
-                                              <div className="flex flex-col items-center justify-center gap-1.5">
-                                                <button
-                                                  onClick={() => {
-                                                    if (!isAdmin) return;
-                                                    handleToggleLessonOk(lesson.id);
-                                                  }}
-                                                  className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
-                                                    isOk
-                                                      ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
-                                                      : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
-                                                  }`}
-                                                  title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
-                                                >
-                                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                                  <span>{isOk ? "OK!" : "OK"}</span>
-                                                </button>
-
-                                                {isAdmin && (
-                                                  <div className="flex items-center gap-1">
-                                                    <button
-                                                      onClick={() => handleOpenEditLesson(lesson)}
-                                                      className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
-                                                      title="Editar esta aula"
-                                                    >
-                                                      <Edit className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button
-                                                      onClick={() => handleDeleteLessonItem(lesson.id)}
-                                                      className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
-                                                      title="Excluir aula"
-                                                    >
-                                                      <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        );
-                                      })
-                                    ) : (
-                                      <tr>
-                                        <td colSpan={6} className="p-6 text-center text-slate-400 font-bold italic">
-                                          Nenhuma aula encontrada para esta etapa com o filtro aplicado.
-                                        </td>
+                                {/* Stage Lesson Table */}
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-left border-collapse">
+                                    <thead>
+                                      <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                        <th className="p-4 w-32 whitespace-nowrap">Horas/Data</th>
+                                        <th className="p-4">Capacidades Desenvolvidas</th>
+                                        <th className="p-4">Conhecimentos / Conteúdo</th>
+                                        <th className="p-4">Estratégias Pedagógicas</th>
+                                        <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
+                                        <th className="p-3 w-24 text-center">Ações</th>
                                       </tr>
-                                    )}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                                      {stageLessons.length > 0 ? (
+                                        stageLessons.map((lesson) => {
+                                          const isOk = lesson.status === "concluida";
+                                          return (
+                                            <tr
+                                              key={lesson.id}
+                                              className={`transition-all ${
+                                                isOk
+                                                  ? "bg-emerald-100/90 dark:bg-emerald-950/70 border-l-4 border-l-emerald-500 font-medium"
+                                                  : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                                              }`}
+                                            >
+                                              {/* 1. Horas/Data */}
+                                              <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
+                                                <div className="flex items-center gap-1.5">
+                                                  <Calendar className={`w-3.5 h-3.5 ${theme.text}`} />
+                                                  <span>{lesson.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-1">
+                                                  <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-bold text-[10px]">
+                                                    {lesson.hours}
+                                                  </span>
+                                                  <span className={`px-1.5 py-0.5 rounded font-black text-[9px] ${theme.pillBg}`}>
+                                                    E{sIdx + 1}
+                                                  </span>
+                                                </div>
+                                              </td>
+
+                                              {/* 2. Capacidades */}
+                                              <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
+                                                {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
+                                              </td>
+
+                                              {/* 3. Conhecimentos */}
+                                              <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
+                                                <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
+                                              </td>
+
+                                              {/* 4. Estratégias */}
+                                              <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
+                                                {renderFormattedText(lesson.estrategias)}
+                                              </td>
+
+                                              {/* 5. Recursos & Ambientes */}
+                                              <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
+                                                {lesson.recursos}
+                                              </td>
+
+                                              {/* 6. Ações */}
+                                              <td className="p-2 text-center whitespace-nowrap align-top">
+                                                <div className="flex flex-col items-center justify-center gap-1.5">
+                                                  <button
+                                                    onClick={() => {
+                                                      if (!isAdmin) return;
+                                                      handleToggleLessonOk(lesson.id);
+                                                    }}
+                                                    className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
+                                                      isOk
+                                                        ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
+                                                        : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
+                                                    }`}
+                                                    title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
+                                                  >
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    <span>{isOk ? "OK!" : "OK"}</span>
+                                                  </button>
+
+                                                  {isAdmin && (
+                                                    <div className="flex items-center gap-1">
+                                                      <button
+                                                        onClick={() => handleOpenEditLesson(lesson)}
+                                                        className="p-1.2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                                        title="Editar esta aula"
+                                                      >
+                                                        <Edit className="w-3.5 h-3.5" />
+                                                      </button>
+                                                      <button
+                                                        onClick={() => handleDeleteLessonItem(lesson.id)}
+                                                        className="p-1.2 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                                        title="Excluir aula"
+                                                      >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })
+                                      ) : (
+                                        <tr>
+                                          <td colSpan={6} className="p-6 text-center text-slate-400 font-bold italic">
+                                            Nenhuma aula encontrada para esta etapa com o filtro aplicado.
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+                            );
+                          })}
+                      </div>
+                    )
                   ) : (
                     /* Single Table for UCs without multiple stages */
                     <div className="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
@@ -2474,77 +2506,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
-              {/* Professor Target Scope Selection */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
-                  Destino da Gravação / Perfil do Professor:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      lessonTargetScope === "Ambos os Professores"
-                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="lessonTargetScope"
-                      value="Ambos os Professores"
-                      checked={lessonTargetScope === "Ambos os Professores"}
-                      onChange={() => setLessonTargetScope("Ambos os Professores")}
-                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
-                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      lessonTargetScope === "Prof. Ricardo Beretella"
-                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="lessonTargetScope"
-                      value="Prof. Ricardo Beretella"
-                      checked={lessonTargetScope === "Prof. Ricardo Beretella"}
-                      onChange={() => setLessonTargetScope("Prof. Ricardo Beretella")}
-                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma A (Torneamento)</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      lessonTargetScope === "Prof. Ricardo Gea"
-                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="lessonTargetScope"
-                      value="Prof. Ricardo Gea"
-                      checked={lessonTargetScope === "Prof. Ricardo Gea"}
-                      onChange={() => setLessonTargetScope("Prof. Ricardo Gea")}
-                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma B (Fresagem)</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               {/* Select Stage if UC has stages */}
               {currentUnit && currentUnit.stages && currentUnit.stages.length > 0 && (
                 <div>
@@ -2577,9 +2538,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     placeholder="Ex: 25/03/2026"
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                    Ao salvar para ambos, a data da outra turma permanece protegida.
-                  </p>
                 </div>
 
                 <div>
@@ -2692,77 +2650,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
-              {/* Target Scope */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
-                  Destino da Gravação / Perfil do Professor:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      spTargetScope === "Ambos os Professores"
-                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="spTargetScope"
-                      value="Ambos os Professores"
-                      checked={spTargetScope === "Ambos os Professores"}
-                      onChange={() => setSPTargetScope("Ambos os Professores")}
-                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
-                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      spTargetScope === "Prof. Ricardo Beretella"
-                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="spTargetScope"
-                      value="Prof. Ricardo Beretella"
-                      checked={spTargetScope === "Prof. Ricardo Beretella"}
-                      onChange={() => setSPTargetScope("Prof. Ricardo Beretella")}
-                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      spTargetScope === "Prof. Ricardo Gea"
-                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="spTargetScope"
-                      value="Prof. Ricardo Gea"
-                      checked={spTargetScope === "Prof. Ricardo Gea"}
-                      onChange={() => setSPTargetScope("Prof. Ricardo Gea")}
-                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Título da Situação de Aprendizagem
@@ -2909,77 +2796,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
-              {/* Target Scope */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
-                  Destino da Gravação / Perfil do Professor:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      rubricTargetScope === "Ambos os Professores"
-                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="rubricTargetScope"
-                      value="Ambos os Professores"
-                      checked={rubricTargetScope === "Ambos os Professores"}
-                      onChange={() => setRubricTargetScope("Ambos os Professores")}
-                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
-                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      rubricTargetScope === "Prof. Ricardo Beretella"
-                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="rubricTargetScope"
-                      value="Prof. Ricardo Beretella"
-                      checked={rubricTargetScope === "Prof. Ricardo Beretella"}
-                      onChange={() => setRubricTargetScope("Prof. Ricardo Beretella")}
-                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      rubricTargetScope === "Prof. Ricardo Gea"
-                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="rubricTargetScope"
-                      value="Prof. Ricardo Gea"
-                      checked={rubricTargetScope === "Prof. Ricardo Gea"}
-                      onChange={() => setRubricTargetScope("Prof. Ricardo Gea")}
-                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Capacidade / Competência Avaliada
@@ -3089,77 +2905,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
-              {/* Target Scope */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
-                  Destino da Gravação / Perfil do Professor:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      topicTargetScope === "Ambos os Professores"
-                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="topicTargetScope"
-                      value="Ambos os Professores"
-                      checked={topicTargetScope === "Ambos os Professores"}
-                      onChange={() => setTopicTargetScope("Ambos os Professores")}
-                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
-                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      topicTargetScope === "Prof. Ricardo Beretella"
-                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="topicTargetScope"
-                      value="Prof. Ricardo Beretella"
-                      checked={topicTargetScope === "Prof. Ricardo Beretella"}
-                      onChange={() => setTopicTargetScope("Prof. Ricardo Beretella")}
-                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      topicTargetScope === "Prof. Ricardo Gea"
-                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="topicTargetScope"
-                      value="Prof. Ricardo Gea"
-                      checked={topicTargetScope === "Prof. Ricardo Gea"}
-                      onChange={() => setTopicTargetScope("Prof. Ricardo Gea")}
-                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Texto do Conhecimento / Tópico Programático
@@ -3215,77 +2960,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
-              {/* Target Scope */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">
-                  Destino da Gravação / Perfil do Professor:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      capacityTargetScope === "Ambos os Professores"
-                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 text-purple-900 dark:text-purple-200 font-extrabold ring-1 ring-purple-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="capacityTargetScope"
-                      value="Ambos os Professores"
-                      checked={capacityTargetScope === "Ambos os Professores"}
-                      onChange={() => setCapacityTargetScope("Ambos os Professores")}
-                      className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-purple-700 dark:text-purple-300">Ambos os Professores</span>
-                      <span className="text-[9px] opacity-75 font-medium">Grava nos 2 perfis</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      capacityTargetScope === "Prof. Ricardo Beretella"
-                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-500 text-blue-900 dark:text-blue-200 font-extrabold ring-1 ring-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="capacityTargetScope"
-                      value="Prof. Ricardo Beretella"
-                      checked={capacityTargetScope === "Prof. Ricardo Beretella"}
-                      onChange={() => setCapacityTargetScope("Prof. Ricardo Beretella")}
-                      className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-blue-700 dark:text-blue-300">Prof. Ricardo Beretella</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma A</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                      capacityTargetScope === "Prof. Ricardo Gea"
-                        ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-extrabold ring-1 ring-emerald-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="capacityTargetScope"
-                      value="Prof. Ricardo Gea"
-                      checked={capacityTargetScope === "Prof. Ricardo Gea"}
-                      onChange={() => setCapacityTargetScope("Prof. Ricardo Gea")}
-                      className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                    />
-                    <div className="text-[11px] leading-tight">
-                      <span className="block font-black text-emerald-700 dark:text-emerald-300">Prof. Ricardo Gea</span>
-                      <span className="text-[9px] opacity-75 font-medium">Turma B</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Texto da Capacidade
@@ -3313,273 +2987,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               >
                 <Save className="w-4 h-4" />
                 <span>Salvar Capacidade</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* REPLICATION / SYNC CONTENT MODAL */}
-      {isSyncModalOpen && currentUnit && currentUnit.stages && currentUnit.stages.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 my-8">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
-                  <ArrowRightLeft className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                    Sincronização & Replicação Pedagógica
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Replique conteúdos, rubricas, desafios e aulas entre perfis sem redigitar duas vezes.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsSyncModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-6 text-xs">
-              {/* 1. ORIGEM */}
-              <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">1</span>
-                  <span>Etapa de Origem (De onde copiar os dados)</span>
-                </label>
-                <select
-                  value={syncSourceStageId}
-                  onChange={(e) => {
-                    const newSource = e.target.value;
-                    setSyncSourceStageId(newSource);
-                    // Update target to exclude source
-                    setSyncTargetStageIds(
-                      (currentUnit.stages || []).filter((s) => s.id !== newSource).map((s) => s.id)
-                    );
-                  }}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {currentUnit.stages.map((st, sIdx) => (
-                    <option key={st.id} value={st.id}>
-                      Etapa {sIdx + 1}: {st.title.replace(/^\d+\.\s*/, '')} ({st.turma})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 2. DESTINO */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-[10px]">2</span>
-                    <span>Etapas de Destino (Onde aplicar o conteúdo)</span>
-                  </label>
-                  <button
-                    onClick={() => {
-                      const available = (currentUnit.stages || []).filter((s) => s.id !== syncSourceStageId).map((s) => s.id);
-                      if (syncTargetStageIds.length === available.length) {
-                        setSyncTargetStageIds([]);
-                      } else {
-                        setSyncTargetStageIds(available);
-                      }
-                    }}
-                    className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                  >
-                    {syncTargetStageIds.length === (currentUnit.stages || []).filter((s) => s.id !== syncSourceStageId).length
-                      ? "Desmarcar Todas"
-                      : "Selecionar Todas"}
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {currentUnit.stages
-                    .filter((st) => st.id !== syncSourceStageId)
-                    .map((st) => {
-                      const isChecked = syncTargetStageIds.includes(st.id);
-                      return (
-                        <button
-                          key={st.id}
-                          type="button"
-                          onClick={() => {
-                            if (isChecked) {
-                              setSyncTargetStageIds(syncTargetStageIds.filter((id) => id !== st.id));
-                            } else {
-                              setSyncTargetStageIds([...syncTargetStageIds, st.id]);
-                            }
-                          }}
-                          className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                            isChecked
-                              ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 font-bold ring-1 ring-blue-500/30"
-                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-medium hover:border-slate-300"
-                          }`}
-                        >
-                          {isChecked ? (
-                            <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                          ) : (
-                            <Square className="w-4 h-4 text-slate-400 shrink-0" />
-                          )}
-                          <span className="text-xs truncate">{st.title.replace(/^\d+\.\s*/, '')}</span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* 3. CONTEÚDOS SELECIONADOS */}
-              <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">3</span>
-                  <span>O que você deseja replicar?</span>
-                </label>
-                <div className="space-y-2 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={syncOptions.situationProblem}
-                      onChange={(e) => setSyncOptions({ ...syncOptions, situationProblem: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      Situação de Aprendizagem & Desafio Industrial (Contexto, Empresa e Entregas)
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={syncOptions.capacities}
-                      onChange={(e) => setSyncOptions({ ...syncOptions, capacities: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      Capacidades Básicas, Técnicas & Socioemocionais
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={syncOptions.topics}
-                      onChange={(e) => setSyncOptions({ ...syncOptions, topics: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      Conhecimentos & Tópicos Programáticos
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={syncOptions.rubrics}
-                      onChange={(e) => setSyncOptions({ ...syncOptions, rubrics: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      Critérios de Avaliação & Rubricas MSEP SENAI (NSA, APO, PAR, AUT)
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={syncOptions.lessonPlan}
-                      onChange={(e) => setSyncOptions({ ...syncOptions, lessonPlan: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      Plano de Aulas / Sequência Didática (Conteúdos, Estratégias e Recursos)
-                    </span>
-                  </label>
-
-                  {syncOptions.lessonPlan && (
-                    <div className="mt-3 pl-6 pt-3 border-t border-slate-200 dark:border-slate-700/60 space-y-2">
-                      <div className="text-[10px] font-black uppercase text-slate-500">
-                        Comportamento das Datas nas Aulas:
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="lessonSyncMode"
-                          checked={syncOptions.lessonPlanMode === "keep_target_dates"}
-                          onChange={() => setSyncOptions({ ...syncOptions, lessonPlanMode: "keep_target_dates" })}
-                          className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          Replicar Conteúdos e Metodologias PRESERVANDO as Datas da Etapa de Destino (Recomendado)
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="lessonSyncMode"
-                          checked={syncOptions.lessonPlanMode === "replace_all"}
-                          onChange={() => setSyncOptions({ ...syncOptions, lessonPlanMode: "replace_all" })}
-                          className="text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className="font-medium text-slate-600 dark:text-slate-400">
-                          Clonar todas as aulas e substituir inclusive as datas
-                        </span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 4. ATRIBUIÇÃO DE DOCENTE */}
-              <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">4</span>
-                  <span>Docente Responsável nas Aulas de Destino</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {[
-                    { val: "keep", label: "Manter Docente Existente no Destino" },
-                    { val: "Prof. Ricardo Beretella", label: "Prof. Ricardo Beretella" },
-                    { val: "Prof. Ricardo Gea", label: "Prof. Ricardo Gea" },
-                    { val: "Ambos", label: "Ambos (Ricardo Beretella / Ricardo Gea)" },
-                  ].map((opt) => (
-                    <label
-                      key={opt.val}
-                      className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                        syncOptions.targetProfessor === opt.val
-                          ? "bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-900 dark:text-purple-200 font-bold"
-                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-medium"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="syncTargetProf"
-                        checked={syncOptions.targetProfessor === opt.val}
-                        onChange={() => setSyncOptions({ ...syncOptions, targetProfessor: opt.val as any })}
-                        className="text-purple-600 focus:ring-purple-500 cursor-pointer"
-                      />
-                      <span className="text-xs">{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* MODAL ACTIONS */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <button
-                onClick={() => setIsSyncModalOpen(false)}
-                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleExecuteSync}
-                disabled={syncTargetStageIds.length === 0}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 transition-all"
-              >
-                <ArrowRightLeft className="w-4 h-4" />
-                <span>Executar Replicação Imediata</span>
               </button>
             </div>
           </div>
