@@ -4,7 +4,7 @@ import { generateSyllabusSchedule } from "../utils/scheduleGenerator";
 export const rawProeducadorUnits: ProgrammaticUnit[] = [
   {
     id: "uc-fusi",
-    unitTitle: "Fundamentos da Usinagem e Ajustagem Mecânica",
+    unitTitle: "Fundamentos da Usinagem",
     acronym: "FUSI",
     semester: "1º SEMESTRE",
     module: "Módulo Introdutório",
@@ -74,7 +74,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-lidt",
-    unitTitle: "Leitura e Interpretação de Desenho Técnico Mecânico",
+    unitTitle: "Leitura e Interpretação de Desenho Técnico",
     acronym: "LIDT",
     semester: "1º SEMESTRE",
     module: "Módulo Básico",
@@ -132,7 +132,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-crd",
-    unitTitle: "Controle Dimensional e Metrologia Básica",
+    unitTitle: "Controle Dimensional",
     acronym: "CRD",
     semester: "1º SEMESTRE",
     module: "Módulo Básico",
@@ -191,7 +191,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-map",
-    unitTitle: "Matemática Aplicada aos Processos de Usinagem",
+    unitTitle: "Matemática Aplicada",
     acronym: "MAP",
     semester: "1º SEMESTRE",
     module: "Módulo Básico",
@@ -249,7 +249,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-ciema",
-    unitTitle: "Ciências dos Materiais Aplicada à Fabricação Mecânica",
+    unitTitle: "Ciências dos Materiais",
     acronym: "CIEMA",
     semester: "1º SEMESTRE",
     module: "Módulo Básico",
@@ -307,7 +307,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-proc",
-    unitTitle: "Processos de Usinagem Convencional (Torneamento e Fresamento)",
+    unitTitle: "Processos de Usinagem Convencional",
     acronym: "PRUSC",
     semester: "2º SEMESTRE",
     module: "Módulo Específico",
@@ -378,7 +378,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
   },
   {
     id: "uc-metr",
-    unitTitle: "Metrologia Industrial e Controle Geométrico Aplicado",
+    unitTitle: "Metrologia Industrial",
     acronym: "MINDU",
     semester: "2º SEMESTRE",
     module: "Módulo Específico",
