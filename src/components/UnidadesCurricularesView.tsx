@@ -513,24 +513,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               2º SEMESTRE (JUL - DEZ)
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              if (window.confirm("Deseja restaurar a matriz curricular padrão do SENAI (7 Unidades Curriculares oficiais)?")) {
-                const freshUnits = JSON.parse(JSON.stringify(rawProeducadorUnits || []));
-                onUpdateSyllabus({
-                  ...syllabus,
-                  programmaticContent: freshUnits,
-                });
-                setSelectedUnitId(freshUnits[0]?.id || "uc-fusi");
-                setSelectedSemester("1º SEMESTRE");
-              }
-            }}
-            title="Restaurar Unidades Curriculares Padrão SENAI"
-            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <span>Restaurar UCs</span>
-          </button>
         </div>
       </div>
 
