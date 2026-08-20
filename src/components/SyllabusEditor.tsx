@@ -55,8 +55,9 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({
   const isAdmin = currentUser?.role === "admin";
 
   // Ensure coursePlanData is safely loaded
-  const planData: CoursePlanSectionData =
-    syllabus.coursePlanData || defaultCoursePlanData;
+  const planData: CoursePlanSectionData = syllabus.coursePlanData
+    ? JSON.parse(JSON.stringify(syllabus.coursePlanData))
+    : JSON.parse(JSON.stringify(defaultCoursePlanData));
 
   const updateCoursePlan = (updater: (prev: CoursePlanSectionData) => CoursePlanSectionData) => {
     if (!isAdmin) return;
