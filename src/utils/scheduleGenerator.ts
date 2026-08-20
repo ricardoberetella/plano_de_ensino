@@ -132,20 +132,44 @@ export function generateSyllabusSchedule(
             ucProfAccumulatedHours[profKey] = currentHours + hoursToAdd;
             ucProfLessonCounters[profKey] = currentCount;
 
-            // Generate realistic topic name based on topics list
+            // Find template lesson from stages or unit template
+            let templateLesson: LessonPlanItem | undefined = undefined;
+            if (currentUnitObj.stages && currentUnitObj.stages.length > 0) {
+              const allStageLessons = currentUnitObj.stages.flatMap((st) => st.lessonPlan || []);
+              if (allStageLessons.length > 0) {
+                templateLesson = allStageLessons[(currentCount - 1) % allStageLessons.length];
+              }
+            }
+
+            // Generate realistic topic and capacities based on template or lists
             const topicsList = currentUnitObj.topics || [];
             const topicIndex = (currentCount - 1) % Math.max(1, topicsList.length);
-            const defaultTopic = topicsList[topicIndex] || `Aula ${currentCount} de ${currentUnitObj.unitTitle}`;
+            const defaultTopic = templateLesson?.conhecimentos || topicsList[topicIndex] || `Aula ${currentCount} de ${currentUnitObj.unitTitle}`;
             const topicText = existingItem && existingItem.conhecimentos ? existingItem.conhecimentos : defaultTopic;
+
+            const defaultCapacities = templateLesson?.capacities ||
+              (currentUnitObj.technicalCapacities && currentUnitObj.technicalCapacities.length > 0
+                ? currentUnitObj.technicalCapacities[(currentCount - 1) % currentUnitObj.technicalCapacities.length]
+                : currentUnitObj.basicCapacities?.[(currentCount - 1) % (currentUnitObj.basicCapacities.length || 1)] ||
+                  "Desenvolver competências técnicas e socioemocionais");
+            const capacitiesText = existingItem && existingItem.capacities ? existingItem.capacities : defaultCapacities;
+
+            const defaultEstrategias = templateLesson?.estrategias ||
+              `Exposição dialogada, resolução da Situação-Problema e prática de oficina supervisionada com ${rule.professor}.`;
+            const estrategiasText = existingItem && existingItem.estrategias ? existingItem.estrategias : defaultEstrategias;
+
+            const defaultRecursos = templateLesson?.recursos ||
+              "Oficina de Usinagem / Laboratório SENAI, máquinas operatrizes, ferramentas de corte, instrumentos de medição e EPIs.";
+            const recursosText = existingItem && existingItem.recursos ? existingItem.recursos : defaultRecursos;
 
             const lessonItem: LessonPlanItem = {
               id: lessonItemId,
               date: existingItem?.date || brDate, // Preserve user-edited date or use calendar date
               hours: existingItem?.hours || `${hoursToAdd}h`,
-              capacities: existingItem?.capacities || "Desenvolver competências técnicas e socioemocionais",
+              capacities: capacitiesText,
               conhecimentos: topicText,
-              estrategias: existingItem?.estrategias || `Exposição dialogada e prática com ${rule.professor}`,
-              recursos: existingItem?.recursos || "Ambientes pedagógicos, oficinas e laboratórios SENAI",
+              estrategias: estrategiasText,
+              recursos: recursosText,
               professor: existingItem?.professor || rule.professor,
               status: existingItem?.status || "planejada",
             };
