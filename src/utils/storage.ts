@@ -22,6 +22,15 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
 
   let list = [...syllabiList];
 
+  // Filter out unconfigured dummy placeholders
+  list = list.filter((s) => {
+    if (!s) return false;
+    const isDummy =
+      (s.courseTitle === "Nova Disciplina" || s.courseTitle === "NOVA DISCIPLINA") &&
+      (!s.professorName || s.professorName === "Nome do Docente" || s.professorName.trim() === "");
+    return !isDummy;
+  });
+
   // Guarantee both independent professor syllabi exist
   const hasBeretella = list.some(
     (s) =>
@@ -48,6 +57,13 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
 
   // Remove obsolete single-doc syllabus if both specific ones are present
   list = list.filter((s) => s.id !== "senai-usinagem-800h");
+
+  // Sort so official 800h courses always appear first
+  list.sort((a, b) => {
+    const isBaseA = a.id === "senai-usinagem-800h-beretella" ? 1 : a.id === "senai-usinagem-800h-gea" ? 2 : 3;
+    const isBaseB = b.id === "senai-usinagem-800h-beretella" ? 1 : b.id === "senai-usinagem-800h-gea" ? 2 : 3;
+    return isBaseA - isBaseB;
+  });
 
   return list.map((s) => {
     if (!s) return s;
@@ -232,6 +248,18 @@ export function subscribeToCloudSyllabi(onUpdate: (syllabi: Syllabus[]) => void)
           );
           const initialBeretella = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-beretella");
           const initialGea = initialSyllabi.find((s) => s.id === "senai-usinagem-800h-gea");
+
+          // Clean up any unconfigured dummy placeholder from Firestore in the cloud
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Syllabus;
+            if (
+              data &&
+              (data.courseTitle === "Nova Disciplina" || data.courseTitle === "NOVA DISCIPLINA") &&
+              (!data.professorName || data.professorName === "Nome do Docente" || data.professorName.trim() === "")
+            ) {
+              deleteDoc(doc(db, "syllabi", docSnap.id)).catch(() => {});
+            }
+          });
 
           // If any core teacher syllabus was missing in cloud, persist them to Firestore
           if (!hasBeretella && initialBeretella) {
