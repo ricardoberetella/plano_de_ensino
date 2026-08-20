@@ -146,7 +146,7 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       acronym: u.acronym || baseUnit?.acronym || key,
       semester: u.semester || baseUnit?.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
       module: u.module || baseUnit?.module || (["PRUSC", "MINDU"].includes(key) ? "Módulo Específico" : "Módulo Introdutório"),
-      unitTitle: u.unitTitle || baseUnit?.unitTitle || "Unidade Curricular",
+      unitTitle: baseUnit?.unitTitle || u.unitTitle || "Unidade Curricular",
       workload: u.workload || baseUnit?.workload || (key === "FUSI" ? "240h" : key === "PRUSC" ? "160h" : key === "MINDU" ? "80h" : "40h"),
       objective: u.objective !== undefined ? u.objective : baseUnit?.objective || "",
       basicCapacities: Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0
