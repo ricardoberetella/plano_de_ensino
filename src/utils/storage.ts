@@ -24,14 +24,19 @@ function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUni
   const cleaned: ProgrammaticUnit[] = [];
 
   const getUnitKey = (u: ProgrammaticUnit): string => {
+    if (!u) return "UC";
     const ac = (u.acronym || "").toUpperCase().trim();
-    if (ac === "PROC" || ac === "PRUSC" || u.unitTitle.toLowerCase().includes("processos")) return "PRUSC";
-    if (ac === "METR" || ac === "MINDU" || u.unitTitle.toLowerCase().includes("metrologia")) return "MINDU";
-    if (ac === "LIDT" || u.unitTitle.toLowerCase().includes("leitura")) return "LIDT";
-    if (ac === "CIEMA" || u.unitTitle.toLowerCase().includes("ciência") || u.unitTitle.toLowerCase().includes("ciencia")) return "CIEMA";
-    if (ac === "CRD" || ac === "CDMAT" || u.unitTitle.toLowerCase().includes("controle dimensional")) return "CRD";
-    if (ac === "MAP" || u.unitTitle.toLowerCase().includes("matemática") || u.unitTitle.toLowerCase().includes("matematica")) return "MAP";
-    if (ac === "FUSI" || u.unitTitle.toLowerCase().includes("fundamentos")) return "FUSI";
+    const id = (u.id || "").toLowerCase().trim();
+    const title = (u.unitTitle || "").toUpperCase().trim();
+
+    if (ac === "FUSI" || id === "uc-fusi" || title.includes("FUNDAMENTOS DA USINAGEM") || title.includes("AJUSTAGEM")) return "FUSI";
+    if (ac === "LIDT" || id === "uc-lidt" || title.includes("LEITURA E INTERPRETAÇÃO") || title.includes("DESENHO TÉCNICO")) return "LIDT";
+    if (ac === "CRD" || ac === "CDMAT" || id === "uc-crd" || title.includes("CONTROLE DIMENSIONAL") || title.includes("METROLOGIA BÁSICA")) return "CRD";
+    if (ac === "MAP" || id === "uc-map" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
+    if (ac === "CIEMA" || id === "uc-ciema" || title.includes("CIÊNCIAS DOS MATERIAIS") || title.includes("CIENCIAS DOS MATERIAIS") || title.includes("CIÊNCIA DOS MATERIAIS")) return "CIEMA";
+    if (ac === "PRUSC" || ac === "PROC" || id === "uc-proc" || id === "uc-prusc" || title.includes("PROCESSOS DE USINAGEM") || title.includes("TORNEAMENTO E FRESAMENTO")) return "PRUSC";
+    if (ac === "MINDU" || ac === "METR" || id === "uc-metr" || id === "uc-mindu" || title.includes("METROLOGIA INDUSTRIAL") || title.includes("CONTROLE GEOMÉTRICO") || title.includes("CONTROLE GEOMETRICO")) return "MINDU";
+
     return (u.id || u.unitTitle || ac).toLowerCase();
   };
 
