@@ -109,26 +109,43 @@ export const MONTH_NAMES_PT = [
   "Dezembro",
 ];
 
-export const WEEKDAY_NAMES_PT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+export const WEEKDAY_NAMES_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export function parseDateToISO(dateStr: string): string | null {
-  if (!dateStr) return null;
+  if (!dateStr || typeof dateStr !== "string") return null;
   const str = dateStr.trim();
   if (str.includes("/")) {
     const parts = str.split("/");
     if (parts.length === 3) {
       const day = parts[0].padStart(2, "0");
       const month = parts[1].padStart(2, "0");
-      const year = parts[2];
+      let year = parts[2].trim();
+      if (year.length === 2) year = `20${year}`;
       return `${year}-${month}-${day}`;
+    } else if (parts.length === 2) {
+      const day = parts[0].padStart(2, "0");
+      const month = parts[1].padStart(2, "0");
+      return `2026-${month}-${day}`;
     }
   } else if (str.includes("-")) {
     const parts = str.split("-");
     if (parts.length === 3) {
-      const year = parts[0];
-      const month = parts[1].padStart(2, "0");
-      const day = parts[2].padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      if (parts[0].length === 4) {
+        const year = parts[0];
+        const month = parts[1].padStart(2, "0");
+        const day = parts[2].padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      } else {
+        const day = parts[0].padStart(2, "0");
+        const month = parts[1].padStart(2, "0");
+        let year = parts[2].trim();
+        if (year.length === 2) year = `20${year}`;
+        return `${year}-${month}-${day}`;
+      }
+    } else if (parts.length === 2) {
+      const month = parts[0].padStart(2, "0");
+      const day = parts[1].padStart(2, "0");
+      return `2026-${month}-${day}`;
     }
   }
   return null;
@@ -142,9 +159,8 @@ export interface DayGridItem {
 
 export function getMonthGrid(year: number, monthIndex: number): DayGridItem[] {
   const firstDay = new Date(year, monthIndex, 1);
-  // Get Monday-based day of week (0 = Mon, 6 = Sun)
-  let startDayOfWeek = firstDay.getDay() - 1;
-  if (startDayOfWeek === -1) startDayOfWeek = 6;
+  // Sunday-based day of week (0 = Dom, 1 = Seg, ..., 6 = Sáb)
+  const startDayOfWeek = firstDay.getDay();
 
   const totalDays = new Date(year, monthIndex + 1, 0).getDate();
   const grid: DayGridItem[] = [];
