@@ -77,42 +77,13 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   onPrint,
   onOpenExport,
 }) => {
-  // Always use proeducadorUnits as base so all 7 UCs are present, merging any custom edits from syllabus
+  // Use syllabus.programmaticContent directly as the source of truth so user edits persist
   const units = React.useMemo(() => {
-    const base: ProgrammaticUnit[] = JSON.parse(JSON.stringify(proeducadorUnits || []));
-
-    const customContent = syllabus && Array.isArray(syllabus.programmaticContent)
-      ? syllabus.programmaticContent
-      : [];
-
-    customContent.forEach((customUnit) => {
-      if (!customUnit) return;
-      const customAcronym = (customUnit.acronym || "").toUpperCase();
-      const customTitle = (customUnit.unitTitle || "").toUpperCase();
-
-      const idx = base.findIndex((b) => {
-        if (customUnit.id && b.id === customUnit.id) return true;
-        const bAc = (b.acronym || "").toUpperCase();
-        if (customAcronym && bAc && customAcronym === bAc) return true;
-        const bTitle = (b.unitTitle || "").toUpperCase();
-        if (customTitle && bTitle && customTitle === bTitle) return true;
-        return false;
-      });
-
-      if (idx !== -1) {
-        base[idx] = {
-          ...base[idx],
-          ...customUnit,
-          id: base[idx].id || customUnit.id,
-          acronym: base[idx].acronym || customUnit.acronym,
-          unitTitle: customUnit.unitTitle || base[idx].unitTitle,
-          lessonPlan: customUnit.lessonPlan && customUnit.lessonPlan.length > 0 ? customUnit.lessonPlan : (base[idx].lessonPlan || []),
-        };
-      }
-    });
-
-    return base.length > 0 ? base : (proeducadorUnits || []);
-  }, [syllabus]);
+    if (syllabus && Array.isArray(syllabus.programmaticContent) && syllabus.programmaticContent.length > 0) {
+      return syllabus.programmaticContent;
+    }
+    return proeducadorUnits || [];
+  }, [syllabus?.programmaticContent]);
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -465,9 +436,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   // Active Lesson Plan filtered by selected professor
   const rawLessonPlan: LessonPlanItem[] =
-    currentUnit && Array.isArray(currentUnit.lessonPlan) && currentUnit.lessonPlan.length > 0
+    currentUnit && Array.isArray(currentUnit.lessonPlan)
       ? currentUnit.lessonPlan
-      : defaultMatchingUnit?.lessonPlan || [];
+      : (defaultMatchingUnit?.lessonPlan || []);
 
   const activeLessonPlan = rawLessonPlan.filter((item) => {
     if (!item) return false;
