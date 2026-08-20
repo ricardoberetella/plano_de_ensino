@@ -83,7 +83,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     if (syllabus && Array.isArray(syllabus.programmaticContent) && syllabus.programmaticContent.length > 0) {
       return deduplicateAndSanitizeUnits(syllabus.programmaticContent);
     }
-    return (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
+    return JSON.parse(JSON.stringify(rawProeducadorUnits || []));
   }, [syllabus?.programmaticContent]);
 
   const isAdmin = currentUser?.role === "admin";
@@ -517,7 +517,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           <button
             onClick={() => {
               if (window.confirm("Deseja restaurar a matriz curricular padrão do SENAI (7 Unidades Curriculares oficiais)?")) {
-                const freshUnits = (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
+                const freshUnits = JSON.parse(JSON.stringify(rawProeducadorUnits || []));
                 onUpdateSyllabus({
                   ...syllabus,
                   programmaticContent: freshUnits,
