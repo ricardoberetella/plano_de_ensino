@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   Info,
   User,
+  RefreshCw,
 } from "lucide-react";
 import {
   Syllabus,
@@ -187,16 +188,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     });
   };
 
-  // Active Capacities based on Stage or Unit
-  const activeBasicCapacities: string[] =
-    (activeStage?.basicCapacities && activeStage.basicCapacities.length > 0
-      ? activeStage.basicCapacities
-      : currentUnit?.basicCapacities || defaultMatchingUnit?.basicCapacities) || [];
+  // Active Primary Capacities based on Stage or Unit
+  const activePrimaryCapacities: string[] = activeStage
+    ? (activeStage.basicCapacities && activeStage.basicCapacities.length > 0
+        ? activeStage.basicCapacities
+        : activeStage.technicalCapacities || [])
+    : (currentUnit?.technicalCapacities && currentUnit.technicalCapacities.length > 0
+        ? currentUnit.technicalCapacities
+        : currentUnit?.basicCapacities || defaultMatchingUnit?.technicalCapacities || defaultMatchingUnit?.basicCapacities || []);
 
-  const activeTechnicalCapacities: string[] =
-    (activeStage?.technicalCapacities && activeStage.technicalCapacities.length > 0
-      ? activeStage.technicalCapacities
-      : currentUnit?.technicalCapacities || defaultMatchingUnit?.technicalCapacities) || [];
+  const activePrimaryLabel = activeStage
+    ? "CAPACIDADES BÁSICAS & TÉCNICAS DA ETAPA"
+    : (currentUnit?.technicalCapacities && currentUnit.technicalCapacities.length > 0
+        ? "CAPACIDADES TÉCNICAS"
+        : "CAPACIDADES BÁSICAS");
 
   const activeSocioemotionalCapacities: string[] =
     (activeStage?.socioemotionalCapacities && activeStage.socioemotionalCapacities.length > 0
@@ -636,6 +641,25 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   </span>
                 )}
               </div>
+
+              {isAdmin && defaultMatchingUnit && (
+                <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Deseja sincronizar e restaurar a estrutura padrão oficial SENAI (ProEducador) para ${currentUnit.unitTitle}? Isso atualizará as 4 etapas, capacidades, situação-problema e rubricas para a versão oficial.`
+                      )
+                    ) {
+                      handleUpdateCurrentUnit(JSON.parse(JSON.stringify(defaultMatchingUnit)));
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/80 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  title="Sincronizar com padrão oficial ProEducador SENAI"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Sincronizar Padrão SENAI</span>
+                </button>
+              )}
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight uppercase leading-tight text-white">
@@ -754,9 +778,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       <div className="flex items-center justify-between">
                         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                          <span>
-                            {activeTechnicalCapacities.length > 0 ? "CAPACIDADES TÉCNICAS" : "CAPACIDADES BÁSICAS"}
-                          </span>
+                          <span>{activePrimaryLabel}</span>
                         </h3>
 
                         {isAdmin && (
@@ -764,17 +786,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             onClick={() => {
                               const promptText = prompt("Digite a nova Capacidade:");
                               if (promptText && promptText.trim()) {
-                                if (activeTechnicalCapacities.length > 0 || !activeBasicCapacities.length) {
-                                  const next = [...activeTechnicalCapacities, promptText.trim()];
-                                  if (activeStage) {
-                                    handleUpdateActiveStage({ technicalCapacities: next });
+                                const next = [...activePrimaryCapacities, promptText.trim()];
+                                if (activeStage) {
+                                  if (activeStage.basicCapacities) {
+                                    handleUpdateActiveStage({ basicCapacities: next });
                                   } else {
-                                    handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                    handleUpdateActiveStage({ technicalCapacities: next });
                                   }
                                 } else {
-                                  const next = [...activeBasicCapacities, promptText.trim()];
-                                  if (activeStage) {
-                                    handleUpdateActiveStage({ basicCapacities: next });
+                                  if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                    handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
                                   } else {
                                     handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
                                   }
@@ -791,8 +812,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                       {/* List */}
                       <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {(activeTechnicalCapacities.length > 0 ? activeTechnicalCapacities : activeBasicCapacities).length > 0 ? (
-                          (activeTechnicalCapacities.length > 0 ? activeTechnicalCapacities : activeBasicCapacities).map((cap, i) => (
+                        {activePrimaryCapacities.length > 0 ? (
+                          activePrimaryCapacities.map((cap, i) => (
                             <div
                               key={i}
                               className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2"
@@ -801,17 +822,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               {isAdmin && (
                                 <button
                                   onClick={() => {
-                                    if (activeTechnicalCapacities.length > 0) {
-                                      const next = activeTechnicalCapacities.filter((_, idx) => idx !== i);
-                                      if (activeStage) {
-                                        handleUpdateActiveStage({ technicalCapacities: next });
+                                    const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
+                                    if (activeStage) {
+                                      if (activeStage.basicCapacities) {
+                                        handleUpdateActiveStage({ basicCapacities: next });
                                       } else {
-                                        handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                        handleUpdateActiveStage({ technicalCapacities: next });
                                       }
                                     } else {
-                                      const next = activeBasicCapacities.filter((_, idx) => idx !== i);
-                                      if (activeStage) {
-                                        handleUpdateActiveStage({ basicCapacities: next });
+                                      if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                        handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
                                       } else {
                                         handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
                                       }
