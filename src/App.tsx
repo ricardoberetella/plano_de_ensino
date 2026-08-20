@@ -94,29 +94,30 @@ export default function App() {
       console.error(e);
     }
     const isGea = newUser.name.toLowerCase().includes("gea");
-    const isBeretella = newUser.name.toLowerCase().includes("beretella");
+    const targetId = isGea ? "senai-usinagem-800h-gea" : "senai-usinagem-800h-beretella";
 
-    if (isGea) {
-      const geaSyllabus = syllabi.find(
-        (s) =>
-          s.id === "senai-usinagem-800h-gea" ||
-          (s.professorName && s.professorName.toLowerCase().includes("gea"))
-      );
-      if (geaSyllabus) {
-        setActiveId(geaSyllabus.id);
-        setActiveSyllabusId(geaSyllabus.id);
-      }
-    } else if (isBeretella) {
-      const beretellaSyllabus = syllabi.find(
-        (s) =>
-          s.id === "senai-usinagem-800h-beretella" ||
-          (s.professorName && s.professorName.toLowerCase().includes("beretella"))
-      );
-      if (beretellaSyllabus) {
-        setActiveId(beretellaSyllabus.id);
-        setActiveSyllabusId(beretellaSyllabus.id);
+    let targetSyllabus = syllabi.find(
+      (s) =>
+        s.id === targetId ||
+        (s.professorName && s.professorName.toLowerCase().includes(isGea ? "gea" : "beretella"))
+    );
+
+    if (!targetSyllabus) {
+      const initialMatch = initialSyllabi.find((s) => s.id === targetId);
+      if (initialMatch) {
+        targetSyllabus = JSON.parse(JSON.stringify(initialMatch));
+        setSyllabi((prev) => {
+          const next = [...prev.filter((p) => p.id !== targetId), targetSyllabus!];
+          saveSyllabiToStorage(next);
+          saveSyllabusToCloud(targetSyllabus!);
+          return next;
+        });
       }
     }
+
+    const nextId = targetSyllabus ? targetSyllabus.id : targetId;
+    setActiveId(nextId);
+    setActiveSyllabusId(nextId);
   };
 
   // Refine Modal State
@@ -160,9 +161,21 @@ export default function App() {
   const isGeaUser = currentUser?.name?.toLowerCase().includes("gea");
   const isBeretellaUser = currentUser?.name?.toLowerCase().includes("beretella");
 
-  // Ensure active syllabus exists and matches selected id or current professor
+  // Ensure active syllabus exists and strictly belongs to the current professor
   const activeSyllabus = React.useMemo(() => {
     let found = syllabi.find((s) => s.id === activeId);
+
+    // If found doesn't match active professor, reset found
+    if (found) {
+      const sIsGea = (found.professorName && found.professorName.toLowerCase().includes("gea")) || found.id.includes("gea");
+      const sIsBeretella = (found.professorName && found.professorName.toLowerCase().includes("beretella")) || found.id.includes("beretella");
+      if (isGeaUser && !sIsGea && sIsBeretella) {
+        found = undefined;
+      } else if (isBeretellaUser && !sIsBeretella && sIsGea) {
+        found = undefined;
+      }
+    }
+
     if (!found) {
       if (isGeaUser) {
         found = syllabi.find((s) => s.id === "senai-usinagem-800h-gea" || (s.professorName && s.professorName.toLowerCase().includes("gea")));
@@ -170,6 +183,15 @@ export default function App() {
         found = syllabi.find((s) => s.id === "senai-usinagem-800h-beretella" || (s.professorName && s.professorName.toLowerCase().includes("beretella")));
       }
     }
+
+    if (!found) {
+      const targetId = isGeaUser ? "senai-usinagem-800h-gea" : "senai-usinagem-800h-beretella";
+      const initialMatch = initialSyllabi.find((s) => s.id === targetId);
+      if (initialMatch) {
+        found = JSON.parse(JSON.stringify(initialMatch));
+      }
+    }
+
     return found || syllabi[0] || createEmptySyllabus();
   }, [syllabi, activeId, isGeaUser, isBeretellaUser]);
 
