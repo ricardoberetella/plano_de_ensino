@@ -166,11 +166,21 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const masterDateMap: Record<string, DateEntry[]> = {};
   const profKeyword = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
 
-  // 1. Build calendar data from programmatic content (unit lessonPlan)
+  // 1. Build calendar data from programmatic content (unit lessonPlan and stages)
   semesterUnits.forEach((unit) => {
     const ucAcronym = getAcronym(unit);
     const ucColor = getAcronymColor(ucAcronym);
-    const lessons = unit.lessonPlan || [];
+    const lessons: LessonPlanItem[] =
+      unit.stages && unit.stages.length > 0
+        ? unit.stages.flatMap((st) =>
+            (st.lessonPlan || []).map((lp) => ({
+              ...lp,
+              stageId: st.id,
+              stageTitle: st.title,
+              stageTurma: st.turma,
+            }))
+          )
+        : unit.lessonPlan || [];
 
     lessons.forEach((lesson) => {
       const iso = parseDateToISO(lesson.date);
@@ -186,7 +196,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
       // Filter by teacher profile if lesson has professor specified
       if (lesson.professor) {
-        if (!lesson.professor.toLowerCase().includes(profKeyword)) return;
+        const profLower = lesson.professor.toLowerCase();
+        if (!profLower.includes(profKeyword) && !profLower.includes("ambos")) return;
+      } else {
+        const isBeretella = profKeyword.includes("beretella");
+        const isGea = profKeyword.includes("gea");
+        const stageTurma = (lesson as any).stageTurma;
+        if (isBeretella && stageTurma === "Turma B") return;
+        if (isGea && stageTurma === "Turma A") return;
       }
 
       if (!masterDateMap[iso]) masterDateMap[iso] = [];
