@@ -28,7 +28,7 @@ const { updatedUnits: geaUnits, masterSchedule: geaSchedule } =
 export const initialSyllabi: Syllabus[] = [
   {
     id: "senai-usinagem-800h-beretella",
-    courseTitle: "Mecânico de Usinagem Convencional - Prof. Ricardo Beretella",
+    courseTitle: "Mecânico de Usinagem Convencional",
     courseCode: "CAI-7212-15",
     workload: "800h (400h 1º Termo / 400h 2º Termo)",
     period: "2026/1 - Aprendizagem Industrial",
@@ -73,7 +73,7 @@ export const initialSyllabi: Syllabus[] = [
   },
   {
     id: "senai-usinagem-800h-gea",
-    courseTitle: "Mecânico de Usinagem Convencional - Prof. Ricardo Gea",
+    courseTitle: "Mecânico de Usinagem Convencional",
     courseCode: "CAI-7212-15",
     workload: "800h (400h 1º Termo / 400h 2º Termo)",
     period: "2026/1 - Aprendizagem Industrial",
