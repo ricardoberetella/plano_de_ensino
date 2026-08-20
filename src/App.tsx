@@ -104,6 +104,7 @@ export default function App() {
       );
       if (geaSyllabus) {
         setActiveId(geaSyllabus.id);
+        setActiveSyllabusId(geaSyllabus.id);
       }
     } else if (isBeretella) {
       const beretellaSyllabus = syllabi.find(
@@ -113,6 +114,7 @@ export default function App() {
       );
       if (beretellaSyllabus) {
         setActiveId(beretellaSyllabus.id);
+        setActiveSyllabusId(beretellaSyllabus.id);
       }
     }
   };
@@ -155,13 +157,25 @@ export default function App() {
     }
   }, [activeId]);
 
-  // Ensure active syllabus exists
-  const activeSyllabus =
-    syllabi.find((s) => s.id === activeId) || syllabi[0] || createEmptySyllabus();
+  const isGeaUser = currentUser?.name?.toLowerCase().includes("gea");
+  const isBeretellaUser = currentUser?.name?.toLowerCase().includes("beretella");
+
+  // Ensure active syllabus exists and matches selected id or current professor
+  const activeSyllabus = React.useMemo(() => {
+    let found = syllabi.find((s) => s.id === activeId);
+    if (!found) {
+      if (isGeaUser) {
+        found = syllabi.find((s) => s.id === "senai-usinagem-800h-gea" || (s.professorName && s.professorName.toLowerCase().includes("gea")));
+      } else if (isBeretellaUser) {
+        found = syllabi.find((s) => s.id === "senai-usinagem-800h-beretella" || (s.professorName && s.professorName.toLowerCase().includes("beretella")));
+      }
+    }
+    return found || syllabi[0] || createEmptySyllabus();
+  }, [syllabi, activeId, isGeaUser, isBeretellaUser]);
 
   const handleUpdateActiveSyllabus = async (updated: Syllabus) => {
-    const withTimestamp = {
-      ...updated,
+    const withTimestamp: Syllabus = {
+      ...JSON.parse(JSON.stringify(updated)),
       updatedAt: new Date().toISOString(),
     };
     setSyllabi((prev) => {
@@ -173,7 +187,7 @@ export default function App() {
     const success = await saveSyllabusToCloud(withTimestamp);
     if (success) {
       const timeStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      showToast(`Alterações salvas no Firebase Firestore com sucesso! (${timeStr})`, "success");
+      showToast(`Alterações salvas com sucesso! (${timeStr})`, "success");
     }
   };
 
