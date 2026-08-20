@@ -142,11 +142,30 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // Search state for Plano de Aula / Calendário
   const [lessonPlanSearch, setLessonPlanSearch] = useState("");
 
+  // Stage Selector State (for multi-stage UCs like FUSI)
+  const [selectedStageId, setSelectedStageId] = useState<string>("");
+
+  // Keep selected stage in sync when unit changes
+  useEffect(() => {
+    if (currentUnit?.stages && currentUnit.stages.length > 0) {
+      if (!selectedStageId || !currentUnit.stages.some((s) => s.id === selectedStageId)) {
+        setSelectedStageId(currentUnit.stages[0].id);
+      }
+    } else {
+      setSelectedStageId("");
+    }
+  }, [currentUnit?.id, currentUnit?.stages]);
+
+  const activeStage =
+    currentUnit?.stages && currentUnit.stages.length > 0
+      ? currentUnit.stages.find((s) => s.id === selectedStageId) || currentUnit.stages[0]
+      : null;
+
   // Topic Inline Edit state
   const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
   const [editingTopicText, setEditingTopicText] = useState("");
 
-  // Helper to update current unit in syllabus
+  // Helper to update current unit in syllabus (with stage support)
   const handleUpdateCurrentUnit = (updatedUnit: ProgrammaticUnit) => {
     const updatedList = units.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
     onUpdateSyllabus({
@@ -156,6 +175,39 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     });
   };
 
+  // Helper to update active stage within current unit
+  const handleUpdateActiveStage = (stageUpdates: Partial<typeof activeStage>) => {
+    if (!currentUnit || !activeStage) return;
+    const nextStages = (currentUnit.stages || []).map((s) =>
+      s.id === activeStage.id ? { ...s, ...stageUpdates } : s
+    );
+    handleUpdateCurrentUnit({
+      ...currentUnit,
+      stages: nextStages as any,
+    });
+  };
+
+  // Active Capacities based on Stage or Unit
+  const activeBasicCapacities: string[] =
+    (activeStage?.basicCapacities && activeStage.basicCapacities.length > 0
+      ? activeStage.basicCapacities
+      : currentUnit?.basicCapacities || defaultMatchingUnit?.basicCapacities) || [];
+
+  const activeTechnicalCapacities: string[] =
+    (activeStage?.technicalCapacities && activeStage.technicalCapacities.length > 0
+      ? activeStage.technicalCapacities
+      : currentUnit?.technicalCapacities || defaultMatchingUnit?.technicalCapacities) || [];
+
+  const activeSocioemotionalCapacities: string[] =
+    (activeStage?.socioemotionalCapacities && activeStage.socioemotionalCapacities.length > 0
+      ? activeStage.socioemotionalCapacities
+      : currentUnit?.socioemotionalCapacities || defaultMatchingUnit?.socioemotionalCapacities) || [];
+
+  const activeTopicsList: string[] =
+    (activeStage?.topics && activeStage.topics.length > 0
+      ? activeStage.topics
+      : currentUnit?.topics || defaultMatchingUnit?.topics) || [];
+
   // Handle topic deletion
   const handleDeleteTopic = (index: number) => {
     if (!isAdmin) {
@@ -163,24 +215,34 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       return;
     }
     if (!currentUnit) return;
-    const currentTopics = currentUnit.topics || defaultMatchingUnit.topics || [];
+    const currentTopics = activeTopicsList;
     const nextTopics = currentTopics.filter((_, i) => i !== index);
-    handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    if (activeStage) {
+      handleUpdateActiveStage({ topics: nextTopics });
+    } else {
+      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    }
   };
 
   // Handle saving topic edit
   const handleSaveTopicEdit = (index: number) => {
     if (!currentUnit || !editingTopicText.trim()) return;
-    const currentTopics = currentUnit.topics || defaultMatchingUnit.topics || [];
+    const currentTopics = activeTopicsList;
     const nextTopics = [...currentTopics];
     nextTopics[index] = editingTopicText.trim();
-    handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    if (activeStage) {
+      handleUpdateActiveStage({ topics: nextTopics });
+    } else {
+      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    }
     setEditingTopicIndex(null);
   };
 
-  // Active Situation-Problem with automatic fallback
+  // Active Situation-Problem with automatic fallback (stage aware)
   const activeSituationProblem: SituationProblem =
-    currentUnit?.situationProblem || defaultMatchingUnit?.situationProblem || {
+    activeStage?.situationProblem ||
+    currentUnit?.situationProblem ||
+    defaultMatchingUnit?.situationProblem || {
       title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
       contextualization: "Otimização de processos produtivos na fábrica.",
       challenge: ["Analisar especificações técnicas e executar o plano."],
@@ -201,25 +263,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       onOpenLoginModal();
       return;
     }
-    if (currentUnit?.situationProblem) {
+    if (activeSituationProblem) {
       setSPForm({
-        title: currentUnit.situationProblem.title || "",
-        contextualization: currentUnit.situationProblem.contextualization || "",
-        challenge: currentUnit.situationProblem.challenge ? [...currentUnit.situationProblem.challenge] : [""],
-        expectedResults: currentUnit.situationProblem.expectedResults ? [...currentUnit.situationProblem.expectedResults] : [""],
-      });
-    } else {
-      setSPForm({
-        title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
-        contextualization: "Empresa parceira necessita de suporte técnico para otimização dos processos produtivos e garantia de qualidade.",
-        challenge: [
-          "Analisar as especificações técnicas e normas aplicáveis.",
-          "Executar o planejamento e acompanhamento dos procedimentos práticos.",
-        ],
-        expectedResults: [
-          "Entregável concluído dentro dos padrões de qualidade.",
-          "Relatório de inspeção e verificação de conformidade.",
-        ],
+        title: activeSituationProblem.title || "",
+        contextualization: activeSituationProblem.contextualization || "",
+        challenge: activeSituationProblem.challenge ? [...activeSituationProblem.challenge] : [""],
+        expectedResults: activeSituationProblem.expectedResults ? [...activeSituationProblem.expectedResults] : [""],
       });
     }
     setIsSPModalOpen(true);
@@ -228,17 +277,27 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const handleSaveSP = () => {
     if (!currentUnit) return;
     const cleanedSP: SituationProblem = {
-      title: spForm.title.trim() || `Situação de Aprendizagem - ${currentUnit.unitTitle}`,
+      title: spForm.title.trim() || `Situação de Aprendizagem - ${activeStage?.title || currentUnit.unitTitle}`,
       contextualization: spForm.contextualization.trim(),
       challenge: spForm.challenge.map((c) => c.trim()).filter(Boolean),
       expectedResults: spForm.expectedResults.map((r) => r.trim()).filter(Boolean),
     };
-    handleUpdateCurrentUnit({
-      ...currentUnit,
-      situationProblem: cleanedSP,
-    });
+    if (activeStage) {
+      handleUpdateActiveStage({ situationProblem: cleanedSP });
+    } else {
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        situationProblem: cleanedSP,
+      });
+    }
     setIsSPModalOpen(false);
   };
+
+  // Active Rubrics list (stage aware)
+  const activeRubricsList: RubricItem[] =
+    (activeStage?.rubrics && activeStage.rubrics.length > 0
+      ? activeStage.rubrics
+      : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
 
   // Rubric Edit State
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
@@ -279,7 +338,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   const handleSaveRubric = () => {
     if (!currentUnit) return;
-    const currentList = currentUnit.rubrics || [];
+    const currentList = activeRubricsList;
     let nextList: RubricItem[] = [];
 
     if (editingRubricIndex !== null) {
@@ -288,10 +347,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       nextList = [...currentList, { ...rubricForm }];
     }
 
-    handleUpdateCurrentUnit({
-      ...currentUnit,
-      rubrics: nextList,
-    });
+    if (activeStage) {
+      handleUpdateActiveStage({ rubrics: nextList });
+    } else {
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        rubrics: nextList,
+      });
+    }
     setIsRubricModalOpen(false);
   };
 
@@ -301,11 +364,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       return;
     }
     if (!currentUnit) return;
-    const nextList = (currentUnit.rubrics || []).filter((_, idx) => idx !== index);
-    handleUpdateCurrentUnit({
-      ...currentUnit,
-      rubrics: nextList,
-    });
+    const nextList = activeRubricsList.filter((_, idx) => idx !== index);
+    if (activeStage) {
+      handleUpdateActiveStage({ rubrics: nextList });
+    } else {
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        rubrics: nextList,
+      });
+    }
   };
 
   // Lesson Plan Editing / Creation state
@@ -582,6 +649,39 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             )}
           </div>
 
+          {/* Multi-Stage Selector for FUSI and rotational units */}
+          {currentUnit.stages && currentUnit.stages.length > 0 && (
+            <div className="bg-slate-900/90 border-t border-b border-slate-800 px-6 sm:px-10 py-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs font-black text-amber-400 uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Etapas & Rotações de Oficina (Turmas A/B):</span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-wrap">
+                  {currentUnit.stages.map((stage, sIdx) => {
+                    const isStageActive = selectedStageId === stage.id || (!selectedStageId && sIdx === 0);
+                    return (
+                      <button
+                        key={stage.id}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        className={`px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-2 ${
+                          isStageActive
+                            ? "bg-amber-500 text-slate-950 shadow-md font-black ring-2 ring-amber-400/50"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white font-bold"
+                        }`}
+                      >
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${isStageActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
+                          {sIdx + 1}
+                        </span>
+                        <span>{stage.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 4. Inner Navigation Tabs (GERAL, SITUAÇÃO-PROBLEMA, RUBRICAS, PLANO DE AULA, CALENDÁRIO) */}
           <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-4 sm:px-8 border-b border-slate-200 dark:border-slate-800 gap-3 py-1 sm:py-0">
@@ -655,7 +755,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-blue-600" />
                           <span>
-                            {currentUnit.technicalCapacities ? "CAPACIDADES TÉCNICAS" : "CAPACIDADES BÁSICAS"}
+                            {activeTechnicalCapacities.length > 0 ? "CAPACIDADES TÉCNICAS" : "CAPACIDADES BÁSICAS"}
                           </span>
                         </h3>
 
@@ -664,22 +764,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             onClick={() => {
                               const promptText = prompt("Digite a nova Capacidade:");
                               if (promptText && promptText.trim()) {
-                                if (currentUnit.technicalCapacities) {
-                                  handleUpdateCurrentUnit({
-                                    ...currentUnit,
-                                    technicalCapacities: [
-                                      ...currentUnit.technicalCapacities,
-                                      promptText.trim(),
-                                    ],
-                                  });
+                                if (activeTechnicalCapacities.length > 0 || !activeBasicCapacities.length) {
+                                  const next = [...activeTechnicalCapacities, promptText.trim()];
+                                  if (activeStage) {
+                                    handleUpdateActiveStage({ technicalCapacities: next });
+                                  } else {
+                                    handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                  }
                                 } else {
-                                  handleUpdateCurrentUnit({
-                                    ...currentUnit,
-                                    basicCapacities: [
-                                      ...(currentUnit.basicCapacities || []),
-                                      promptText.trim(),
-                                    ],
-                                  });
+                                  const next = [...activeBasicCapacities, promptText.trim()];
+                                  if (activeStage) {
+                                    handleUpdateActiveStage({ basicCapacities: next });
+                                  } else {
+                                    handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                  }
                                 }
                               }
                             }}
@@ -693,8 +791,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                       {/* List */}
                       <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {(Array.isArray(currentUnit?.technicalCapacities) ? currentUnit.technicalCapacities : Array.isArray(currentUnit?.basicCapacities) ? currentUnit.basicCapacities : (defaultMatchingUnit?.technicalCapacities || defaultMatchingUnit?.basicCapacities || [])).length > 0 ? (
-                          (Array.isArray(currentUnit?.technicalCapacities) ? currentUnit.technicalCapacities : Array.isArray(currentUnit?.basicCapacities) ? currentUnit.basicCapacities : (defaultMatchingUnit?.technicalCapacities || defaultMatchingUnit?.basicCapacities || [])).map((cap, i) => (
+                        {(activeTechnicalCapacities.length > 0 ? activeTechnicalCapacities : activeBasicCapacities).length > 0 ? (
+                          (activeTechnicalCapacities.length > 0 ? activeTechnicalCapacities : activeBasicCapacities).map((cap, i) => (
                             <div
                               key={i}
                               className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2"
@@ -703,12 +801,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               {isAdmin && (
                                 <button
                                   onClick={() => {
-                                    if (currentUnit.technicalCapacities) {
-                                      const next = currentUnit.technicalCapacities.filter((_, idx) => idx !== i);
-                                      handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                    } else if (currentUnit.basicCapacities) {
-                                      const next = currentUnit.basicCapacities.filter((_, idx) => idx !== i);
-                                      handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                    if (activeTechnicalCapacities.length > 0) {
+                                      const next = activeTechnicalCapacities.filter((_, idx) => idx !== i);
+                                      if (activeStage) {
+                                        handleUpdateActiveStage({ technicalCapacities: next });
+                                      } else {
+                                        handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                      }
+                                    } else {
+                                      const next = activeBasicCapacities.filter((_, idx) => idx !== i);
+                                      if (activeStage) {
+                                        handleUpdateActiveStage({ basicCapacities: next });
+                                      } else {
+                                        handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                      }
                                     }
                                   }}
                                   className="text-slate-400 hover:text-red-500 cursor-pointer"
@@ -739,13 +845,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             onClick={() => {
                               const promptText = prompt("Digite a nova Capacidade Socioemocional:");
                               if (promptText && promptText.trim()) {
-                                handleUpdateCurrentUnit({
-                                  ...currentUnit,
-                                  socioemotionalCapacities: [
-                                    ...(currentUnit.socioemotionalCapacities || []),
-                                    promptText.trim(),
-                                  ],
-                                });
+                                const next = [...activeSocioemotionalCapacities, promptText.trim()];
+                                if (activeStage) {
+                                  handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                } else {
+                                  handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                }
                               }
                             }}
                             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
@@ -758,8 +863,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                       {/* Socioemotional Capacities List */}
                       <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {(Array.isArray(currentUnit?.socioemotionalCapacities) ? currentUnit.socioemotionalCapacities : defaultMatchingUnit?.socioemotionalCapacities || []).length > 0 ? (
-                          (Array.isArray(currentUnit?.socioemotionalCapacities) ? currentUnit.socioemotionalCapacities : defaultMatchingUnit?.socioemotionalCapacities || []).map((cap, i) => (
+                        {activeSocioemotionalCapacities.length > 0 ? (
+                          activeSocioemotionalCapacities.map((cap, i) => (
                             <div
                               key={i}
                               className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2"
@@ -768,13 +873,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               {isAdmin && (
                                 <button
                                   onClick={() => {
-                                    const next = currentUnit.socioemotionalCapacities?.filter(
-                                      (_, idx) => idx !== i
-                                    );
-                                    handleUpdateCurrentUnit({
-                                      ...currentUnit,
-                                      socioemotionalCapacities: next,
-                                    });
+                                    const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                    if (activeStage) {
+                                      handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                    } else {
+                                      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                    }
                                   }}
                                   className="text-slate-400 hover:text-red-500 cursor-pointer"
                                 >
@@ -806,10 +910,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           onClick={() => {
                             const promptText = prompt("Digite o novo Tópico / Conhecimento:");
                             if (promptText && promptText.trim()) {
-                              handleUpdateCurrentUnit({
-                                ...currentUnit,
-                                topics: [...(currentUnit.topics || []), promptText.trim()],
-                              });
+                              const next = [...activeTopicsList, promptText.trim()];
+                              if (activeStage) {
+                                handleUpdateActiveStage({ topics: next });
+                              } else {
+                                handleUpdateCurrentUnit({ ...currentUnit, topics: next });
+                              }
                             }
                           }}
                           className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
@@ -822,8 +928,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                     {/* Topics List */}
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                      {(Array.isArray(currentUnit?.topics) ? currentUnit.topics : defaultMatchingUnit?.topics || []).length > 0 ? (
-                        (Array.isArray(currentUnit?.topics) ? currentUnit.topics : defaultMatchingUnit?.topics || []).map((topic, i) => (
+                      {activeTopicsList.length > 0 ? (
+                        activeTopicsList.map((topic, i) => (
                           <div
                             key={i}
                             className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
@@ -853,7 +959,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               <>
                                 <span className="leading-relaxed">{topic}</span>
                                 {isAdmin && (
-                                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => {
                                         setEditingTopicIndex(i);
@@ -1045,9 +1151,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   </div>
 
                   {/* Rubrics Table / Cards */}
-                  {(Array.isArray(currentUnit?.rubrics) ? currentUnit.rubrics : defaultMatchingUnit?.rubrics || []).length > 0 ? (
+                  {activeRubricsList.length > 0 ? (
                     <div className="space-y-6">
-                      {(Array.isArray(currentUnit?.rubrics) ? currentUnit.rubrics : defaultMatchingUnit?.rubrics || []).map((rubric, idx) => (
+                      {activeRubricsList.map((rubric, idx) => (
                         <div
                           key={idx}
                           className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs"
