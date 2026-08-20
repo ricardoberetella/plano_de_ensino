@@ -1,8 +1,8 @@
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { Syllabus } from "../types/syllabus";
+import { Syllabus, ProgrammaticUnit } from "../types/syllabus";
 import { initialSyllabi } from "../data/mockSyllabi";
-import { proeducadorUnits, defaultCoursePlanData } from "../data/proeducadorData";
+import { proeducadorUnits, rawProeducadorUnits, defaultCoursePlanData } from "../data/proeducadorData";
 import { generateSyllabusSchedule } from "./scheduleGenerator";
 import { INITIAL_SCHOOL_EVENTS_2026, TEACHER_SCHEDULE_RULES } from "./calendarConfig";
 
@@ -13,6 +13,94 @@ const ACTIVE_ID_KEY = "senai_plano_ensino_active_id";
 function stripUndefined<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   return JSON.parse(JSON.stringify(obj));
+}
+
+function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): ProgrammaticUnit[] {
+  if (!Array.isArray(units) || units.length === 0) {
+    return (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
+  }
+
+  const seenKeys = new Set<string>();
+  const cleaned: ProgrammaticUnit[] = [];
+
+  const getUnitKey = (u: ProgrammaticUnit): string => {
+    const ac = (u.acronym || "").toUpperCase().trim();
+    if (ac === "PROC" || ac === "PRUSC" || u.unitTitle.toLowerCase().includes("processos")) return "PRUSC";
+    if (ac === "METR" || ac === "MINDU" || u.unitTitle.toLowerCase().includes("metrologia")) return "MINDU";
+    if (ac === "LIDT" || u.unitTitle.toLowerCase().includes("leitura")) return "LIDT";
+    if (ac === "CIEMA" || u.unitTitle.toLowerCase().includes("ciência") || u.unitTitle.toLowerCase().includes("ciencia")) return "CIEMA";
+    if (ac === "CRD" || ac === "CDMAT" || u.unitTitle.toLowerCase().includes("controle dimensional")) return "CRD";
+    if (ac === "MAP" || u.unitTitle.toLowerCase().includes("matemática") || u.unitTitle.toLowerCase().includes("matematica")) return "MAP";
+    if (ac === "FUSI" || u.unitTitle.toLowerCase().includes("fundamentos")) return "FUSI";
+    return (u.id || u.unitTitle || ac).toLowerCase();
+  };
+
+  for (const u of units) {
+    if (!u) continue;
+    const key = getUnitKey(u);
+    if (seenKeys.has(key)) {
+      // Duplicate UC found - merge any lesson plans/topics into existing and skip
+      const existing = cleaned.find((c) => getUnitKey(c) === key);
+      if (existing) {
+        if (Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0) {
+          const existingDates = new Set((existing.lessonPlan || []).map((lp) => `${lp.date}-${lp.hours}`));
+          const newLessons = u.lessonPlan.filter((lp) => !existingDates.has(`${lp.date}-${lp.hours}`));
+          existing.lessonPlan = [...(existing.lessonPlan || []), ...newLessons];
+        }
+      }
+      continue;
+    }
+    seenKeys.add(key);
+
+    const baseUnit = rawProeducadorUnits.find((pu) => getUnitKey(pu) === key);
+    cleaned.push({
+      ...(baseUnit || {}),
+      ...u,
+      id: baseUnit?.id || u.id,
+      acronym: baseUnit?.acronym || u.acronym,
+      semester: baseUnit?.semester || u.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
+      unitTitle: baseUnit?.unitTitle || u.unitTitle,
+      workload: baseUnit?.workload || u.workload,
+      objective: u.objective || baseUnit?.objective,
+      basicCapacities: Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0 ? u.basicCapacities : baseUnit?.basicCapacities || [],
+      technicalCapacities: Array.isArray(u.technicalCapacities) && u.technicalCapacities.length > 0 ? u.technicalCapacities : baseUnit?.technicalCapacities || [],
+      socioemotionalCapacities: Array.isArray(u.socioemotionalCapacities) && u.socioemotionalCapacities.length > 0 ? u.socioemotionalCapacities : baseUnit?.socioemotionalCapacities || [],
+      topics: Array.isArray(u.topics) && u.topics.length > 0 ? u.topics : baseUnit?.topics || [],
+      situationProblem: u.situationProblem || baseUnit?.situationProblem,
+      rubrics: Array.isArray(u.rubrics) && u.rubrics.length > 0 ? u.rubrics : baseUnit?.rubrics || [],
+      lessonPlan: Array.isArray(u.lessonPlan) ? u.lessonPlan : baseUnit?.lessonPlan || [],
+    });
+  }
+
+  // Ensure all 7 official base units exist
+  for (const base of rawProeducadorUnits) {
+    const key = getUnitKey(base);
+    if (!seenKeys.has(key)) {
+      cleaned.push({ ...base });
+      seenKeys.add(key);
+    }
+  }
+
+  // Sort: 1º Semestre (FUSI, LIDT, CRD, MAP, CIEMA), then 2º Semestre (PRUSC, MINDU)
+  const orderMap: Record<string, number> = {
+    FUSI: 1,
+    LIDT: 2,
+    CRD: 3,
+    MAP: 4,
+    CIEMA: 5,
+    PRUSC: 6,
+    PROC: 6,
+    MINDU: 7,
+    METR: 7,
+  };
+
+  cleaned.sort((a, b) => {
+    const keyA = getUnitKey(a);
+    const keyB = getUnitKey(b);
+    return (orderMap[keyA] || 99) - (orderMap[keyB] || 99);
+  });
+
+  return cleaned;
 }
 
 export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
@@ -29,6 +117,17 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
       (s.courseTitle === "Nova Disciplina" || s.courseTitle === "NOVA DISCIPLINA") &&
       (!s.professorName || s.professorName === "Nome do Docente" || s.professorName.trim() === "");
     return !isDummy;
+  });
+
+  // Clean course titles so they don't have "- Prof. Ricardo..." in the main title
+  list = list.map((s) => {
+    if (!s) return s;
+    let cleanTitle = s.courseTitle || "Mecânico de Usinagem Convencional";
+    cleanTitle = cleanTitle.replace(/\s*-\s*prof\.?\s*ricardo\s*(beretella|gea)/i, "").trim();
+    return {
+      ...s,
+      courseTitle: cleanTitle,
+    };
   });
 
   // Guarantee both independent professor syllabi exist
@@ -68,10 +167,8 @@ export function sanitizeSyllabi(syllabiList: Syllabus[]): Syllabus[] {
   return list.map((s) => {
     if (!s) return s;
 
-    // Preserving all user programmatic units exactly as customized
-    let currentUnits = Array.isArray(s.programmaticContent) && s.programmaticContent.length > 0
-      ? s.programmaticContent
-      : (proeducadorUnits || []).map((pu) => ({ ...pu }));
+    // Preserving all user programmatic units exactly as customized, deduplicated and ordered
+    let currentUnits = deduplicateAndSanitizeUnits(s.programmaticContent || []);
 
     // Preserving user schedule
     let currentSchedule = Array.isArray(s.schedule) && s.schedule.length > 0
