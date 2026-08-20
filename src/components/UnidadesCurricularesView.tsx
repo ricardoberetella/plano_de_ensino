@@ -35,7 +35,8 @@ import {
   LessonPlanItem,
   SituationProblem,
 } from "../types/syllabus";
-import { proeducadorUnits } from "../data/proeducadorData";
+import { proeducadorUnits, rawProeducadorUnits } from "../data/proeducadorData";
+import { deduplicateAndSanitizeUnits, getStandardUcKey } from "../utils/storage";
 import {
   parseDateToISO,
   getMonthGrid,
@@ -77,12 +78,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   onPrint,
   onOpenExport,
 }) => {
-  // Use syllabus.programmaticContent directly as the source of truth so user edits persist
+  // Use sanitized programmaticContent directly as the source of truth so user edits persist cleanly
   const units = React.useMemo(() => {
     if (syllabus && Array.isArray(syllabus.programmaticContent) && syllabus.programmaticContent.length > 0) {
-      return syllabus.programmaticContent;
+      return deduplicateAndSanitizeUnits(syllabus.programmaticContent);
     }
-    return proeducadorUnits || [];
+    return (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
   }, [syllabus?.programmaticContent]);
 
   const isAdmin = currentUser?.role === "admin";
@@ -101,20 +102,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // UC Calendar state
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
 
-  // Helper to compute acronym for a UC
+  // Helper to compute standard acronym for a UC
   const getAcronym = (unit?: ProgrammaticUnit | null): string => {
     if (!unit) return "UC";
-    const title = (unit.unitTitle || "").toUpperCase();
-    const ac = (unit.acronym || "").toUpperCase();
-    if (ac === "PROC" || ac === "PRUSC" || title.includes("PROCESSOS")) return "PRUSC";
-    if (ac === "METR" || ac === "MINDU" || title.includes("METROLOGIA")) return "MINDU";
-    if (ac === "LIDT" || title.includes("LEITURA")) return "LIDT";
-    if (ac === "CIEMA" || title.includes("CIÊNCIAS") || title.includes("CIENCIAS")) return "CIEMA";
-    if (ac === "CRD" || ac === "CDMAT" || title.includes("CONTROLE")) return "CRD";
-    if (ac === "MAP" || title.includes("MATEMÁTICA") || title.includes("MATEMATICA")) return "MAP";
-    if (ac === "FUSI" || title.includes("FUNDAMENTOS")) return "FUSI";
-    if (ac) return ac;
-    return title ? title.substring(0, 5) : "UC";
+    return getStandardUcKey(unit);
   };
 
   // Filter UCs by selected semester
@@ -525,15 +516,18 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
           <button
             onClick={() => {
-              try {
-                localStorage.clear();
-              } catch (e) {
-                console.error(e);
+              if (window.confirm("Deseja restaurar a matriz curricular padrão do SENAI (7 Unidades Curriculares oficiais)?")) {
+                const freshUnits = (rawProeducadorUnits || []).map((pu) => ({ ...pu }));
+                onUpdateSyllabus({
+                  ...syllabus,
+                  programmaticContent: freshUnits,
+                });
+                setSelectedUnitId(freshUnits[0]?.id || "uc-fusi");
+                setSelectedSemester("1º SEMESTRE");
               }
-              window.location.reload();
             }}
             title="Restaurar Unidades Curriculares Padrão SENAI"
-            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
           >
             <span>Restaurar UCs</span>
           </button>
