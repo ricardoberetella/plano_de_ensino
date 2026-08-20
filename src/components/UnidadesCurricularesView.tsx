@@ -748,21 +748,40 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         : lessonTargetScope;
 
     if (currentUnit.stages && currentUnit.stages.length > 0) {
-      const sourceStageId = lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
-      const sourceStage = currentUnit.stages.find((s) => s.id === sourceStageId) || currentUnit.stages[0];
-      const sourceLessons = sourceStage.lessonPlan || [];
-      const sourceLessonIndex = editingLesson ? sourceLessons.findIndex((l) => l.id === editingLesson.id) : -1;
+      // 1. Locate source stage and source lesson index reliably
+      let foundStageIndex = -1;
+      let foundLessonIndex = -1;
+
+      if (editingLesson) {
+        for (let s = 0; s < currentUnit.stages.length; s++) {
+          const st = currentUnit.stages[s];
+          const idx = (st.lessonPlan || []).findIndex((lp) => lp.id === editingLesson.id);
+          if (idx !== -1) {
+            foundStageIndex = s;
+            foundLessonIndex = idx;
+            break;
+          }
+        }
+      }
+
+      // If not found by ID, default to selected or matching stageId from form
+      const fallbackStageId = lessonForm.stageId || editingLesson?.stageId || selectedStageId || currentUnit.stages[0].id;
+      const targetStageIndex = foundStageIndex !== -1
+        ? foundStageIndex
+        : currentUnit.stages.findIndex((s) => s.id === fallbackStageId);
+      const effectiveStageIndex = targetStageIndex !== -1 ? targetStageIndex : 0;
+      const sourceStage = currentUnit.stages[effectiveStageIndex];
 
       const targetStages = getStagesByScope(currentUnit.stages, lessonTargetScope);
       const targetStageIds = targetStages.map((s) => s.id);
 
-      const nextStages = currentUnit.stages.map((st) => {
+      const nextStages = currentUnit.stages.map((st, sIdx) => {
         const isTarget = targetStageIds.includes(st.id);
-        const stageLessons = st.lessonPlan || [];
+        const stageLessons = [...(st.lessonPlan || [])];
 
         if (editingLesson) {
-          // If this stage is the exact source of the edited lesson
-          if (st.id === sourceStage.id) {
+          // If this is the exact stage containing the edited lesson
+          if (sIdx === effectiveStageIndex) {
             const updated = stageLessons.map((item) =>
               item.id === editingLesson.id
                 ? {
@@ -783,25 +802,42 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             return { ...st, lessonPlan: updated };
           }
 
-          // If lessonTargetScope is "Ambos os Professores", synchronize the pedagogical content into partner stage!
+          // If "Ambos os Professores" is chosen, synchronize pedagogical content into the other target stages
           if (lessonTargetScope === "Ambos os Professores" && isTarget) {
-            const updated = stageLessons.map((item, idx) => {
-              // Match by index or matching lesson position
-              if (idx === sourceLessonIndex && sourceLessonIndex !== -1) {
-                return {
-                  ...item,
-                  // Keep partner stage's own calendar date intact
-                  hours: lessonForm.hours || item.hours,
-                  professor: chosenProf,
-                  conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
-                  estrategias: lessonForm.estrategias || item.estrategias,
-                  recursos: lessonForm.recursos || item.recursos,
-                  capacities: lessonForm.capacities || item.capacities,
-                };
-              }
-              return item;
-            });
-            return { ...st, lessonPlan: updated };
+            if (foundLessonIndex !== -1 && foundLessonIndex < stageLessons.length) {
+              // Update matching lesson slot while preserving this stage's own calendar date
+              const updated = stageLessons.map((item, idx) => {
+                if (idx === foundLessonIndex) {
+                  return {
+                    ...item,
+                    hours: lessonForm.hours || item.hours,
+                    professor: chosenProf,
+                    conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
+                    estrategias: lessonForm.estrategias || item.estrategias,
+                    recursos: lessonForm.recursos || item.recursos,
+                    capacities: lessonForm.capacities || item.capacities,
+                  };
+                }
+                return item;
+              });
+              return { ...st, lessonPlan: updated };
+            } else {
+              // If stage had fewer lessons, append the synced lesson
+              const newItem: LessonPlanItem = {
+                id: `lp-${st.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                date: lessonForm.date || "12/08/2026",
+                hours: lessonForm.hours || "4h",
+                professor: chosenProf,
+                conhecimentos: lessonForm.conhecimentos || "Novo conteúdo lecionado",
+                estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
+                recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
+                capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
+                stageId: st.id,
+                stageTitle: st.title,
+                stageTurma: st.turma,
+              };
+              return { ...st, lessonPlan: [...stageLessons, newItem] };
+            }
           }
         } else {
           // Creating a new lesson
@@ -1115,11 +1151,21 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     if (!item) return false;
     if (selectedProfessorFilter === "todos") return true;
     const targetProf = selectedProfessorFilter.replace("Prof. ", "").trim().toLowerCase();
+    const profStr = (item.professor || "").toLowerCase();
+    
+    // If assigned to both professors or shared, always include
+    if (profStr.includes("ambos") || profStr.includes("/")) return true;
+    
     if (!item.professor || typeof item.professor !== "string" || item.professor.trim() === "") {
-      // If item has no professor tag, default it to item ID convention or match if active
-      return item.id?.toLowerCase().includes(targetProf.includes("gea") ? "gea" : "beretella");
+      // Default to matching stage turma or ID
+      if (selectedProfessorFilter.includes("Beretella")) {
+        return item.stageTurma === "Turma A" || !item.id?.toLowerCase().includes("gea");
+      } else if (selectedProfessorFilter.includes("Gea")) {
+        return item.stageTurma === "Turma B" || item.id?.toLowerCase().includes("gea");
+      }
+      return true;
     }
-    return item.professor.toLowerCase().includes(targetProf);
+    return profStr.includes(targetProf);
   });
 
   // Calculate total hours/aulas in the current unit schedule
@@ -1883,8 +1929,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 4: PLANO DE ENSINO */}
               {activeUcTab === "PLANO DE ENSINO" && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                  {/* Top Bar with Title, Search and Global Add Button */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  {/* Top Bar with Title, Professor Filter, Search and Global Add Button */}
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-blue-600" />
@@ -1897,7 +1943,42 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                    {/* Professor View Selector Pills */}
+                    <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] font-black uppercase text-slate-400 pl-2 pr-1">Docente:</span>
+                      <button
+                        onClick={() => setSelectedProfessorFilter("todos")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          selectedProfessorFilter === "todos"
+                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        Todos os Docentes
+                      </button>
+                      <button
+                        onClick={() => setSelectedProfessorFilter("Prof. Ricardo Beretella")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          selectedProfessorFilter.includes("Beretella")
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-blue-600"
+                        }`}
+                      >
+                        Prof. Ricardo Beretella (Turma A)
+                      </button>
+                      <button
+                        onClick={() => setSelectedProfessorFilter("Prof. Ricardo Gea")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          selectedProfessorFilter.includes("Gea")
+                            ? "bg-emerald-600 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-emerald-600"
+                        }`}
+                      >
+                        Prof. Ricardo Gea (Turma B)
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
                       {/* Search Bar */}
                       <div className="relative w-full sm:w-64">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
