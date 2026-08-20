@@ -181,6 +181,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {syllabi.map((s) => {
             const isSelected = s.id === activeSyllabus.id;
+            const isBaseCourse =
+              s.id === "senai-usinagem-800h-beretella" ||
+              s.id === "senai-usinagem-800h-gea" ||
+              s.id.includes("usinagem-800h") ||
+              s.courseTitle.toLowerCase().includes("usinagem convencional");
 
             return (
               <div
@@ -261,8 +266,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <Edit className="w-4 h-4" />
                   </button>
 
-                  {/* Delete Plan */}
-                  {isAdmin && syllabi.length > 1 && (
+                  {/* Delete Plan - Disabled / Hidden for Base Official Courses */}
+                  {!isBaseCourse && isAdmin && syllabi.length > 1 && (
                     <button
                       onClick={() => onDeleteSyllabus(s.id)}
                       className="w-9 h-9 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center transition-colors cursor-pointer"
