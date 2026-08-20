@@ -109,7 +109,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     stages: [
       {
         id: "fusi-stage-1",
-        title: "1. Turma A – Torneamento (AgroMaq Industrial)",
+        title: "Turma A - Torneamento - Capacidades Básicas",
         turma: "Turma A",
         basicCapacities: [
           "1. Selecionar ferramentas aplicadas na montagem e desmontagem de elementos de máquina.",
@@ -211,7 +211,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       },
       {
         id: "fusi-stage-2",
-        title: "2. Turma B – Fresagem & Ajustagem (Fresanatec)",
+        title: "Turma B - Fresagem - Capacidades Básicas",
         turma: "Turma B",
         basicCapacities: [
           "1. Selecionar ferramentas aplicadas na montagem e desmontagem de elementos de máquina.",
@@ -324,7 +324,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       },
       {
         id: "fusi-stage-3",
-        title: "3. Turma A – Usinagem de Precisão & Retificação (TechMec)",
+        title: "Turma A - Torneamento - Capacidades Técnicas",
         turma: "Turma A",
         basicCapacities: [
           "1. Realizar operações em torno convencional de acordo com especificações e normas de SST.",
@@ -419,7 +419,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       },
       {
         id: "fusi-stage-4",
-        title: "4. Turma B – Dispositivo de Centralização & Retificação Plana (Precise Solutions)",
+        title: "Turma B - Fresagem - Capacidades Técnicas",
         turma: "Turma B",
         basicCapacities: [
           "1. Realizar operações em fresadora convencional de acordo com especificações técnicas e SST.",
