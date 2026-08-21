@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
   Plus,
@@ -237,9 +237,26 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // Stage Selector State (for multi-stage UCs like FUSI)
   const [selectedStageId, setSelectedStageId] = useState<string>("");
 
-  // Keep selected stage in sync when unit or active professor in sidebar changes
+  const prevUnitIdRef = useRef<string>("");
+  const prevUserKeyRef = useRef<string>("");
+
+  // Keep selected stage in sync ONLY when unit or active professor in sidebar actually changes
   useEffect(() => {
-    if (currentUnit?.stages && currentUnit.stages.length > 0) {
+    if (!currentUnit?.stages || currentUnit.stages.length === 0) {
+      setSelectedStageId("");
+      prevUnitIdRef.current = currentUnit?.id || "";
+      return;
+    }
+
+    const unitChanged = prevUnitIdRef.current !== currentUnit.id;
+    const userChanged = prevUserKeyRef.current !== (currentUser?.name || currentUser?.id || "");
+    const currentStageIsValid = currentUnit.stages.some((s) => s.id === selectedStageId);
+
+    // Only auto-determine stage on initial load, unit change, user change, or if current stage is invalid
+    if (unitChanged || userChanged || !currentStageIsValid) {
+      prevUnitIdRef.current = currentUnit.id;
+      prevUserKeyRef.current = currentUser?.name || currentUser?.id || "";
+
       const isGea = currentUser?.name?.toLowerCase().includes("gea");
       const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
 
@@ -256,13 +273,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
       if (matchingStage) {
         setSelectedStageId(matchingStage.id);
-      } else if (!selectedStageId || !currentUnit.stages.some((s) => s.id === selectedStageId)) {
+      } else {
         setSelectedStageId(currentUnit.stages[0].id);
       }
-    } else {
-      setSelectedStageId("");
     }
-  }, [currentUnit?.id, currentUnit?.stages, currentUser?.name]);
+  }, [currentUnit?.id, currentUnit?.stages, currentUser?.name, currentUser?.id, selectedStageId]);
 
   const activeStage =
     currentUnit?.stages && currentUnit.stages.length > 0
@@ -301,7 +316,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         : currentUnit?.basicCapacities || defaultMatchingUnit?.technicalCapacities || defaultMatchingUnit?.basicCapacities || []);
 
   const activePrimaryLabel = activeStage
-    ? "CAPACIDADES BÁSICAS & TÉCNICAS DA ETAPA"
+    ? (activeStage.title?.toUpperCase().includes("TÉCNICA") || activeStage.title?.toUpperCase().includes("TECNICA")
+        ? "CAPACIDADES TÉCNICAS DA ETAPA"
+        : activeStage.title?.toUpperCase().includes("BÁSICA") || activeStage.title?.toUpperCase().includes("BASICA")
+        ? "CAPACIDADES BÁSICAS DA ETAPA"
+        : "CAPACIDADES DA ETAPA")
     : (currentUnit?.technicalCapacities && currentUnit.technicalCapacities.length > 0
         ? "CAPACIDADES TÉCNICAS"
         : "CAPACIDADES BÁSICAS");
@@ -416,7 +435,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
         const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
         handleUpdateActiveStage({ socioemotionalCapacities: nextList });
       } else {
-        const hasBasic = Array.isArray(activeStage.basicCapacities) && activeStage.basicCapacities.length > 0;
+        const hasBasic = activeStage.basicCapacities !== undefined && activeStage.basicCapacities !== null;
         if (hasBasic) {
           const list = [...(activeStage.basicCapacities || [])];
           const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
