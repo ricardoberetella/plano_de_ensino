@@ -43,7 +43,7 @@ import {
   SituationProblem,
 } from "../types/syllabus";
 import { proeducadorUnits, rawProeducadorUnits } from "../data/proeducadorData";
-import { deduplicateAndSanitizeUnits, getStandardUcKey } from "../utils/storage";
+import { deduplicateAndSanitizeUnits, getStandardUcKey, loadSyllabiFromStorage } from "../utils/storage";
 import {
   parseDateToISO,
   getMonthGrid,
@@ -146,6 +146,7 @@ export const STAGE_THEMES = [
 
 interface UnidadesCurricularesViewProps {
   syllabus: Syllabus;
+  syllabi?: Syllabus[];
   currentUser: UserProfile;
   onUpdateSyllabus: (updated: Syllabus) => void;
   onOpenLoginModal: () => void;
@@ -155,12 +156,20 @@ interface UnidadesCurricularesViewProps {
 
 export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> = ({
   syllabus,
+  syllabi,
   currentUser,
   onUpdateSyllabus,
   onOpenLoginModal,
   onPrint,
   onOpenExport,
 }) => {
+  // Available Syllabi (for cross-professor / cross-syllabus import)
+  const availableSyllabi = React.useMemo(() => {
+    if (syllabi && Array.isArray(syllabi) && syllabi.length > 0) {
+      return syllabi;
+    }
+    return loadSyllabiFromStorage();
+  }, [syllabi]);
   // Use sanitized programmaticContent directly as the source of truth so user edits persist cleanly
   const units = React.useMemo(() => {
     if (syllabus && Array.isArray(syllabus.programmaticContent) && syllabus.programmaticContent.length > 0) {
@@ -861,6 +870,207 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       });
       handleUpdateCurrentUnit({ ...currentUnit, lessonPlan: nextList });
     }
+  };
+
+  // 6. CROSS-PROFESSOR / CROSS-UC LESSON PLAN IMPORT STATE & HANDLERS
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [sourceSyllabusId, setSourceSyllabusId] = useState<string>("");
+  const [sourceUnitId, setSourceUnitId] = useState<string>("");
+  const [sourceStageId, setSourceStageId] = useState<string>("todas");
+  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
+  const [targetStageId, setTargetStageId] = useState<string>("todas");
+  const [importMode, setImportMode] = useState<"replace" | "append">("append");
+  const [updateProfessorNameToCurrent, setUpdateProfessorNameToCurrent] = useState<boolean>(true);
+  const [sourceLessonSearch, setSourceLessonSearch] = useState<string>("");
+
+  const sourceSyllabusObj = React.useMemo(() => {
+    return availableSyllabi.find((s) => s.id === sourceSyllabusId) || availableSyllabi[0] || syllabus;
+  }, [availableSyllabi, sourceSyllabusId, syllabus]);
+
+  const sourceUnitObj = React.useMemo(() => {
+    if (!sourceSyllabusObj?.programmaticContent) return null;
+    return (
+      sourceSyllabusObj.programmaticContent.find((u) => u.id === sourceUnitId) ||
+      sourceSyllabusObj.programmaticContent[0] ||
+      null
+    );
+  }, [sourceSyllabusObj, sourceUnitId]);
+
+  const availableSourceLessons: Array<LessonPlanItem & { stageIndex?: number; stageName?: string }> = React.useMemo(() => {
+    if (!sourceUnitObj) return [];
+    if (sourceUnitObj.stages && sourceUnitObj.stages.length > 0) {
+      if (sourceStageId === "todas") {
+        return sourceUnitObj.stages.flatMap((st, sIdx) =>
+          (st.lessonPlan || []).map((item) => ({
+            ...item,
+            stageIndex: sIdx,
+            stageName: `Etapa ${sIdx + 1}: ${st.turma || st.title.replace(/^\d+\.\s*/, "")}`,
+          }))
+        );
+      } else {
+        const st = sourceUnitObj.stages.find((s) => s.id === sourceStageId);
+        const sIdx = sourceUnitObj.stages.findIndex((s) => s.id === sourceStageId);
+        return (st?.lessonPlan || []).map((item) => ({
+          ...item,
+          stageIndex: sIdx >= 0 ? sIdx : 0,
+          stageName: `Etapa ${(sIdx >= 0 ? sIdx : 0) + 1}: ${st?.turma || st?.title.replace(/^\d+\.\s*/, "")}`,
+        }));
+      }
+    }
+    return (sourceUnitObj.lessonPlan || []).map((item) => ({
+      ...item,
+      stageIndex: 0,
+      stageName: sourceUnitObj.unitTitle,
+    }));
+  }, [sourceUnitObj, sourceStageId]);
+
+  // Filter source lessons by search query inside the modal
+  const filteredSourceLessons = React.useMemo(() => {
+    if (!sourceLessonSearch.trim()) return availableSourceLessons;
+    const q = sourceLessonSearch.toLowerCase().trim();
+    return availableSourceLessons.filter(
+      (l) =>
+        (l.date || "").toLowerCase().includes(q) ||
+        (l.conhecimentos || "").toLowerCase().includes(q) ||
+        (l.estrategias || "").toLowerCase().includes(q) ||
+        (l.recursos || "").toLowerCase().includes(q) ||
+        (l.capacities || "").toLowerCase().includes(q) ||
+        (l.stageName || "").toLowerCase().includes(q) ||
+        (l.professor || "").toLowerCase().includes(q)
+    );
+  }, [availableSourceLessons, sourceLessonSearch]);
+
+  const handleOpenImportModal = () => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    // Automatically select the other professor's syllabus if available
+    const otherSyllabus = availableSyllabi.find((s) => s.id !== syllabus.id) || availableSyllabi[0] || syllabus;
+    const initialSourceSyllabusId = otherSyllabus?.id || syllabus.id;
+    setSourceSyllabusId(initialSourceSyllabusId);
+
+    const targetUcKey = getStandardUcKey(currentUnit);
+    const sourceSyl = availableSyllabi.find((s) => s.id === initialSourceSyllabusId) || otherSyllabus;
+    const matchedUnit =
+      sourceSyl?.programmaticContent?.find(
+        (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+      ) || sourceSyl?.programmaticContent?.[0];
+
+    const initialSourceUnitId = matchedUnit?.id || "";
+    setSourceUnitId(initialSourceUnitId);
+    setSourceStageId("todas");
+    setTargetStageId(selectedStageId || (currentUnit?.stages?.[0]?.id ? "todas" : ""));
+    setImportMode("append");
+    setUpdateProfessorNameToCurrent(true);
+    setSourceLessonSearch("");
+
+    if (matchedUnit) {
+      const raw =
+        matchedUnit.stages && matchedUnit.stages.length > 0
+          ? matchedUnit.stages.flatMap((st) => st.lessonPlan || [])
+          : matchedUnit.lessonPlan || [];
+      setSelectedLessonIds(raw.map((l) => l.id));
+    } else {
+      setSelectedLessonIds([]);
+    }
+
+    setIsImportModalOpen(true);
+  };
+
+  const handleSelectAllSourceLessons = () => {
+    setSelectedLessonIds(availableSourceLessons.map((l) => l.id));
+  };
+
+  const handleDeselectAllSourceLessons = () => {
+    setSelectedLessonIds([]);
+  };
+
+  const handleToggleSourceLessonSelect = (id: string) => {
+    setSelectedLessonIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmImportLessons = () => {
+    if (!currentUnit) return;
+    const lessonsToCopy = availableSourceLessons.filter((l) => selectedLessonIds.includes(l.id));
+    if (lessonsToCopy.length === 0) return;
+
+    const profName = updateProfessorNameToCurrent
+      ? currentUser?.name?.includes("Gea")
+        ? "Prof. Ricardo Gea"
+        : "Prof. Ricardo Beretella"
+      : undefined;
+
+    const clonedItems: LessonPlanItem[] = lessonsToCopy.map((l, idx) => ({
+      ...l,
+      id: `lp-copy-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+      professor:
+        profName ||
+        l.professor ||
+        (currentUser?.name?.includes("Gea") ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella"),
+      status: "planejada" as const,
+    }));
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const updatedStages = currentUnit.stages.map((stage, sIdx) => {
+        if (targetStageId !== "todas") {
+          if (stage.id === targetStageId) {
+            const formatted = clonedItems.map((item) => ({
+              ...item,
+              stageId: stage.id,
+              stageTitle: stage.title,
+              stageTurma: stage.turma,
+            }));
+            const newPlan =
+              importMode === "replace" ? formatted : [...(stage.lessonPlan || []), ...formatted];
+            return { ...stage, lessonPlan: newPlan };
+          }
+          return stage;
+        }
+
+        // targetStageId is "todas": map matching stageIndex or distribute
+        const matchingItemsForStage = clonedItems.filter((item: any) => item.stageIndex === sIdx);
+        const itemsToPut =
+          matchingItemsForStage.length > 0 ? matchingItemsForStage : sIdx === 0 ? clonedItems : [];
+
+        const formatted = itemsToPut.map((item) => ({
+          ...item,
+          stageId: stage.id,
+          stageTitle: stage.title,
+          stageTurma: stage.turma,
+        }));
+
+        const newPlan =
+          importMode === "replace" ? formatted : [...(stage.lessonPlan || []), ...formatted];
+        return { ...stage, lessonPlan: newPlan };
+      });
+
+      const mergedList = updatedStages.flatMap((st) =>
+        (st.lessonPlan || []).map((lp) => ({
+          ...lp,
+          stageId: st.id,
+          stageTitle: st.title,
+          stageTurma: st.turma,
+        }))
+      );
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        stages: updatedStages,
+        lessonPlan: mergedList,
+      });
+    } else {
+      const newPlan =
+        importMode === "replace" ? clonedItems : [...(currentUnit.lessonPlan || []), ...clonedItems];
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        lessonPlan: newPlan,
+      });
+    }
+
+    setIsImportModalOpen(false);
   };
 
   // Active Lesson Plan filtered by lateral active professor (currentUser)
@@ -1650,15 +1860,25 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         />
                       </div>
 
-                      {/* Add Lesson Button for Admin */}
+                      {/* Action Buttons for Admin */}
                       {isAdmin && (
-                        <button
-                          onClick={() => handleOpenAddLesson()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Adicionar Aula</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleOpenImportModal}
+                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
+                            title="Copiar cronograma completo ou selecionar aulas de outro professor ou UC"
+                          >
+                            <Copy className="w-4 h-4" />
+                            <span>Copiar de Outro Professor / UC</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenAddLesson()}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shrink-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Adicionar Aula</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1794,13 +2014,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               </div>
 
                               {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddLesson(undefined, currentUnit.stages?.[0]?.id)}
-                                  className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  <span>Adicionar Aula</span>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={handleOpenImportModal}
+                                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
+                                    title="Copiar cronograma ou aulas de outro professor"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Copiar de Outro Professor</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenAddLesson(undefined, currentUnit.stages?.[0]?.id)}
+                                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    <span>Adicionar Aula</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
 
@@ -2018,13 +2248,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   </div>
 
                                   {isAdmin && (
-                                    <button
-                                      onClick={() => handleOpenAddLesson(undefined, stage.id)}
-                                      className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                      <span>Adicionar Aula na Etapa {sIdx + 1}</span>
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={handleOpenImportModal}
+                                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
+                                        title="Copiar cronograma ou aulas de outro professor"
+                                      >
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>Copiar de Outro Professor</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleOpenAddLesson(undefined, stage.id)}
+                                        className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Adicionar Aula na Etapa {sIdx + 1}</span>
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
 
@@ -2681,10 +2921,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                    Data do Encontro (DD/MM/AAAA)
+                    Data (DD/MM/AAAA)
                   </label>
                   <input
                     type="text"
@@ -2709,6 +2949,26 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     <option value="3h">3h</option>
                     <option value="4h">4h</option>
                     <option value="8h">8h</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                    Professor Responsável
+                  </label>
+                  <select
+                    value={
+                      lessonForm.professor ||
+                      (currentUser?.name?.includes("Gea")
+                        ? "Prof. Ricardo Gea"
+                        : "Prof. Ricardo Beretella")
+                    }
+                    onChange={(e) => setLessonForm({ ...lessonForm, professor: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Prof. Ricardo Beretella">Prof. Ricardo Beretella</option>
+                    <option value="Prof. Ricardo Gea">Prof. Ricardo Gea</option>
+                    <option value="Ambos os Professores">Ambos os Professores</option>
                   </select>
                 </div>
               </div>
@@ -3158,6 +3418,355 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 <span>Salvar Capacidade</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Professor / Cross-UC Lesson Plan Import Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                  <Copy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white">
+                    Copiar Cronograma / Aulas de Outro Professor ou UC
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Importe o cronograma completo ou selecione aulas específicas de outro plano de curso para a unidade atual ({currentUnit?.unitTitle || "UC"}).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="overflow-y-auto space-y-4 pr-1 text-xs">
+              
+              {/* Step 1: Origem do Conteúdo */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    1
+                  </span>
+                  <span>Origem do Conteúdo (De onde copiar)</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Professor / Plano de Origem */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Professor / Plano de Origem
+                    </label>
+                    <select
+                      value={sourceSyllabusId}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        setSourceSyllabusId(nextId);
+                        const syl = availableSyllabi.find((s) => s.id === nextId);
+                        const targetUcKey = getStandardUcKey(currentUnit);
+                        const matched = syl?.programmaticContent?.find(
+                          (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+                        ) || syl?.programmaticContent?.[0];
+                        if (matched) {
+                          setSourceUnitId(matched.id);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {availableSyllabi.map((syl) => (
+                        <option key={syl.id} value={syl.id}>
+                          {syl.professorName || (syl.id.includes("beretella") ? "Prof. Ricardo Beretella" : "Prof. Ricardo Gea")} – {syl.courseTitle || "Mecânico de Usinagem"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Unidade Curricular de Origem */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Unidade Curricular de Origem
+                    </label>
+                    <select
+                      value={sourceUnitId}
+                      onChange={(e) => setSourceUnitId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {sourceSyllabusObj?.programmaticContent?.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.unitTitle} ({u.workload || "60h"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Etapa de Origem */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Etapa / Rotação de Origem
+                    </label>
+                    <select
+                      value={sourceStageId}
+                      onChange={(e) => setSourceStageId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="todas">Todas as Etapas (Cronograma Completo)</option>
+                      {sourceUnitObj?.stages?.map((st, sIdx) => (
+                        <option key={st.id} value={st.id}>
+                          Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Seleção de Aulas */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                      2
+                    </span>
+                    <span>Aulas Disponíveis ({availableSourceLessons.length} no total)</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-extrabold rounded-lg text-[11px]">
+                      {selectedLessonIds.length} selecionada(s)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSourceLessons}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Selecionar Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllSourceLessons}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Desmarcar Todas
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search in source lessons */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={sourceLessonSearch}
+                    onChange={(e) => setSourceLessonSearch(e.target.value)}
+                    placeholder="Filtrar aulas de origem por conteúdo, data, etapa ou professor..."
+                    className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* Lessons Scrollable Checklist */}
+                <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700/80 rounded-2xl divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 p-1.5 space-y-1">
+                  {filteredSourceLessons.length > 0 ? (
+                    filteredSourceLessons.map((lesson) => {
+                      const isSelected = selectedLessonIds.includes(lesson.id);
+                      return (
+                        <div
+                          key={lesson.id}
+                          onClick={() => handleToggleSourceLessonSelect(lesson.id)}
+                          className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                            isSelected
+                              ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/70 shadow-xs"
+                              : "bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSourceLessonSelect(lesson.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer shrink-0"
+                          />
+
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-[10px] rounded-md flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-indigo-600" />
+                                <span>{lesson.date || "Sem data"}</span>
+                                <span className="text-slate-400">({lesson.hours || "4h"})</span>
+                              </span>
+
+                              {lesson.stageName && (
+                                <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-extrabold text-[10px] rounded-md">
+                                  {lesson.stageName}
+                                </span>
+                              )}
+
+                              {lesson.professor && (
+                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] rounded-md">
+                                  {lesson.professor}
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed line-clamp-2">
+                              {lesson.conhecimentos || "Sem conteúdo especificado"}
+                            </p>
+
+                            {lesson.estrategias && (
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                                <span className="font-bold">Estratégia:</span> {lesson.estrategias}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-slate-400 font-bold italic">
+                      Nenhuma aula encontrada para a origem selecionada.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3: Destino na Unidade Atual & Opções */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    3
+                  </span>
+                  <span>Destino na UC Atual & Opções de Gravação</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Target Stage (if current unit has stages) */}
+                  {currentUnit?.stages && currentUnit.stages.length > 0 && (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                        Etapa de Destino na UC Atual
+                      </label>
+                      <select
+                        value={targetStageId}
+                        onChange={(e) => setTargetStageId(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="todas">Distribuir automaticamente para as etapas correspondentes</option>
+                        {currentUnit.stages.map((st, sIdx) => (
+                          <option key={st.id} value={st.id}>
+                            Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Mode: Append vs Replace */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Modo de Gravação
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        importMode === "append"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="append"
+                          checked={importMode === "append"}
+                          onChange={() => setImportMode("append")}
+                          className="text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-xs">Acrescentar às aulas existentes</span>
+                      </label>
+
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        importMode === "replace"
+                          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-900 dark:text-amber-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="replace"
+                          checked={importMode === "replace"}
+                          onChange={() => setImportMode("replace")}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs">Substituir cronograma existente</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Option to set professor to current user */}
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-bold text-xs">
+                    <input
+                      type="checkbox"
+                      checked={updateProfessorNameToCurrent}
+                      onChange={(e) => setUpdateProfessorNameToCurrent(e.target.checked)}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                    />
+                    <span>
+                      Atribuir meu nome ({currentUser?.name || "Professor Ativo"}) como professor responsável das aulas copiadas
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs text-slate-500 font-medium">
+                {selectedLessonIds.length > 0 ? (
+                  <span>
+                    Pronto para copiar <strong>{selectedLessonIds.length}</strong> aula(s) ({selectedLessonIds.length * 4}h) para <strong>{currentUnit?.unitTitle}</strong>.
+                  </span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">
+                    Selecione ao menos 1 aula para habilitar a cópia.
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedLessonIds.length === 0}
+                  onClick={handleConfirmImportLessons}
+                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                    selectedLessonIds.length > 0
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                      : "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar {selectedLessonIds.length} Aula(s) Selecionada(s)</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
