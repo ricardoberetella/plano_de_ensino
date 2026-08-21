@@ -468,6 +468,7 @@ export default function App() {
             <ErrorBoundary fallbackTitle="Erro na Visualização de Unidades Curriculares">
               <UnidadesCurricularesView
                 syllabus={activeSyllabus}
+                syllabi={syllabi}
                 currentUser={currentUser}
                 onUpdateSyllabus={handleUpdateActiveSyllabus}
                 onOpenLoginModal={() => setIsLoginModalOpen(true)}
