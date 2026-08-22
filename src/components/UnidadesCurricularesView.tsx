@@ -3483,6 +3483,21 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 </div>
               </div>
 
+              {/* 1. Capacidades */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Capacidades Associadas / Desenvolvidas
+                </label>
+                <textarea
+                  rows={2}
+                  value={lessonForm.capacities || ""}
+                  onChange={(e) => setLessonForm({ ...lessonForm, capacities: e.target.value })}
+                  placeholder="Ex: Executar torneamento cônico por inclinação de carro superior; Demonstrar atenção aos detalhes..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* 2. Conhecimentos */}
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Conteúdo Programático / Conhecimentos Tópicos
@@ -3496,6 +3511,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 />
               </div>
 
+              {/* 3. Estratégias */}
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Estratégia Didática & Metodologia
@@ -3504,11 +3520,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   rows={2}
                   value={lessonForm.estrategias || ""}
                   onChange={(e) => setLessonForm({ ...lessonForm, estrategias: e.target.value })}
-                  placeholder="Ex: Aula prática em oficina, usinagem de eixos, resolução de problema..."
+                  placeholder="Ex: Exposição dialogada, resolução da Situação-Problema e prática de oficina..."
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
+              {/* 4. Recursos / Ambientes */}
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
                   Recursos Instrucionais / Ambientes
@@ -3517,20 +3534,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   type="text"
                   value={lessonForm.recursos || ""}
                   onChange={(e) => setLessonForm({ ...lessonForm, recursos: e.target.value })}
-                  placeholder="Ex: Torno convencional, Paquímetro 0.02mm, EPIs, Óleo solúvel"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
-                  Capacidades Associadas (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={lessonForm.capacities || ""}
-                  onChange={(e) => setLessonForm({ ...lessonForm, capacities: e.target.value })}
-                  placeholder="Ex: Demonstrar responsabilidade e autocontrole dimensional"
+                  placeholder="Ex: Oficina de Usinagem / Laboratório SENAI, máquinas operatrizes, ferramentas de corte, instrumentos de medição"
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
