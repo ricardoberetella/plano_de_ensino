@@ -621,8 +621,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const [insertAfterLessonId, setInsertAfterLessonId] = useState<string | null>(null);
   const [isCopyingLesson, setIsCopyingLesson] = useState<boolean>(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
-  const [lessonPlanStageFilter, setLessonPlanStageFilter] = useState<string>("todas");
-  const [calendarStageFilter, setCalendarStageFilter] = useState<string>("todas");
+  const [viewAllStagesChronological, setViewAllStagesChronological] = useState<boolean>(false);
   const [lessonForm, setLessonForm] = useState<Partial<LessonPlanItem & { stageId?: string }>>({
     date: "",
     hours: "4h",
@@ -2429,49 +2428,39 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     </div>
                   </div>
 
-                  {/* Multi-Stage Tabs Filter (if UC has stages like FUSI 4 stages) */}
+                  {/* Multi-Stage Info Bar (Directly synced with top stage selector) */}
                   {currentUnit.stages && currentUnit.stages.length > 0 && (
-                    <div className="bg-slate-100 dark:bg-slate-800/80 p-2 rounded-2xl border border-slate-200 dark:border-slate-700/80">
-                      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-wrap sm:flex-nowrap">
+                    <div className="bg-slate-100 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-amber-500 text-slate-950 shadow-xs">
+                          {activeStage ? `${activeStage.turma} • ${activeStage.title.replace(/^\d+\.\s*/, '')}` : "Etapa Ativa"}
+                        </span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                          {viewAllStagesChronological
+                            ? `Exibindo todas as ${currentUnit.stages.length} etapas mescladas`
+                            : `Exibindo cronograma da etapa selecionada no topo`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setLessonPlanStageFilter("todas")}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                            lessonPlanStageFilter === "todas"
-                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-md"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          onClick={() => setViewAllStagesChronological(!viewAllStagesChronological)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                            viewAllStagesChronological
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-purple-400"
                           }`}
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Todas as 4 Etapas ({rawLessonPlan.length} Aulas • {currentUnit.workload || "240h"})</span>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>{viewAllStagesChronological ? "Voltar para Etapa Selecionada" : "Ver Todas as Etapas Mescladas"}</span>
                         </button>
-
-                        {currentUnit.stages.map((stage, sIdx) => {
-                          const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
-                          const isActive = lessonPlanStageFilter === stage.id;
-                          const stageLessonsCount = (stage.lessonPlan || []).length;
-
-                          return (
-                            <button
-                              key={stage.id}
-                              onClick={() => setLessonPlanStageFilter(stage.id)}
-                              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                                isActive
-                                  ? `${theme.bg} text-white shadow-md font-black ring-2 ${theme.ring}`
-                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                              }`}
-                            >
-                              <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : theme.bg}`} />
-                              <span>Etapa {sIdx + 1}: {stage.turma} ({stageLessonsCount} Aulas)</span>
-                            </button>
-                          );
-                        })}
                       </div>
                     </div>
                   )}
 
-                  {/* Multi-Stage Content: Unified chronological sequence when "todas" is selected, or individual stage */}
+                  {/* Multi-Stage Content: Unified chronological sequence when selected, or active stage selected at top */}
                   {currentUnit.stages && currentUnit.stages.length > 0 ? (
-                    lessonPlanStageFilter === "todas" ? (
+                    viewAllStagesChronological ? (
                       (() => {
                         // Flatten all lessons from all stages
                         const allStagesLessons = currentUnit.stages!.flatMap((stage, sIdx) =>
@@ -2540,7 +2529,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-purple-600 text-white shadow-xs">
-                                    TODAS AS 4 ETAPAS • CRONOGRAMA POR DIA
+                                    TODAS AS ETAPAS • CRONOGRAMA POR DIA
                                   </span>
                                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                                     • {sortedAllLessons.length} Aulas classificadas em ordem cronológica ({totalAllHours}h)
@@ -2570,7 +2559,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     <span>Copiar de Outro Professor</span>
                                   </button>
                                   <button
-                                    onClick={() => handleOpenAddLesson(undefined, currentUnit.stages?.[0]?.id)}
+                                    onClick={() => handleOpenAddLesson(undefined, activeStage?.id || currentUnit.stages?.[0]?.id)}
                                     className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
                                   >
                                     <Plus className="w-4 h-4" />
@@ -2714,237 +2703,237 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         );
                       })()
                     ) : (
-                      /* Individual Stage View when a specific stage filter is chosen */
+                      /* Active Stage View (100% synced with top bar stage selector) */
                       <div className="space-y-8">
-                        {currentUnit.stages
-                          .filter((stage) => lessonPlanStageFilter === stage.id)
-                          .map((stage) => {
-                            const sIdx = currentUnit.stages!.findIndex((s) => s.id === stage.id);
-                            const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
-                            
-                            const stageLessons = (stage.lessonPlan || []).filter((item) => {
-                              if (!item) return false;
-                              const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
-                              const isGea = currentUser?.name?.toLowerCase().includes("gea");
-                              if (isBeretella && item.professor && !item.professor.toLowerCase().includes("beretella") && !item.professor.toLowerCase().includes("ambos")) {
-                                return false;
-                              }
-                              if (isGea && item.professor && !item.professor.toLowerCase().includes("gea") && !item.professor.toLowerCase().includes("ambos")) {
-                                return false;
-                              }
+                        {(() => {
+                          const stage = activeStage || currentUnit.stages[0];
+                          const sIdx = currentUnit.stages.findIndex((s) => s.id === stage.id);
+                          const stageIndex = sIdx >= 0 ? sIdx : 0;
+                          const theme = STAGE_THEMES[stageIndex % STAGE_THEMES.length];
+                          
+                          const stageLessons = (stage.lessonPlan || []).filter((item) => {
+                            if (!item) return false;
+                            const isBeretella = currentUser?.name?.toLowerCase().includes("beretella");
+                            const isGea = currentUser?.name?.toLowerCase().includes("gea");
+                            if (isBeretella && item.professor && !item.professor.toLowerCase().includes("beretella") && !item.professor.toLowerCase().includes("ambos")) {
+                              return false;
+                            }
+                            if (isGea && item.professor && !item.professor.toLowerCase().includes("gea") && !item.professor.toLowerCase().includes("ambos")) {
+                              return false;
+                            }
 
-                              if (lessonPlanSearch.trim()) {
-                                const q = lessonPlanSearch.toLowerCase();
-                                const matchSearch =
-                                  (item.conhecimentos || "").toLowerCase().includes(q) ||
-                                  (item.estrategias || "").toLowerCase().includes(q) ||
-                                  (item.date || "").includes(q) ||
-                                  (item.capacities || "").toLowerCase().includes(q) ||
-                                  (item.recursos || "").toLowerCase().includes(q);
-                                if (!matchSearch) return false;
-                              }
+                            if (lessonPlanSearch.trim()) {
+                              const q = lessonPlanSearch.toLowerCase();
+                              const matchSearch =
+                                (item.conhecimentos || "").toLowerCase().includes(q) ||
+                                (item.estrategias || "").toLowerCase().includes(q) ||
+                                (item.date || "").includes(q) ||
+                                (item.capacities || "").toLowerCase().includes(q) ||
+                                (item.recursos || "").toLowerCase().includes(q);
+                              if (!matchSearch) return false;
+                            }
 
-                              return true;
-                            });
+                            return true;
+                          });
 
-                            const totalStageHours = (stage.lessonPlan || []).reduce((acc, lp) => {
-                              const h = lp?.hours;
-                              if (typeof h === "number") return acc + h;
-                              if (typeof h === "string") {
-                                const match = h.match(/\d+/);
-                                return acc + (match ? parseInt(match[0], 10) : 4);
-                              }
-                              return acc + 4;
-                            }, 0);
+                          const totalStageHours = (stage.lessonPlan || []).reduce((acc, lp) => {
+                            const h = lp?.hours;
+                            if (typeof h === "number") return acc + h;
+                            if (typeof h === "string") {
+                              const match = h.match(/\d+/);
+                              return acc + (match ? parseInt(match[0], 10) : 4);
+                            }
+                            return acc + 4;
+                          }, 0);
 
-                            const completedCount = (stage.lessonPlan || []).filter((l) => l.status === "concluida").length;
+                          const completedCount = (stage.lessonPlan || []).filter((l) => l.status === "concluida").length;
 
-                            return (
-                              <div
-                                key={stage.id}
-                                className={`rounded-3xl border ${theme.border} bg-white dark:bg-slate-900 shadow-sm overflow-hidden`}
-                              >
-                                {/* Stage Header Banner */}
-                                <div className={`p-4 sm:p-6 border-b ${theme.border} ${theme.lightBg} flex flex-col md:flex-row md:items-center justify-between gap-4`}>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${theme.badge}`}>
-                                        ETAPA {sIdx + 1}
+                          return (
+                            <div
+                              key={stage.id}
+                              className={`rounded-3xl border ${theme.border} bg-white dark:bg-slate-900 shadow-sm overflow-hidden`}
+                            >
+                              {/* Stage Header Banner */}
+                              <div className={`p-4 sm:p-6 border-b ${theme.border} ${theme.lightBg} flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${theme.badge}`}>
+                                      ETAPA {stageIndex + 1}
+                                    </span>
+                                    <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-slate-900 text-white dark:bg-slate-800`}>
+                                      {stage.turma}
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                      • {(stage.lessonPlan || []).length} Aulas ({totalStageHours}h)
+                                    </span>
+                                    {completedCount > 0 && (
+                                      <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black rounded-md">
+                                        ✓ {completedCount}/{(stage.lessonPlan || []).length} Concluídas
                                       </span>
-                                      <span className={`px-2.5 py-1 text-[11px] font-black uppercase rounded-lg bg-slate-900 text-white dark:bg-slate-800`}>
-                                        {stage.turma}
-                                      </span>
-                                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                        • {(stage.lessonPlan || []).length} Aulas ({totalStageHours}h)
-                                      </span>
-                                      {completedCount > 0 && (
-                                        <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-black rounded-md">
-                                          ✓ {completedCount}/{(stage.lessonPlan || []).length} Concluídas
-                                        </span>
-                                      )}
-                                    </div>
-                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                      {stage.title}
-                                    </h3>
-                                    {stage.situationProblem?.company && (
-                                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                                        Contexto Industrial: <span className="font-bold text-slate-900 dark:text-white">{stage.situationProblem.company}</span>
-                                      </p>
                                     )}
                                   </div>
-
-                                  {isAdmin && (
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={handleOpenImportModal}
-                                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
-                                        title="Copiar cronograma ou aulas de outro professor"
-                                      >
-                                        <Copy className="w-3.5 h-3.5" />
-                                        <span>Copiar de Outro Professor</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleOpenAddLesson(undefined, stage.id)}
-                                        className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
-                                      >
-                                        <Plus className="w-4 h-4" />
-                                        <span>Adicionar Aula na Etapa {sIdx + 1}</span>
-                                      </button>
-                                    </div>
+                                  <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                    {stage.title}
+                                  </h3>
+                                  {stage.situationProblem?.company && (
+                                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                      Contexto Industrial: <span className="font-bold text-slate-900 dark:text-white">{stage.situationProblem.company}</span>
+                                    </p>
                                   )}
                                 </div>
 
-                                {/* Stage Lesson Table */}
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-left border-collapse">
-                                    <thead>
-                                      <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                                        <th className="p-4 w-32 whitespace-nowrap">Horas/Data</th>
-                                        <th className="p-4">Capacidades Desenvolvidas</th>
-                                        <th className="p-4">Conhecimentos / Conteúdo</th>
-                                        <th className="p-4">Estratégias Pedagógicas</th>
-                                        <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
-                                        <th className="p-3 w-28 text-center">Ações</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                                      {stageLessons.length > 0 ? (
-                                        stageLessons.map((lesson) => {
-                                          const isOk = lesson.status === "concluida";
-                                          return (
-                                            <tr
-                                              key={lesson.id}
-                                              className={`transition-all ${
-                                                isOk
-                                                  ? "bg-emerald-100/90 dark:bg-emerald-950/70 border-l-4 border-l-emerald-500 font-medium"
-                                                  : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                                              }`}
-                                            >
-                                              {/* 1. Horas/Data */}
-                                              <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
-                                                <div className="flex items-center gap-1.5">
-                                                  <Calendar className={`w-3.5 h-3.5 ${theme.text}`} />
-                                                  <span>{lesson.date}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 mt-1">
-                                                  <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-bold text-[10px]">
-                                                    {lesson.hours}
-                                                  </span>
-                                                  <span className={`px-1.5 py-0.5 rounded font-black text-[9px] ${theme.pillBg}`}>
-                                                    E{sIdx + 1}
-                                                  </span>
-                                                </div>
-                                              </td>
-
-                                              {/* 2. Capacidades */}
-                                              <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
-                                                {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
-                                              </td>
-
-                                              {/* 3. Conhecimentos */}
-                                              <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
-                                                <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
-                                              </td>
-
-                                              {/* 4. Estratégias */}
-                                              <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
-                                                {renderFormattedText(lesson.estrategias)}
-                                              </td>
-
-                                              {/* 5. Recursos & Ambientes */}
-                                              <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
-                                                {lesson.recursos}
-                                              </td>
-
-                                              {/* 6. Ações */}
-                                              <td className="p-2 text-center whitespace-nowrap align-top">
-                                                <div className="flex flex-col items-center justify-center gap-1.5">
-                                                  <button
-                                                    onClick={() => {
-                                                      if (!isAdmin) return;
-                                                      handleToggleLessonOk(lesson.id);
-                                                    }}
-                                                    className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
-                                                      isOk
-                                                        ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
-                                                        : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
-                                                    }`}
-                                                    title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
-                                                  >
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    <span>{isOk ? "OK!" : "OK"}</span>
-                                                  </button>
-
-                                                  {isAdmin && (
-                                                    <div className="flex items-center gap-1">
-                                                      <button
-                                                        onClick={() => handleOpenCopyLesson(lesson)}
-                                                        className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg transition-colors cursor-pointer"
-                                                        title="Copiar linha inteira (Duplicar conteúdo para novo dia)"
-                                                      >
-                                                        <Copy className="w-3.5 h-3.5" />
-                                                      </button>
-                                                      <button
-                                                        onClick={() => handleOpenInsertLessonBelow(lesson)}
-                                                        className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors cursor-pointer"
-                                                        title="Inserir nova linha abaixo desta"
-                                                      >
-                                                        <Plus className="w-3.5 h-3.5" />
-                                                      </button>
-                                                      <button
-                                                        onClick={() => handleOpenEditLesson(lesson)}
-                                                        className="p-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
-                                                        title="Editar esta aula"
-                                                      >
-                                                        <Edit className="w-3.5 h-3.5" />
-                                                      </button>
-                                                      <button
-                                                        onClick={() => handleDeleteLessonItem(lesson.id)}
-                                                        className="p-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
-                                                        title="Excluir aula"
-                                                      >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                      </button>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          );
-                                        })
-                                      ) : (
-                                        <tr>
-                                          <td colSpan={6} className="p-6 text-center text-slate-400 font-bold italic">
-                                            Nenhuma aula encontrada para esta etapa com o filtro aplicado.
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
+                                {isAdmin && (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={handleOpenImportModal}
+                                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0"
+                                      title="Copiar cronograma ou aulas de outro professor"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>Copiar de Outro Professor</span>
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenAddLesson(undefined, stage.id)}
+                                      className={`px-3.5 py-2 ${theme.bg} ${theme.hoverBg} text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0`}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      <span>Adicionar Aula na Etapa {stageIndex + 1}</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            );
-                          })}
+
+                              {/* Stage Lesson Table */}
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                  <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                      <th className="p-4 w-32 whitespace-nowrap">Horas/Data</th>
+                                      <th className="p-4">Capacidades Desenvolvidas</th>
+                                      <th className="p-4">Conhecimentos / Conteúdo</th>
+                                      <th className="p-4">Estratégias Pedagógicas</th>
+                                      <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
+                                      <th className="p-3 w-28 text-center">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                                    {stageLessons.length > 0 ? (
+                                      stageLessons.map((lesson) => {
+                                        const isOk = lesson.status === "concluida";
+                                        return (
+                                          <tr
+                                            key={lesson.id}
+                                            className={`transition-all ${
+                                              isOk
+                                                ? "bg-emerald-100/90 dark:bg-emerald-950/70 border-l-4 border-l-emerald-500 font-medium"
+                                                : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                                            }`}
+                                          >
+                                            {/* 1. Horas/Data */}
+                                            <td className="p-4 font-extrabold text-slate-900 dark:text-white whitespace-nowrap align-top">
+                                              <div className="flex items-center gap-1.5">
+                                                <Calendar className={`w-3.5 h-3.5 ${theme.text}`} />
+                                                <span>{lesson.date}</span>
+                                              </div>
+                                              <div className="flex items-center gap-1 mt-1">
+                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-bold text-[10px]">
+                                                  {lesson.hours}
+                                                </span>
+                                                <span className={`px-1.5 py-0.5 rounded font-black text-[9px] ${theme.pillBg}`}>
+                                                  E{stageIndex + 1}
+                                                </span>
+                                              </div>
+                                            </td>
+
+                                            {/* 2. Capacidades */}
+                                            <td className="p-4 text-slate-700 dark:text-slate-200 font-semibold leading-relaxed align-top">
+                                              {renderFormattedText(lesson.capacities || "Demonstrar capacidades técnicas e socioemocionais")}
+                                            </td>
+
+                                            {/* 3. Conhecimentos */}
+                                            <td className="p-4 font-bold text-slate-800 dark:text-slate-100 align-top">
+                                              <div className="leading-relaxed">{renderFormattedText(lesson.conhecimentos)}</div>
+                                            </td>
+
+                                            {/* 4. Estratégias */}
+                                            <td className="p-4 text-slate-600 dark:text-slate-300 font-medium leading-relaxed align-top">
+                                              {renderFormattedText(lesson.estrategias)}
+                                            </td>
+
+                                            {/* 5. Recursos & Ambientes */}
+                                            <td className="p-4 text-slate-500 dark:text-slate-400 font-medium hidden md:table-cell align-top">
+                                              {lesson.recursos}
+                                            </td>
+
+                                            {/* 6. Ações */}
+                                            <td className="p-2 text-center whitespace-nowrap align-top">
+                                              <div className="flex flex-col items-center justify-center gap-1.5">
+                                                <button
+                                                  onClick={() => {
+                                                    if (!isAdmin) return;
+                                                    handleToggleLessonOk(lesson.id);
+                                                  }}
+                                                  className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-xs ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${
+                                                    isOk
+                                                      ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-400"
+                                                      : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white"
+                                                  }`}
+                                                  title={isAdmin ? (isOk ? "Aula Concluída (Clique para desmarcar)" : "Dar OK (Marcar Aula como Concluída)") : "Status da Aula"}
+                                                >
+                                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                                  <span>{isOk ? "OK!" : "OK"}</span>
+                                                </button>
+
+                                                {isAdmin && (
+                                                  <div className="flex items-center gap-1">
+                                                    <button
+                                                      onClick={() => handleOpenCopyLesson(lesson)}
+                                                      className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg transition-colors cursor-pointer"
+                                                      title="Copiar linha inteira (Duplicar conteúdo para novo dia)"
+                                                    >
+                                                      <Copy className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleOpenInsertLessonBelow(lesson)}
+                                                      className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors cursor-pointer"
+                                                      title="Inserir nova linha abaixo desta"
+                                                    >
+                                                      <Plus className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleOpenEditLesson(lesson)}
+                                                      className="p-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors cursor-pointer"
+                                                      title="Editar esta aula"
+                                                    >
+                                                      <Edit className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleDeleteLessonItem(lesson.id)}
+                                                      className="p-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors cursor-pointer"
+                                                      title="Excluir aula"
+                                                    >
+                                                      <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })
+                                    ) : (
+                                      <tr>
+                                        <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
+                                          Nenhuma aula cadastrada nesta etapa ({stage.turma}).
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )
                   ) : (
@@ -3098,8 +3087,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       if (!lp || !lp.date) return;
                       const iso = parseDateToISO(lp.date);
                       if (iso) {
-                        // If calendarStageFilter is applied, only index the relevant stage
-                        if (calendarStageFilter === "todas" || calendarStageFilter === st.id) {
+                        // If viewAllStagesChronological is false, filter strictly by activeStage
+                        if (viewAllStagesChronological || (activeStage && activeStage.id === st.id) || (!activeStage && sIdx === 0)) {
                           lessonMapByDate[iso] = {
                             lesson: lp,
                             stageIndex: sIdx,
@@ -3149,38 +3138,25 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         </p>
                       </div>
 
-                      {/* Stage Filter Pills for Calendar */}
+                      {/* Calendar Sync Status & Mode Toggle */}
                       {currentUnit.stages && currentUnit.stages.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-wrap">
-                          <button
-                            onClick={() => setCalendarStageFilter("todas")}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-                              calendarStageFilter === "todas"
-                                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                            }`}
-                          >
-                            Todas as 4 Etapas
-                          </button>
-
-                          {currentUnit.stages.map((st, sIdx) => {
-                            const theme = STAGE_THEMES[sIdx % STAGE_THEMES.length];
-                            const isActive = calendarStageFilter === st.id;
-                            return (
-                              <button
-                                key={st.id}
-                                onClick={() => setCalendarStageFilter(st.id)}
-                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                                  isActive
-                                    ? `${theme.bg} text-white shadow-xs font-black ring-2 ${theme.ring}`
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                                }`}
-                              >
-                                <span className={`w-2 h-2 rounded-full ${theme.bg}`} />
-                                <span>Etapa {sIdx + 1} ({st.turma})</span>
-                              </button>
-                            );
-                          })}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                            <span className="px-3 py-1 text-xs font-black rounded-xl bg-amber-500 text-slate-950 shadow-xs">
+                              {activeStage ? `${activeStage.turma} • ${activeStage.title.replace(/^\d+\.\s*/, '')}` : "Etapa Ativa"}
+                            </span>
+                            <button
+                              onClick={() => setViewAllStagesChronological(!viewAllStagesChronological)}
+                              className={`px-3 py-1 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                                viewAllStagesChronological
+                                  ? "bg-purple-600 text-white shadow-xs"
+                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                              }`}
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>{viewAllStagesChronological ? "Todas as Etapas" : "Ver Todas as Etapas"}</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
