@@ -1092,6 +1092,433 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsImportModalOpen(false);
   };
 
+  // 7. CROSS-PROFESSOR / CROSS-UC GERAL (CAPACIDADES & CONHECIMENTOS) IMPORT
+  const [isImportGeneralModalOpen, setIsImportGeneralModalOpen] = useState(false);
+  const [sourceGeneralSyllabusId, setSourceGeneralSyllabusId] = useState<string>("");
+  const [sourceGeneralUnitId, setSourceGeneralUnitId] = useState<string>("");
+  const [sourceGeneralStageId, setSourceGeneralStageId] = useState<string>("todas");
+  const [selectedGeneralPrimaryCaps, setSelectedGeneralPrimaryCaps] = useState<string[]>([]);
+  const [selectedGeneralSocioCaps, setSelectedGeneralSocioCaps] = useState<string[]>([]);
+  const [selectedGeneralTopics, setSelectedGeneralTopics] = useState<string[]>([]);
+  const [targetGeneralStageId, setTargetGeneralStageId] = useState<string>("todas");
+  const [generalImportMode, setGeneralImportMode] = useState<"replace" | "append">("append");
+  const [generalSearch, setGeneralSearch] = useState<string>("");
+
+  const sourceGeneralSyllabusObj = React.useMemo(() => {
+    return availableSyllabi.find((s) => s.id === sourceGeneralSyllabusId) || availableSyllabi[0] || syllabus;
+  }, [availableSyllabi, sourceGeneralSyllabusId, syllabus]);
+
+  const sourceGeneralUnitObj = React.useMemo(() => {
+    if (!sourceGeneralSyllabusObj?.programmaticContent) return null;
+    return (
+      sourceGeneralSyllabusObj.programmaticContent.find((u) => u.id === sourceGeneralUnitId) ||
+      sourceGeneralSyllabusObj.programmaticContent[0] ||
+      null
+    );
+  }, [sourceGeneralSyllabusObj, sourceGeneralUnitId]);
+
+  const availableSourceGeneralData = React.useMemo(() => {
+    if (!sourceGeneralUnitObj) {
+      return { primaryCaps: [], socioCaps: [], topics: [] };
+    }
+    if (sourceGeneralUnitObj.stages && sourceGeneralUnitObj.stages.length > 0) {
+      if (sourceGeneralStageId === "todas") {
+        const primary = Array.from(
+          new Set(
+            sourceGeneralUnitObj.stages.flatMap((st) => [
+              ...(st.basicCapacities || []),
+              ...(st.technicalCapacities || []),
+            ])
+          )
+        );
+        const socio = Array.from(
+          new Set(
+            sourceGeneralUnitObj.stages.flatMap((st) => st.socioemotionalCapacities || [])
+          )
+        );
+        const topics = Array.from(
+          new Set(sourceGeneralUnitObj.stages.flatMap((st) => st.topics || []))
+        );
+        return {
+          primaryCaps: primary.length > 0 ? primary : sourceGeneralUnitObj.technicalCapacities || sourceGeneralUnitObj.basicCapacities || [],
+          socioCaps: socio.length > 0 ? socio : sourceGeneralUnitObj.socioemotionalCapacities || [],
+          topics: topics.length > 0 ? topics : sourceGeneralUnitObj.topics || [],
+        };
+      } else {
+        const st = sourceGeneralUnitObj.stages.find((s) => s.id === sourceGeneralStageId);
+        const primary = st ? [...(st.basicCapacities || []), ...(st.technicalCapacities || [])] : [];
+        return {
+          primaryCaps: primary.length > 0 ? primary : sourceGeneralUnitObj.technicalCapacities || sourceGeneralUnitObj.basicCapacities || [],
+          socioCaps: st?.socioemotionalCapacities || sourceGeneralUnitObj.socioemotionalCapacities || [],
+          topics: st?.topics || sourceGeneralUnitObj.topics || [],
+        };
+      }
+    }
+
+    const primary = [
+      ...(sourceGeneralUnitObj.technicalCapacities || []),
+      ...(sourceGeneralUnitObj.basicCapacities || []),
+    ];
+    return {
+      primaryCaps: Array.from(new Set(primary)),
+      socioCaps: sourceGeneralUnitObj.socioemotionalCapacities || [],
+      topics: sourceGeneralUnitObj.topics || [],
+    };
+  }, [sourceGeneralUnitObj, sourceGeneralStageId]);
+
+  const handleOpenImportGeneralModal = () => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    const otherSyllabus = availableSyllabi.find((s) => s.id !== syllabus.id) || availableSyllabi[0] || syllabus;
+    const initialSourceSyllabusId = otherSyllabus?.id || syllabus.id;
+    setSourceGeneralSyllabusId(initialSourceSyllabusId);
+
+    const targetUcKey = getStandardUcKey(currentUnit);
+    const sourceSyl = availableSyllabi.find((s) => s.id === initialSourceSyllabusId) || otherSyllabus;
+    const matchedUnit =
+      sourceSyl?.programmaticContent?.find(
+        (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+      ) || sourceSyl?.programmaticContent?.[0];
+
+    const initialSourceUnitId = matchedUnit?.id || "";
+    setSourceGeneralUnitId(initialSourceUnitId);
+    setSourceGeneralStageId("todas");
+    setTargetGeneralStageId(selectedStageId || (currentUnit?.stages?.[0]?.id ? "todas" : ""));
+    setGeneralImportMode("append");
+    setGeneralSearch("");
+
+    if (matchedUnit) {
+      const primary = Array.from(
+        new Set([
+          ...(matchedUnit.technicalCapacities || []),
+          ...(matchedUnit.basicCapacities || []),
+          ...(matchedUnit.stages?.flatMap((st) => [...(st.basicCapacities || []), ...(st.technicalCapacities || [])]) || []),
+        ])
+      );
+      const socio = Array.from(
+        new Set([
+          ...(matchedUnit.socioemotionalCapacities || []),
+          ...(matchedUnit.stages?.flatMap((st) => st.socioemotionalCapacities || []) || []),
+        ])
+      );
+      const topics = Array.from(
+        new Set([
+          ...(matchedUnit.topics || []),
+          ...(matchedUnit.stages?.flatMap((st) => st.topics || []) || []),
+        ])
+      );
+      setSelectedGeneralPrimaryCaps(primary);
+      setSelectedGeneralSocioCaps(socio);
+      setSelectedGeneralTopics(topics);
+    } else {
+      setSelectedGeneralPrimaryCaps([]);
+      setSelectedGeneralSocioCaps([]);
+      setSelectedGeneralTopics([]);
+    }
+
+    setIsImportGeneralModalOpen(true);
+  };
+
+  const handleConfirmImportGeneral = () => {
+    if (!currentUnit) return;
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const updatedStages = currentUnit.stages.map((stage) => {
+        if (targetGeneralStageId !== "todas" && stage.id !== targetGeneralStageId) {
+          return stage;
+        }
+
+        const isBasic = stage.basicCapacities !== undefined && stage.basicCapacities !== null;
+        const newPrimaryBasic = isBasic
+          ? generalImportMode === "replace"
+            ? selectedGeneralPrimaryCaps
+            : Array.from(new Set([...(stage.basicCapacities || []), ...selectedGeneralPrimaryCaps]))
+          : stage.basicCapacities;
+
+        const newPrimaryTech = !isBasic
+          ? generalImportMode === "replace"
+            ? selectedGeneralPrimaryCaps
+            : Array.from(new Set([...(stage.technicalCapacities || []), ...selectedGeneralPrimaryCaps]))
+          : stage.technicalCapacities;
+
+        const newSocio =
+          generalImportMode === "replace"
+            ? selectedGeneralSocioCaps
+            : Array.from(new Set([...(stage.socioemotionalCapacities || []), ...selectedGeneralSocioCaps]));
+
+        const newTopics =
+          generalImportMode === "replace"
+            ? selectedGeneralTopics
+            : Array.from(new Set([...(stage.topics || []), ...selectedGeneralTopics]));
+
+        return {
+          ...stage,
+          basicCapacities: newPrimaryBasic,
+          technicalCapacities: newPrimaryTech,
+          socioemotionalCapacities: newSocio,
+          topics: newTopics,
+        };
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        stages: updatedStages,
+      });
+    } else {
+      const hasTech = Array.isArray(currentUnit.technicalCapacities) && currentUnit.technicalCapacities.length > 0;
+      const newTech = hasTech
+        ? generalImportMode === "replace"
+          ? selectedGeneralPrimaryCaps
+          : Array.from(new Set([...(currentUnit.technicalCapacities || []), ...selectedGeneralPrimaryCaps]))
+        : currentUnit.technicalCapacities;
+
+      const newBasic = !hasTech
+        ? generalImportMode === "replace"
+          ? selectedGeneralPrimaryCaps
+          : Array.from(new Set([...(currentUnit.basicCapacities || []), ...selectedGeneralPrimaryCaps]))
+        : currentUnit.basicCapacities;
+
+      const newSocio =
+        generalImportMode === "replace"
+          ? selectedGeneralSocioCaps
+          : Array.from(new Set([...(currentUnit.socioemotionalCapacities || []), ...selectedGeneralSocioCaps]));
+
+      const newTopics =
+        generalImportMode === "replace"
+          ? selectedGeneralTopics
+          : Array.from(new Set([...(currentUnit.topics || []), ...selectedGeneralTopics]));
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        technicalCapacities: newTech,
+        basicCapacities: newBasic,
+        socioemotionalCapacities: newSocio,
+        topics: newTopics,
+      });
+    }
+
+    setIsImportGeneralModalOpen(false);
+  };
+
+  // 8. CROSS-PROFESSOR / CROSS-UC SITUAÇÃO-PROBLEMA IMPORT
+  const [isImportSPModalOpen, setIsImportSPModalOpen] = useState(false);
+  const [sourceSPSyllabusId, setSourceSPSyllabusId] = useState<string>("");
+  const [sourceSPUnitId, setSourceSPUnitId] = useState<string>("");
+  const [sourceSPStageId, setSourceSPStageId] = useState<string>("todas");
+  const [targetSPStageId, setTargetSPStageId] = useState<string>("todas");
+
+  const sourceSPSyllabusObj = React.useMemo(() => {
+    return availableSyllabi.find((s) => s.id === sourceSPSyllabusId) || availableSyllabi[0] || syllabus;
+  }, [availableSyllabi, sourceSPSyllabusId, syllabus]);
+
+  const sourceSPUnitObj = React.useMemo(() => {
+    if (!sourceSPSyllabusObj?.programmaticContent) return null;
+    return (
+      sourceSPSyllabusObj.programmaticContent.find((u) => u.id === sourceSPUnitId) ||
+      sourceSPSyllabusObj.programmaticContent[0] ||
+      null
+    );
+  }, [sourceSPSyllabusObj, sourceSPUnitId]);
+
+  const availableSourceSP: SituationProblem | null = React.useMemo(() => {
+    if (!sourceSPUnitObj) return null;
+    if (sourceSPUnitObj.stages && sourceSPUnitObj.stages.length > 0) {
+      if (sourceSPStageId === "todas") {
+        const stWithSP = sourceSPUnitObj.stages.find((s) => s.situationProblem && s.situationProblem.title);
+        return stWithSP?.situationProblem || sourceSPUnitObj.stages[0]?.situationProblem || sourceSPUnitObj.situationProblem || null;
+      } else {
+        const st = sourceSPUnitObj.stages.find((s) => s.id === sourceSPStageId);
+        return st?.situationProblem || sourceSPUnitObj.situationProblem || null;
+      }
+    }
+    return sourceSPUnitObj.situationProblem || null;
+  }, [sourceSPUnitObj, sourceSPStageId]);
+
+  const handleOpenImportSPModal = () => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    const otherSyllabus = availableSyllabi.find((s) => s.id !== syllabus.id) || availableSyllabi[0] || syllabus;
+    const initialSourceSyllabusId = otherSyllabus?.id || syllabus.id;
+    setSourceSPSyllabusId(initialSourceSyllabusId);
+
+    const targetUcKey = getStandardUcKey(currentUnit);
+    const sourceSyl = availableSyllabi.find((s) => s.id === initialSourceSyllabusId) || otherSyllabus;
+    const matchedUnit =
+      sourceSyl?.programmaticContent?.find(
+        (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+      ) || sourceSyl?.programmaticContent?.[0];
+
+    const initialSourceUnitId = matchedUnit?.id || "";
+    setSourceSPUnitId(initialSourceUnitId);
+    setSourceSPStageId("todas");
+    setTargetSPStageId(selectedStageId || (currentUnit?.stages?.[0]?.id ? "todas" : ""));
+
+    setIsImportSPModalOpen(true);
+  };
+
+  const handleConfirmImportSP = () => {
+    if (!currentUnit || !availableSourceSP) return;
+
+    const clonedSP: SituationProblem = {
+      title: availableSourceSP.title || `Situação de Aprendizagem - ${currentUnit.unitTitle}`,
+      contextualization: availableSourceSP.contextualization || "",
+      challenge: [...(availableSourceSP.challenge || [])],
+      expectedResults: [...(availableSourceSP.expectedResults || [])],
+    };
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const updatedStages = currentUnit.stages.map((stage) => {
+        if (targetSPStageId !== "todas" && stage.id !== targetSPStageId) {
+          return stage;
+        }
+        return {
+          ...stage,
+          situationProblem: clonedSP,
+        };
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        situationProblem: clonedSP,
+        stages: updatedStages,
+      });
+    } else {
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        situationProblem: clonedSP,
+      });
+    }
+
+    setIsImportSPModalOpen(false);
+  };
+
+  // 9. CROSS-PROFESSOR / CROSS-UC RUBRICAS IMPORT
+  const [isImportRubricsModalOpen, setIsImportRubricsModalOpen] = useState(false);
+  const [sourceRubricsSyllabusId, setSourceRubricsSyllabusId] = useState<string>("");
+  const [sourceRubricsUnitId, setSourceRubricsUnitId] = useState<string>("");
+  const [sourceRubricsStageId, setSourceRubricsStageId] = useState<string>("todas");
+  const [selectedRubricIndices, setSelectedRubricIndices] = useState<number[]>([]);
+  const [targetRubricsStageId, setTargetRubricsStageId] = useState<string>("todas");
+  const [rubricsImportMode, setRubricsImportMode] = useState<"replace" | "append">("append");
+  const [rubricsSearch, setRubricsSearch] = useState<string>("");
+
+  const sourceRubricsSyllabusObj = React.useMemo(() => {
+    return availableSyllabi.find((s) => s.id === sourceRubricsSyllabusId) || availableSyllabi[0] || syllabus;
+  }, [availableSyllabi, sourceRubricsSyllabusId, syllabus]);
+
+  const sourceRubricsUnitObj = React.useMemo(() => {
+    if (!sourceRubricsSyllabusObj?.programmaticContent) return null;
+    return (
+      sourceRubricsSyllabusObj.programmaticContent.find((u) => u.id === sourceRubricsUnitId) ||
+      sourceRubricsSyllabusObj.programmaticContent[0] ||
+      null
+    );
+  }, [sourceRubricsSyllabusObj, sourceRubricsUnitId]);
+
+  const availableSourceRubrics: RubricItem[] = React.useMemo(() => {
+    if (!sourceRubricsUnitObj) return [];
+    if (sourceRubricsUnitObj.stages && sourceRubricsUnitObj.stages.length > 0) {
+      if (sourceRubricsStageId === "todas") {
+        return sourceRubricsUnitObj.stages.flatMap((st) => st.rubrics || []);
+      } else {
+        const st = sourceRubricsUnitObj.stages.find((s) => s.id === sourceRubricsStageId);
+        return st?.rubrics || [];
+      }
+    }
+    return sourceRubricsUnitObj.rubrics || [];
+  }, [sourceRubricsUnitObj, sourceRubricsStageId]);
+
+  const filteredSourceRubrics = React.useMemo(() => {
+    if (!rubricsSearch.trim()) return availableSourceRubrics;
+    const q = rubricsSearch.toLowerCase().trim();
+    return availableSourceRubrics.filter(
+      (r) =>
+        (r.capacity || "").toLowerCase().includes(q) ||
+        (r.nsa || "").toLowerCase().includes(q) ||
+        (r.apo || "").toLowerCase().includes(q) ||
+        (r.par || "").toLowerCase().includes(q) ||
+        (r.aut || "").toLowerCase().includes(q)
+    );
+  }, [availableSourceRubrics, rubricsSearch]);
+
+  const handleOpenImportRubricsModal = () => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    const otherSyllabus = availableSyllabi.find((s) => s.id !== syllabus.id) || availableSyllabi[0] || syllabus;
+    const initialSourceSyllabusId = otherSyllabus?.id || syllabus.id;
+    setSourceRubricsSyllabusId(initialSourceSyllabusId);
+
+    const targetUcKey = getStandardUcKey(currentUnit);
+    const sourceSyl = availableSyllabi.find((s) => s.id === initialSourceSyllabusId) || otherSyllabus;
+    const matchedUnit =
+      sourceSyl?.programmaticContent?.find(
+        (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+      ) || sourceSyl?.programmaticContent?.[0];
+
+    const initialSourceUnitId = matchedUnit?.id || "";
+    setSourceRubricsUnitId(initialSourceUnitId);
+    setSourceRubricsStageId("todas");
+    setTargetRubricsStageId(selectedStageId || (currentUnit?.stages?.[0]?.id ? "todas" : ""));
+    setRubricsImportMode("append");
+    setRubricsSearch("");
+
+    const rubricsInMatched = matchedUnit?.stages && matchedUnit.stages.length > 0
+      ? matchedUnit.stages.flatMap((st) => st.rubrics || [])
+      : matchedUnit?.rubrics || [];
+
+    setSelectedRubricIndices(rubricsInMatched.map((_, i) => i));
+    setIsImportRubricsModalOpen(true);
+  };
+
+  const handleConfirmImportRubrics = () => {
+    if (!currentUnit) return;
+    const rubricsToCopy = availableSourceRubrics.filter((_, idx) => selectedRubricIndices.includes(idx));
+    if (rubricsToCopy.length === 0) return;
+
+    const clonedRubrics: RubricItem[] = rubricsToCopy.map((r) => ({
+      capacity: r.capacity || "",
+      nsa: r.nsa || "",
+      apo: r.apo || "",
+      par: r.par || "",
+      aut: r.aut || "",
+    }));
+
+    if (currentUnit.stages && currentUnit.stages.length > 0) {
+      const updatedStages = currentUnit.stages.map((stage) => {
+        if (targetRubricsStageId !== "todas" && stage.id !== targetRubricsStageId) {
+          return stage;
+        }
+        const newRubrics =
+          rubricsImportMode === "replace"
+            ? clonedRubrics
+            : [...(stage.rubrics || []), ...clonedRubrics];
+        return { ...stage, rubrics: newRubrics };
+      });
+
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        stages: updatedStages,
+      });
+    } else {
+      const newRubrics =
+        rubricsImportMode === "replace"
+          ? clonedRubrics
+          : [...(currentUnit.rubrics || []), ...clonedRubrics];
+      handleUpdateCurrentUnit({
+        ...currentUnit,
+        rubrics: newRubrics,
+      });
+    }
+
+    setIsImportRubricsModalOpen(false);
+  };
+
   // Active Lesson Plan filtered by lateral active professor (currentUser)
   const rawLessonPlan: LessonPlanItem[] =
     currentUnit && Array.isArray(currentUnit.lessonPlan)
@@ -1383,8 +1810,32 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               
               {/* TAB 1: GERAL */}
               {activeUcTab === "GERAL" && (
-                <div className="space-y-10">
+                <div className="space-y-8 animate-in fade-in duration-200">
                   
+                  {/* Top Bar with Copy Feature */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-100 tracking-wider flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        <span>Capacidades Básicas, Técnicas, Socioemocionais e Conhecimentos</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        Definição do perfil de competências e matriz de conhecimentos da Unidade Curricular
+                      </p>
+                    </div>
+
+                    {isAdmin && (
+                      <button
+                        onClick={handleOpenImportGeneralModal}
+                        className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-xs cursor-pointer shrink-0"
+                        title="Copiar capacidades e conhecimentos de outro professor ou unidade curricular"
+                      >
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar Geral de Outro Professor / UC</span>
+                      </button>
+                    )}
+                  </div>
+
                   {/* Capacities Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     
@@ -1597,13 +2048,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>Situação de Aprendizagem (S.A.) SENAI</span>
                           </div>
                           {isAdmin && (
-                            <button
-                              onClick={handleOpenEditSP}
-                              className="self-start sm:self-auto px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              <span>EDITAR SITUAÇÃO-PROBLEMA</span>
-                            </button>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <button
+                                onClick={handleOpenImportSPModal}
+                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                title="Copiar situação-problema de outro professor ou UC"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>COPIAR DE OUTRO PROFESSOR</span>
+                              </button>
+                              <button
+                                onClick={handleOpenEditSP}
+                                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>EDITAR SITUAÇÃO-PROBLEMA</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                         <h2 className="text-xl sm:text-2xl font-black uppercase text-white">
@@ -1695,13 +2156,22 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         Esta Unidade Curricular aceita o cadastro de uma Situação de Aprendizagem no padrão SENAI.
                       </p>
                       {isAdmin && (
-                        <button
-                          onClick={handleOpenEditSP}
-                          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>CADASTRAR SITUAÇÃO-PROBLEMA</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-3 flex-wrap">
+                          <button
+                            onClick={handleOpenImportSPModal}
+                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                          >
+                            <Copy className="w-4 h-4" />
+                            <span>COPIAR SITUAÇÃO-PROBLEMA</span>
+                          </button>
+                          <button
+                            onClick={handleOpenEditSP}
+                            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>CADASTRAR SITUAÇÃO-PROBLEMA</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1730,13 +2200,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md">AUT</span>
                       </div>
                       {isAdmin && (
-                        <button
-                          onClick={handleOpenAddRubric}
-                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>NOVA RUBRICA</span>
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={handleOpenImportRubricsModal}
+                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            title="Copiar rubricas de outro professor ou UC"
+                          >
+                            <Copy className="w-4 h-4" />
+                            <span>COPIAR RUBRICAS</span>
+                          </button>
+                          <button
+                            onClick={handleOpenAddRubric}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>NOVA RUBRICA</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1837,13 +2317,24 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
                         Nenhuma rubrica cadastrada nesta Unidade Curricular. Clique abaixo para cadastrar os critérios MSEP SENAI.
                       </p>
-                      <button
-                        onClick={handleOpenAddRubric}
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>CADASTRAR PRIMEIRA RUBRICA</span>
-                      </button>
+                      {isAdmin && (
+                        <div className="flex items-center justify-center gap-3 flex-wrap">
+                          <button
+                            onClick={handleOpenImportRubricsModal}
+                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                          >
+                            <Copy className="w-4 h-4" />
+                            <span>COPIAR RUBRICAS DE OUTRO PROFESSOR</span>
+                          </button>
+                          <button
+                            onClick={handleOpenAddRubric}
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>CADASTRAR PRIMEIRA RUBRICA</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -3782,6 +4273,995 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 >
                   <Copy className="w-4 h-4" />
                   <span>Copiar {selectedLessonIds.length} Aula(s) Selecionada(s)</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Professor / Cross-UC GERAL (Capacidades & Conhecimentos) Modal */}
+      {isImportGeneralModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                  <Copy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white">
+                    Copiar Geral / Capacidades & Conhecimentos
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Importe capacidades básicas, técnicas, socioemocionais e conhecimentos para ({currentUnit?.unitTitle || "UC"}).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsImportGeneralModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto space-y-4 pr-1 text-xs">
+              
+              {/* Step 1: Origem */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    1
+                  </span>
+                  <span>Origem do Conteúdo (De onde copiar)</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Professor / Plano de Origem
+                    </label>
+                    <select
+                      value={sourceGeneralSyllabusId}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        setSourceGeneralSyllabusId(nextId);
+                        const syl = availableSyllabi.find((s) => s.id === nextId);
+                        const targetUcKey = getStandardUcKey(currentUnit);
+                        const matched = syl?.programmaticContent?.find(
+                          (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+                        ) || syl?.programmaticContent?.[0];
+                        if (matched) {
+                          setSourceGeneralUnitId(matched.id);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {availableSyllabi.map((syl) => (
+                        <option key={syl.id} value={syl.id}>
+                          {syl.professorName || (syl.id.includes("beretella") ? "Prof. Ricardo Beretella" : "Prof. Ricardo Gea")} – {syl.courseTitle || "Mecânico de Usinagem"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Unidade Curricular de Origem
+                    </label>
+                    <select
+                      value={sourceGeneralUnitId}
+                      onChange={(e) => setSourceGeneralUnitId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {sourceGeneralSyllabusObj?.programmaticContent?.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.unitTitle} ({u.workload || "60h"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Etapa / Rotação de Origem
+                    </label>
+                    <select
+                      value={sourceGeneralStageId}
+                      onChange={(e) => setSourceGeneralStageId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="todas">Todas as Etapas / Estrutura Geral</option>
+                      {sourceGeneralUnitObj?.stages?.map((st, sIdx) => (
+                        <option key={st.id} value={st.id}>
+                          Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Seleção de Capacidades e Conhecimentos */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                      2
+                    </span>
+                    <span>Itens para Copiar</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-extrabold rounded-lg text-[11px]">
+                      {selectedGeneralPrimaryCaps.length + selectedGeneralSocioCaps.length + selectedGeneralTopics.length} selecionado(s)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedGeneralPrimaryCaps([...availableSourceGeneralData.primaryCaps]);
+                        setSelectedGeneralSocioCaps([...availableSourceGeneralData.socioCaps]);
+                        setSelectedGeneralTopics([...availableSourceGeneralData.topics]);
+                      }}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Selecionar Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedGeneralPrimaryCaps([]);
+                        setSelectedGeneralSocioCaps([]);
+                        setSelectedGeneralTopics([]);
+                      }}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Desmarcar Todos
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Search */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={generalSearch}
+                    onChange={(e) => setGeneralSearch(e.target.value)}
+                    placeholder="Filtrar capacidades ou conhecimentos por palavra-chave..."
+                    className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* 3 Accordions / Lists for Capacities and Topics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  
+                  {/* Primary Capacities */}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <span className="font-black text-[11px] uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Capacidades Técnicas / Básicas ({availableSourceGeneralData.primaryCaps.length})</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={
+                          availableSourceGeneralData.primaryCaps.length > 0 &&
+                          availableSourceGeneralData.primaryCaps.every((c) => selectedGeneralPrimaryCaps.includes(c))
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedGeneralPrimaryCaps(Array.from(new Set([...selectedGeneralPrimaryCaps, ...availableSourceGeneralData.primaryCaps])));
+                          } else {
+                            setSelectedGeneralPrimaryCaps(selectedGeneralPrimaryCaps.filter((c) => !availableSourceGeneralData.primaryCaps.includes(c)));
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto space-y-1 divide-y divide-slate-100 dark:divide-slate-800">
+                      {availableSourceGeneralData.primaryCaps.filter((c) => !generalSearch || c.toLowerCase().includes(generalSearch.toLowerCase())).map((cap, i) => {
+                        const isChecked = selectedGeneralPrimaryCaps.includes(cap);
+                        return (
+                          <label key={i} className="pt-1 flex items-start gap-2 cursor-pointer text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSelectedGeneralPrimaryCaps(selectedGeneralPrimaryCaps.filter((c) => c !== cap));
+                                } else {
+                                  setSelectedGeneralPrimaryCaps([...selectedGeneralPrimaryCaps, cap]);
+                                }
+                              }}
+                              className="mt-0.5 w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 shrink-0"
+                            />
+                            <span>{cap}</span>
+                          </label>
+                        );
+                      })}
+                      {availableSourceGeneralData.primaryCaps.length === 0 && (
+                        <p className="text-slate-400 italic text-[11px] py-3 text-center">Nenhuma encontrada</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Socioemotional Capacities */}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <span className="font-black text-[11px] uppercase text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Socioemocionais ({availableSourceGeneralData.socioCaps.length})</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={
+                          availableSourceGeneralData.socioCaps.length > 0 &&
+                          availableSourceGeneralData.socioCaps.every((c) => selectedGeneralSocioCaps.includes(c))
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedGeneralSocioCaps(Array.from(new Set([...selectedGeneralSocioCaps, ...availableSourceGeneralData.socioCaps])));
+                          } else {
+                            setSelectedGeneralSocioCaps(selectedGeneralSocioCaps.filter((c) => !availableSourceGeneralData.socioCaps.includes(c)));
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto space-y-1 divide-y divide-slate-100 dark:divide-slate-800">
+                      {availableSourceGeneralData.socioCaps.filter((c) => !generalSearch || c.toLowerCase().includes(generalSearch.toLowerCase())).map((cap, i) => {
+                        const isChecked = selectedGeneralSocioCaps.includes(cap);
+                        return (
+                          <label key={i} className="pt-1 flex items-start gap-2 cursor-pointer text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSelectedGeneralSocioCaps(selectedGeneralSocioCaps.filter((c) => c !== cap));
+                                } else {
+                                  setSelectedGeneralSocioCaps([...selectedGeneralSocioCaps, cap]);
+                                }
+                              }}
+                              className="mt-0.5 w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 shrink-0"
+                            />
+                            <span>{cap}</span>
+                          </label>
+                        );
+                      })}
+                      {availableSourceGeneralData.socioCaps.length === 0 && (
+                        <p className="text-slate-400 italic text-[11px] py-3 text-center">Nenhuma encontrada</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Topics / Conhecimentos */}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <span className="font-black text-[11px] uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Conhecimentos ({availableSourceGeneralData.topics.length})</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={
+                          availableSourceGeneralData.topics.length > 0 &&
+                          availableSourceGeneralData.topics.every((t) => selectedGeneralTopics.includes(t))
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedGeneralTopics(Array.from(new Set([...selectedGeneralTopics, ...availableSourceGeneralData.topics])));
+                          } else {
+                            setSelectedGeneralTopics(selectedGeneralTopics.filter((t) => !availableSourceGeneralData.topics.includes(t)));
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto space-y-1 divide-y divide-slate-100 dark:divide-slate-800">
+                      {availableSourceGeneralData.topics.filter((t) => !generalSearch || t.toLowerCase().includes(generalSearch.toLowerCase())).map((top, i) => {
+                        const isChecked = selectedGeneralTopics.includes(top);
+                        return (
+                          <label key={i} className="pt-1 flex items-start gap-2 cursor-pointer text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSelectedGeneralTopics(selectedGeneralTopics.filter((t) => t !== top));
+                                } else {
+                                  setSelectedGeneralTopics([...selectedGeneralTopics, top]);
+                                }
+                              }}
+                              className="mt-0.5 w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 shrink-0"
+                            />
+                            <span>{top}</span>
+                          </label>
+                        );
+                      })}
+                      {availableSourceGeneralData.topics.length === 0 && (
+                        <p className="text-slate-400 italic text-[11px] py-3 text-center">Nenhum encontrado</p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Step 3: Destino na UC Atual & Modo de Gravação */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    3
+                  </span>
+                  <span>Destino na UC Atual & Opções de Gravação</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentUnit?.stages && currentUnit.stages.length > 0 && (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                        Etapa de Destino na UC Atual
+                      </label>
+                      <select
+                        value={targetGeneralStageId}
+                        onChange={(e) => setTargetGeneralStageId(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="todas">Aplicar em Todas as Etapas da UC</option>
+                        {currentUnit.stages.map((st, sIdx) => (
+                          <option key={st.id} value={st.id}>
+                            Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Modo de Gravação
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        generalImportMode === "append"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="generalImportMode"
+                          value="append"
+                          checked={generalImportMode === "append"}
+                          onChange={() => setGeneralImportMode("append")}
+                          className="text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-xs">Acrescentar aos existentes</span>
+                      </label>
+
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        generalImportMode === "replace"
+                          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-900 dark:text-amber-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="generalImportMode"
+                          value="replace"
+                          checked={generalImportMode === "replace"}
+                          onChange={() => setGeneralImportMode("replace")}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs">Substituir existentes</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs text-slate-500 font-medium">
+                Total selecionado: <strong>{selectedGeneralPrimaryCaps.length}</strong> cap. principais, <strong>{selectedGeneralSocioCaps.length}</strong> socioemocionais, <strong>{selectedGeneralTopics.length}</strong> conhecimentos.
+              </div>
+
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsImportGeneralModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedGeneralPrimaryCaps.length === 0 && selectedGeneralSocioCaps.length === 0 && selectedGeneralTopics.length === 0}
+                  onClick={handleConfirmImportGeneral}
+                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                    selectedGeneralPrimaryCaps.length > 0 || selectedGeneralSocioCaps.length > 0 || selectedGeneralTopics.length > 0
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                      : "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar Itens Selecionados</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Professor / Cross-UC SITUAÇÃO-PROBLEMA Modal */}
+      {isImportSPModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white">
+                    Copiar Situação-Problema (S.A.)
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Importe a Situação de Aprendizagem completa (contextualização, desafios e entregáveis) para {currentUnit?.unitTitle}.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsImportSPModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto space-y-4 pr-1 text-xs">
+              
+              {/* Step 1: Origem */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    1
+                  </span>
+                  <span>Origem da Situação-Problema</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Professor / Plano de Origem
+                    </label>
+                    <select
+                      value={sourceSPSyllabusId}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        setSourceSPSyllabusId(nextId);
+                        const syl = availableSyllabi.find((s) => s.id === nextId);
+                        const targetUcKey = getStandardUcKey(currentUnit);
+                        const matched = syl?.programmaticContent?.find(
+                          (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+                        ) || syl?.programmaticContent?.[0];
+                        if (matched) {
+                          setSourceSPUnitId(matched.id);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {availableSyllabi.map((syl) => (
+                        <option key={syl.id} value={syl.id}>
+                          {syl.professorName || (syl.id.includes("beretella") ? "Prof. Ricardo Beretella" : "Prof. Ricardo Gea")} – {syl.courseTitle || "Mecânico de Usinagem"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Unidade Curricular de Origem
+                    </label>
+                    <select
+                      value={sourceSPUnitId}
+                      onChange={(e) => setSourceSPUnitId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {sourceSPSyllabusObj?.programmaticContent?.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.unitTitle} ({u.workload || "60h"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Etapa / Rotação de Origem
+                    </label>
+                    <select
+                      value={sourceSPStageId}
+                      onChange={(e) => setSourceSPStageId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="todas">Situação-Problema Padrão</option>
+                      {sourceSPUnitObj?.stages?.map((st, sIdx) => (
+                        <option key={st.id} value={st.id}>
+                          Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Pré-visualização da Situação-Problema */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    2
+                  </span>
+                  <span>Conteúdo a ser Copiado</span>
+                </div>
+
+                {availableSourceSP ? (
+                  <div className="space-y-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <span className="font-bold text-slate-400 text-[10px] uppercase block">Título da Situação de Aprendizagem</span>
+                      <h4 className="font-black text-slate-900 dark:text-white text-sm">
+                        {availableSourceSP.title || "Sem título"}
+                      </h4>
+                    </div>
+
+                    <div>
+                      <span className="font-bold text-slate-400 text-[10px] uppercase block">Contextualização</span>
+                      <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                        {availableSourceSP.contextualization || "Sem contextualização"}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <div>
+                        <span className="font-bold text-blue-600 dark:text-blue-400 text-[11px] uppercase block mb-1">
+                          Desafios Práticos ({availableSourceSP.challenge?.length || 0})
+                        </span>
+                        <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 font-medium text-[11px]">
+                          {availableSourceSP.challenge?.map((ch, i) => (
+                            <li key={i}>{ch}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[11px] uppercase block mb-1">
+                          Entregáveis Esperados ({availableSourceSP.expectedResults?.length || 0})
+                        </span>
+                        <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400 font-medium text-[11px]">
+                          {availableSourceSP.expectedResults?.map((res, i) => (
+                            <li key={i}>{res}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-slate-400 italic">
+                    Nenhuma Situação-Problema encontrada para a origem selecionada.
+                  </div>
+                )}
+              </div>
+
+              {/* Step 3: Destino */}
+              {currentUnit?.stages && currentUnit.stages.length > 0 && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                      3
+                    </span>
+                    <span>Destino na UC Atual</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Etapa de Destino na UC Atual
+                    </label>
+                    <select
+                      value={targetSPStageId}
+                      onChange={(e) => setTargetSPStageId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="todas">Aplicar em Todas as Etapas da UC</option>
+                      {currentUnit.stages.map((st, sIdx) => (
+                        <option key={st.id} value={st.id}>
+                          Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs text-slate-500 font-medium">
+                Pronto para copiar para <strong>{currentUnit?.unitTitle}</strong>.
+              </div>
+
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsImportSPModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!availableSourceSP}
+                  onClick={handleConfirmImportSP}
+                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                    availableSourceSP
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                      : "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar Situação-Problema</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Professor / Cross-UC RUBRICAS Modal */}
+      {isImportRubricsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white">
+                    Copiar Rubricas de Avaliação (MSEP SENAI)
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Importe critérios objetivos e matriz de níveis de desempenho (NSA, APO, PAR, AUT) para ({currentUnit?.unitTitle || "UC"}).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsImportRubricsModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto space-y-4 pr-1 text-xs">
+              
+              {/* Step 1: Origem */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    1
+                  </span>
+                  <span>Origem das Rubricas</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Professor / Plano de Origem
+                    </label>
+                    <select
+                      value={sourceRubricsSyllabusId}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        setSourceRubricsSyllabusId(nextId);
+                        const syl = availableSyllabi.find((s) => s.id === nextId);
+                        const targetUcKey = getStandardUcKey(currentUnit);
+                        const matched = syl?.programmaticContent?.find(
+                          (u) => getStandardUcKey(u) === targetUcKey || u.id === currentUnit?.id
+                        ) || syl?.programmaticContent?.[0];
+                        if (matched) {
+                          setSourceRubricsUnitId(matched.id);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {availableSyllabi.map((syl) => (
+                        <option key={syl.id} value={syl.id}>
+                          {syl.professorName || (syl.id.includes("beretella") ? "Prof. Ricardo Beretella" : "Prof. Ricardo Gea")} – {syl.courseTitle || "Mecânico de Usinagem"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Unidade Curricular de Origem
+                    </label>
+                    <select
+                      value={sourceRubricsUnitId}
+                      onChange={(e) => setSourceRubricsUnitId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {sourceRubricsSyllabusObj?.programmaticContent?.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.unitTitle} ({u.workload || "60h"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Etapa / Rotação de Origem
+                    </label>
+                    <select
+                      value={sourceRubricsStageId}
+                      onChange={(e) => setSourceRubricsStageId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="todas">Todas as Rubricas da UC</option>
+                      {sourceRubricsUnitObj?.stages?.map((st, sIdx) => (
+                        <option key={st.id} value={st.id}>
+                          Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Seleção de Rubricas */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                      2
+                    </span>
+                    <span>Rubricas Disponíveis ({availableSourceRubrics.length} no total)</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-extrabold rounded-lg text-[11px]">
+                      {selectedRubricIndices.length} selecionada(s)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRubricIndices(availableSourceRubrics.map((_, i) => i))}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Selecionar Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRubricIndices([])}
+                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 font-extrabold text-[11px] rounded-lg cursor-pointer"
+                    >
+                      Desmarcar Todas
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={rubricsSearch}
+                    onChange={(e) => setRubricsSearch(e.target.value)}
+                    placeholder="Filtrar rubricas por capacidade avaliada ou critério..."
+                    className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* List of Rubrics */}
+                <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700/80 rounded-2xl divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 p-1.5 space-y-2">
+                  {filteredSourceRubrics.length > 0 ? (
+                    filteredSourceRubrics.map((rubric, idx) => {
+                      const realIdx = availableSourceRubrics.findIndex((r) => r === rubric);
+                      const isSelected = selectedRubricIndices.includes(realIdx >= 0 ? realIdx : idx);
+                      const toggleIdx = realIdx >= 0 ? realIdx : idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedRubricIndices(selectedRubricIndices.filter((i) => i !== toggleIdx));
+                            } else {
+                              setSelectedRubricIndices([...selectedRubricIndices, toggleIdx]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                            isSelected
+                              ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/70 shadow-xs"
+                              : "bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  setSelectedRubricIndices(selectedRubricIndices.filter((i) => i !== toggleIdx));
+                                } else {
+                                  setSelectedRubricIndices([...selectedRubricIndices, toggleIdx]);
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-black text-xs text-slate-900 dark:text-white leading-snug">
+                                {rubric.capacity}
+                              </h5>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] pl-7">
+                            <div className="p-1.5 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200/50 dark:border-red-900/30">
+                              <span className="font-bold text-red-700 dark:text-red-300 block mb-0.5">NSA:</span>
+                              <span className="text-slate-600 dark:text-slate-400 line-clamp-2">{rubric.nsa}</span>
+                            </div>
+                            <div className="p-1.5 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200/50 dark:border-amber-900/30">
+                              <span className="font-bold text-amber-700 dark:text-amber-300 block mb-0.5">APO:</span>
+                              <span className="text-slate-600 dark:text-slate-400 line-clamp-2">{rubric.apo}</span>
+                            </div>
+                            <div className="p-1.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200/50 dark:border-blue-900/30">
+                              <span className="font-bold text-blue-700 dark:text-blue-300 block mb-0.5">PAR:</span>
+                              <span className="text-slate-600 dark:text-slate-400 line-clamp-2">{rubric.par}</span>
+                            </div>
+                            <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200/50 dark:border-emerald-900/30">
+                              <span className="font-bold text-emerald-700 dark:text-emerald-300 block mb-0.5">AUT:</span>
+                              <span className="text-slate-600 dark:text-slate-400 line-clamp-2">{rubric.aut}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-slate-400 font-bold italic">
+                      Nenhuma rubrica encontrada para a origem selecionada.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3: Destino na UC Atual & Modo de Gravação */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/70 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black">
+                    3
+                  </span>
+                  <span>Destino na UC Atual & Opções de Gravação</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentUnit?.stages && currentUnit.stages.length > 0 && (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                        Etapa de Destino na UC Atual
+                      </label>
+                      <select
+                        value={targetRubricsStageId}
+                        onChange={(e) => setTargetRubricsStageId(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-extrabold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="todas">Aplicar em Todas as Etapas da UC</option>
+                        {currentUnit.stages.map((st, sIdx) => (
+                          <option key={st.id} value={st.id}>
+                            Etapa {sIdx + 1}: {st.turma} – {st.title.replace(/^\d+\.\s*/, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                      Modo de Gravação
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        rubricsImportMode === "append"
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="rubricsImportMode"
+                          value="append"
+                          checked={rubricsImportMode === "append"}
+                          onChange={() => setRubricsImportMode("append")}
+                          className="text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-xs">Acrescentar às existentes</span>
+                      </label>
+
+                      <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                        rubricsImportMode === "replace"
+                          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-900 dark:text-amber-200 font-bold"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="rubricsImportMode"
+                          value="replace"
+                          checked={rubricsImportMode === "replace"}
+                          onChange={() => setRubricsImportMode("replace")}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs">Substituir existentes</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-xs text-slate-500 font-medium">
+                {selectedRubricIndices.length > 0 ? (
+                  <span>
+                    Pronto para copiar <strong>{selectedRubricIndices.length}</strong> rubrica(s) para <strong>{currentUnit?.unitTitle}</strong>.
+                  </span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">
+                    Selecione ao menos 1 rubrica para habilitar a cópia.
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsImportRubricsModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedRubricIndices.length === 0}
+                  onClick={handleConfirmImportRubrics}
+                  className={`px-5 py-2.5 font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-all ${
+                    selectedRubricIndices.length > 0
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                      : "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar {selectedRubricIndices.length} Rubrica(s)</span>
                 </button>
               </div>
             </div>
