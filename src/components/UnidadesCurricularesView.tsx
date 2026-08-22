@@ -1689,7 +1689,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   onClick={() => {
                     if (
                       window.confirm(
-                        `Deseja sincronizar e restaurar a estrutura padrão oficial SENAI (ProEducador) para ${currentUnit.unitTitle}? Isso atualizará as 4 etapas, capacidades, situação-problema e rubricas para a versão oficial.`
+                        `Deseja sincronizar e restaurar a estrutura padrão oficial SENAI (ProEducador) para ${currentUnit.unitTitle}? Isso atualizará as etapas (turmas), capacidades, situação-problema e rubricas para a versão oficial.`
                       )
                     ) {
                       handleUpdateCurrentUnit(JSON.parse(JSON.stringify(defaultMatchingUnit)));
