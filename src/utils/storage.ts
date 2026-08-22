@@ -194,6 +194,19 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
               title: newTitle,
             };
           }
+          // Standardize stage titles if this is PRUSC
+          if (key === "PRUSC" || key === "PROC") {
+            const defaultTitles = [
+              "Turma A - Torneamento",
+              "Turma B - Fresagem",
+            ];
+            const newTitle = defaultTitles[sIdx] || st.title;
+            return {
+              ...st,
+              title: newTitle,
+              turma: sIdx === 0 ? "Turma A" : "Turma B",
+            };
+          }
           return st;
         }),
       lessonPlan: (!isOutdatedFusi && Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
