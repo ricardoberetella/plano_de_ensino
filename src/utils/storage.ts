@@ -180,7 +180,7 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       stages: (Array.isArray(u.stages) && u.stages.length > 0
         ? JSON.parse(JSON.stringify(u.stages))
         : baseUnit?.stages ? JSON.parse(JSON.stringify(baseUnit.stages)) : undefined)?.map((st: any, sIdx: number) => {
-          // Standardize stage titles if this is FUSI
+          // Standardize stage titles and complete topics if this is FUSI
           if (key === "FUSI") {
             const defaultTitles = [
               "Turma A - Torneamento - Capacidades Básicas",
@@ -189,9 +189,15 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
               "Turma B - Fresagem - Capacidades Técnicas",
             ];
             const newTitle = defaultTitles[sIdx] || st.title;
+            const baseStage = baseUnit?.stages?.[sIdx];
+            const stageTopics = (st.topics && st.topics.length >= (baseStage?.topics?.length || 0))
+              ? st.topics
+              : baseStage?.topics || st.topics;
+
             return {
               ...st,
               title: newTitle,
+              topics: stageTopics ? JSON.parse(JSON.stringify(stageTopics)) : st.topics,
             };
           }
           // Standardize stage titles if this is PRUSC
