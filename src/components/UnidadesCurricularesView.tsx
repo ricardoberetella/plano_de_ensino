@@ -2601,10 +2601,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                 <thead>
                                   <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
                                     <th className="p-4 w-36 whitespace-nowrap">Data / Horas & Etapa</th>
-                                    <th className="p-4">Capacidades Desenvolvidas</th>
-                                    <th className="p-4">Conhecimentos / Conteúdo</th>
-                                    <th className="p-4">Estratégias Pedagógicas</th>
-                                    <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
+                                    <th className="p-4">Capacidades</th>
+                                    <th className="p-4">Conhecimentos</th>
+                                    <th className="p-4">Estratégias</th>
+                                    <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
                                     <th className="p-3 w-28 text-center">Ações</th>
                                   </tr>
                                 </thead>
@@ -2835,10 +2835,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   <thead>
                                     <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-black text-[11px] uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
                                       <th className="p-4 w-32 whitespace-nowrap">Horas/Data</th>
-                                      <th className="p-4">Capacidades Desenvolvidas</th>
-                                      <th className="p-4">Conhecimentos / Conteúdo</th>
-                                      <th className="p-4">Estratégias Pedagógicas</th>
-                                      <th className="p-4 hidden md:table-cell">Recursos & Ambientes</th>
+                                      <th className="p-4">Capacidades</th>
+                                      <th className="p-4">Conhecimentos</th>
+                                      <th className="p-4">Estratégias</th>
+                                      <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
                                       <th className="p-3 w-28 text-center">Ações</th>
                                     </tr>
                                   </thead>
