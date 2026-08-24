@@ -263,11 +263,16 @@ function renderStageOrUnitHtml(
             <span>CONHECIMENTOS &amp; TÓPICOS PROGRAMÁTICOS</span>
           </div>
           <div class="topics-grid">
-            ${topics.map((t, idx) => `
-              <div class="topic-pill">
-                <strong>${idx + 1}.</strong> ${escapeHtml(t.replace(/^\d+\.\s*/, ''))}
-              </div>
-            `).join("")}
+            ${topics.map((t, idx) => {
+              const match = t.match(/^(\d+)\.\s*(.*)$/);
+              const num = match ? match[1] : `${idx + 1}`;
+              const text = match ? match[2] : t;
+              return `
+                <div class="topic-pill">
+                  <strong>${num}.</strong> ${escapeHtml(text)}
+                </div>
+              `;
+            }).join("")}
           </div>
         </div>
       ` : ''}
