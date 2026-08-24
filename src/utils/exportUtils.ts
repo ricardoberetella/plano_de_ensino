@@ -356,10 +356,10 @@ function renderStageOrUnitHtml(
             <thead>
               <tr>
                 <th style="width: 13%;">Aula / Data</th>
-                <th style="width: 22%;">Capacidades Desenvolvidas</th>
-                <th style="width: 25%;">Conhecimentos / Conteúdo</th>
-                <th style="width: 20%;">Estratégias Pedagógicas</th>
-                <th style="width: 20%;">Recursos &amp; Ambientes</th>
+                <th style="width: 22%;">Capacidades</th>
+                <th style="width: 25%;">Conhecimentos</th>
+                <th style="width: 20%;">Estratégias</th>
+                <th style="width: 20%;">Recursos/Ambientes</th>
               </tr>
             </thead>
             <tbody>
