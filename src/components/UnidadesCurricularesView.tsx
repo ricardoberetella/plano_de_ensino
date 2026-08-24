@@ -1797,24 +1797,50 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               </div>
 
               {/* Action Button: Imprimir */}
-              <div className="flex items-center gap-2 py-2 sm:py-2 shrink-0">
+              <div className="flex items-center gap-1.5 py-2 sm:py-2 shrink-0">
                 <button
                   onClick={() => {
                     if (currentUnit) {
                       const activeProf = currentUser?.name?.toLowerCase().includes("gea")
                         ? "Prof. Ricardo Gea"
                         : (currentUser?.name || syllabus.professorName || "Prof. Ricardo Beretella");
-                      printUnidadeCurricularPDF(currentUnit, syllabus, activeProf);
+                      printUnidadeCurricularPDF(currentUnit, syllabus, {
+                        activeStage: activeStage || null,
+                        printAllStages: false,
+                        professorName: activeProf,
+                      });
                     } else if (onPrint) {
                       onPrint();
                     }
                   }}
                   className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs"
-                  title="Imprimir Plano de Ensino em PDF"
+                  title={activeStage ? `Imprimir em PDF (${activeStage.title})` : "Imprimir Plano de Ensino em PDF"}
                 >
                   <Printer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span>IMPRIMIR PDF</span>
                 </button>
+
+                {currentUnit?.stages && currentUnit.stages.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (currentUnit) {
+                        const activeProf = currentUser?.name?.toLowerCase().includes("gea")
+                          ? "Prof. Ricardo Gea"
+                          : (currentUser?.name || syllabus.professorName || "Prof. Ricardo Beretella");
+                        printUnidadeCurricularPDF(currentUnit, syllabus, {
+                          activeStage: null,
+                          printAllStages: true,
+                          professorName: activeProf,
+                        });
+                      }
+                    }}
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs"
+                    title="Imprimir Todas as Etapas e Rotações da Unidade Curricular (Documento Completo)"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="hidden sm:inline">TODAS AS ETAPAS</span>
+                  </button>
+                )}
               </div>
             </div>
 
