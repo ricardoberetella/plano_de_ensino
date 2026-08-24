@@ -156,6 +156,9 @@ export function printHtmlViaHiddenIframe(htmlContent: string) {
 
       setTimeout(() => {
         try {
+          if (iframe.contentWindow?.document) {
+            iframe.contentWindow.document.title = "";
+          }
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
         } catch (err) {
@@ -176,6 +179,9 @@ export function printHtmlViaHiddenIframe(htmlContent: string) {
       printWin.document.open();
       printWin.document.write(htmlContent);
       printWin.document.close();
+      if (printWin.document) {
+        printWin.document.title = "";
+      }
       return;
     }
   } catch (err) {
@@ -488,13 +494,16 @@ export function printUnidadeCurricularPDF(
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Plano de Ensino SENAI - ${escapeHtml(unit.unitTitle)}</title>
+      <title></title>
       <style>
         @page {
           size: A4 portrait;
-          margin: 10mm 12mm;
+          margin: 8mm 10mm;
         }
         @media print {
+          @page {
+            margin: 8mm 10mm;
+          }
           body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -879,8 +888,8 @@ export function printUnidadeCurricularPDF(
       <div class="header-box">
         <div class="header-title-area">
           <h1>SENAI-SP • PLANO DE ENSINO E CRONOGRAMA</h1>
-          <h2>${escapeHtml(syllabus.courseTitle || "Curso Técnico em Usinagem")}</h2>
-          <h3>Escola SENAI "Roberto Mange" • Campinas / SP</h3>
+          <h2>${escapeHtml(syllabus.courseTitle || "Mecânico de Usinagem Convencional")}</h2>
+          ${syllabus.department ? `<h3>${escapeHtml(syllabus.department)}</h3>` : ''}
         </div>
         <div class="header-badges">
           <div class="badge-main">${escapeHtml(unit.acronym || "UC")}</div>
@@ -894,6 +903,11 @@ export function printUnidadeCurricularPDF(
         <div class="info-item"><strong>Docente Responsável:</strong> ${escapeHtml(formattedProfName)}</div>
         <div class="info-item"><strong>Módulo / Área:</strong> ${escapeHtml(unit.module || "Módulo Específico")} • Metalmecânica</div>
         <div class="info-item"><strong>Carga Horária Total:</strong> ${escapeHtml(unit.workload || "60h")}</div>
+        ${syllabus.department ? `
+          <div class="info-item" style="grid-column: span 2;">
+            <strong>Unidade Escolar:</strong> ${escapeHtml(syllabus.department)}
+          </div>
+        ` : ''}
         ${headerStageSubtitle ? `
           <div class="info-item" style="grid-column: span 2;">
             <strong>Etapa / Rotação:</strong> ${escapeHtml(headerStageSubtitle)}
@@ -921,15 +935,14 @@ export function printUnidadeCurricularPDF(
         </div>
         <div class="sig-block">
           <div class="sig-line"></div>
-          <div class="sig-name">Prof. Carlos Eduardo Servidoni</div>
-          <div class="sig-role">Coordenação Pedagógica SENAI</div>
+          <div class="sig-name">Coordenação Pedagógica</div>
+          <div class="sig-role">SENAI-SP</div>
         </div>
       </div>
 
       <!-- Footer -->
       <div class="doc-footer">
-        <div>Documento Oficial emitido pelo Sistema Integrado de Planos de Ensino SENAI</div>
-        <div>Data de Emissão: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+        <div>Documento Oficial emitido pelo Sistema Integrado de Planos de Ensino SENAI-SP</div>
       </div>
     </body>
     </html>
