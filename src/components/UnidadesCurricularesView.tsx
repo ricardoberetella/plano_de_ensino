@@ -1677,6 +1677,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
         {semesterUnits.map((unit) => {
           const acronym = getAcronym(unit);
+          const ucColor = getUcColor(unit);
           const isSelected = unit.id === (currentUnit?.id || selectedUnitId);
 
           return (
@@ -1685,15 +1686,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               onClick={() => setSelectedUnitId(unit.id)}
               className={`px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shrink-0 border flex items-center gap-2 ${
                 isSelected
-                  ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/30 ring-2 ring-blue-500/40"
+                  ? `${ucColor.bg} text-white ${ucColor.border} shadow-lg ring-2 ${ucColor.ring}`
                   : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-blue-400"
               }`}
             >
+              <span className={`w-2.5 h-2.5 rounded-full ${isSelected ? "bg-white" : ucColor.dotColor}`} />
               <span>{acronym}</span>
               {unit.workload && (
                 <span
                   className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                    isSelected ? "bg-blue-700 text-blue-100" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                    isSelected ? "bg-black/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                   }`}
                 >
                   {unit.workload}
@@ -1712,7 +1714,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           <div className="p-8 sm:p-10 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-block px-3.5 py-1 bg-[#22c55e] text-slate-950 font-black text-[11px] rounded-lg uppercase tracking-wider shadow-sm">
+                <span className={`inline-block px-3.5 py-1 ${getUcColor(currentUnit).bg} text-white font-black text-[11px] rounded-lg uppercase tracking-wider shadow-sm`}>
                   {getAcronym(currentUnit)}
                 </span>
                 {currentUnit.workload && (
@@ -3178,9 +3180,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
               {/* TAB 5: CRONOGRAMA (CALENDÁRIO DA UNIDADE COM AS 4 ETAPAS) */}
               {activeUcTab === "CRONOGRAMA" && (() => {
-                const ucIndex = units.findIndex((u) => u.id === currentUnit.id);
-                const ucColor = getUcColor(ucIndex >= 0 ? ucIndex : 0);
                 const ucAcronym = getAcronym(currentUnit);
+                const ucColor = getUcColor(currentUnit);
 
                 // Build lookup map for lessons by ISO date with stage information
                 interface DateLessonMeta {
@@ -3230,6 +3231,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 const monthIndices = is2ndSem ? [6, 7, 8, 9, 10, 11] : [0, 1, 2, 3, 4, 5];
 
                 const selectedLessonMeta = selectedCalendarDate ? lessonMapByDate[selectedCalendarDate] : null;
+                const hasMultipleStages = currentUnit.stages && currentUnit.stages.length > 1;
 
                 return (
                   <div className="space-y-6 animate-in fade-in duration-200">
@@ -3238,7 +3240,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2.5 py-1 text-xs font-black rounded-lg ${ucColor.bg} ${ucColor.text}`}>
+                          <span className={`px-2.5 py-1 text-xs font-black rounded-lg ${ucColor.bg} text-white shadow-xs`}>
                             {ucAcronym}
                           </span>
                           <h2 className="text-lg font-black uppercase text-slate-900 dark:text-white">
@@ -3246,7 +3248,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           </h2>
                         </div>
                         <p className="text-xs text-slate-500 font-medium">
-                          Mapeamento interativo das datas e rotações de oficina divididas nas 4 etapas do semestre
+                          Mapeamento interativo das datas e aulas no calendário oficial do curso
                         </p>
                       </div>
 
@@ -3254,7 +3256,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       {currentUnit.stages && currentUnit.stages.length > 0 && (
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                            <span className="px-3 py-1 text-xs font-black rounded-xl bg-amber-500 text-slate-950 shadow-xs">
+                            <span className={`px-3 py-1 text-xs font-black rounded-xl ${ucColor.bg} text-white shadow-xs`}>
                               {activeStage ? `${activeStage.turma} • ${activeStage.title.replace(/^\d+\.\s*/, '')}` : "Etapa Ativa"}
                             </span>
                             <button
@@ -3306,27 +3308,38 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                                 const meta = lessonMapByDate[cell.isoDate];
                                 const isSelected = selectedCalendarDate === cell.isoDate;
-                                const theme = meta ? STAGE_THEMES[meta.stageIndex % STAGE_THEMES.length] : null;
+                                const isMultiStage = hasMultipleStages && viewAllStagesChronological;
+                                const cellTheme = meta
+                                  ? isMultiStage
+                                    ? STAGE_THEMES[meta.stageIndex % STAGE_THEMES.length]
+                                    : {
+                                        bg: ucColor.bg,
+                                        ring: ucColor.ring,
+                                        border: ucColor.border,
+                                        badge: `${ucColor.bg} text-white`,
+                                        text: "text-white",
+                                      }
+                                  : null;
 
                                 return (
                                   <button
                                     key={cIdx}
                                     onClick={() => setSelectedCalendarDate(cell.isoDate)}
                                     className={`h-9 rounded-xl font-extrabold flex flex-col items-center justify-center relative transition-all cursor-pointer ${
-                                      meta && theme
-                                        ? `${theme.bg} text-white shadow-xs ring-2 ring-offset-1 ${theme.ring}`
+                                      meta && cellTheme
+                                        ? `${cellTheme.bg} text-white shadow-xs ring-2 ring-offset-1 ${cellTheme.ring}`
                                         : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                                     } ${isSelected ? "scale-105 ring-2 ring-amber-400 font-black" : ""}`}
                                     title={
                                       meta
-                                        ? `Etapa ${meta.stageIndex + 1} (${meta.stageTurma || 'Aula'}): ${meta.lesson.conhecimentos}`
+                                        ? `Aula (${meta.stageTurma || ucAcronym}): ${meta.lesson.conhecimentos}`
                                         : `Dia ${cell.dayNumber}`
                                     }
                                   >
                                     <span className="text-xs leading-none">{cell.dayNumber}</span>
                                     {meta && (
                                       <span className="text-[8px] font-black tracking-tighter opacity-90 leading-none mt-0.5">
-                                        E{meta.stageIndex + 1} • {meta.lesson.hours}
+                                        {hasMultipleStages ? `E${meta.stageIndex + 1} • ` : ""}{meta.lesson.hours}
                                       </span>
                                     )}
                                   </button>
@@ -3342,7 +3355,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     {selectedLessonMeta ? (
                       (() => {
                         const { lesson, stageIndex, stageTitle, stageTurma } = selectedLessonMeta;
-                        const theme = STAGE_THEMES[stageIndex % STAGE_THEMES.length];
+                        const isMultiStage = hasMultipleStages && viewAllStagesChronological;
+                        const theme = isMultiStage
+                          ? STAGE_THEMES[stageIndex % STAGE_THEMES.length]
+                          : {
+                              border: ucColor.border,
+                              badge: `${ucColor.bg} text-white`,
+                              text: "text-blue-400",
+                              ring: ucColor.ring,
+                              bg: ucColor.bg,
+                            };
                         const isOk = lesson.status === "concluida";
 
                         return (
@@ -3350,7 +3372,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`px-3 py-1 font-black text-xs rounded-xl uppercase ${theme.badge}`}>
-                                  ETAPA {stageIndex + 1}: {stageTurma || "Turma A"}
+                                  {hasMultipleStages ? `ETAPA ${stageIndex + 1}: ${stageTurma || "Turma A"}` : `${ucAcronym} • AULA`}
                                 </span>
                                 <span className="px-3 py-1 bg-amber-400 text-slate-950 font-black text-xs rounded-xl uppercase">
                                   {lesson.date} ({lesson.hours})
@@ -3397,17 +3419,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1 border-t border-slate-800">
                               <div className="space-y-1">
-                                <span className={`text-[10px] uppercase font-black tracking-wider ${theme.text}`}>Conhecimentos & Conteúdo</span>
+                                <span className="text-[10px] uppercase font-black tracking-wider text-amber-400">Conhecimentos & Conteúdo</span>
                                 <p className="font-bold text-sm text-white leading-snug">{lesson.conhecimentos}</p>
                               </div>
 
                               <div className="space-y-1">
-                                <span className={`text-[10px] uppercase font-black tracking-wider ${theme.text}`}>Estratégia Pedagógica</span>
+                                <span className="text-[10px] uppercase font-black tracking-wider text-amber-400">Estratégia Pedagógica</span>
                                 <p className="font-medium text-slate-300 leading-relaxed">{lesson.estrategias}</p>
                               </div>
 
                               <div className="space-y-1">
-                                <span className={`text-[10px] uppercase font-black tracking-wider ${theme.text}`}>Recursos & Ambientes</span>
+                                <span className="text-[10px] uppercase font-black tracking-wider text-amber-400">Recursos & Ambientes</span>
                                 <p className="font-medium text-slate-300 leading-relaxed">{lesson.recursos}</p>
                               </div>
                             </div>
