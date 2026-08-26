@@ -35,6 +35,8 @@ export interface EvaluationItem {
 
 export interface RubricItem {
   capacity: string;
+  criteria?: string;
+  criterios?: string;
   nsa: string; // Não Satisfez
   apo: string; // Apresentou com Orientação
   par: string; // Parcialmente Autônomo
