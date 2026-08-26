@@ -141,12 +141,10 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
     const baseUnitMatch = rawProeducadorUnits.find((pu) => getStandardUcKey(pu) === key);
     const baseUnit = baseUnitMatch ? JSON.parse(JSON.stringify(baseUnitMatch)) : null;
 
-    // Check if unit is missing stages or has old outdated placeholder data
+    // Standardize unit data
     const isOutdatedFusi =
       key === "FUSI" &&
-      (!u.stages ||
-        u.stages.length === 0 ||
-        !u.technicalCapacities ||
+      (!u.technicalCapacities ||
         u.technicalCapacities.length <= 1 ||
         !u.basicCapacities ||
         u.basicCapacities.length < 5);
@@ -177,44 +175,7 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       rubrics: (!isOutdatedFusi && Array.isArray(u.rubrics) && u.rubrics.length > 0)
         ? JSON.parse(JSON.stringify(u.rubrics))
         : baseUnit?.rubrics ? JSON.parse(JSON.stringify(baseUnit.rubrics)) : [],
-      stages: (Array.isArray(u.stages) && u.stages.length > 0
-        ? JSON.parse(JSON.stringify(u.stages))
-        : baseUnit?.stages ? JSON.parse(JSON.stringify(baseUnit.stages)) : undefined)?.map((st: any, sIdx: number) => {
-          // Standardize stage titles and complete topics if this is FUSI
-          if (key === "FUSI") {
-            const defaultTitles = [
-              "Turma A - Torneamento - Capacidades Básicas",
-              "Turma B - Fresagem - Capacidades Básicas",
-              "Turma A - Torneamento - Capacidades Técnicas",
-              "Turma B - Fresagem - Capacidades Técnicas",
-            ];
-            const newTitle = defaultTitles[sIdx] || st.title;
-            const baseStage = baseUnit?.stages?.[sIdx];
-            const stageTopics = (st.topics && st.topics.length >= (baseStage?.topics?.length || 0))
-              ? st.topics
-              : baseStage?.topics || st.topics;
-
-            return {
-              ...st,
-              title: newTitle,
-              topics: stageTopics ? JSON.parse(JSON.stringify(stageTopics)) : st.topics,
-            };
-          }
-          // Standardize stage titles if this is PRUSC
-          if (key === "PRUSC" || key === "PROC") {
-            const defaultTitles = [
-              "Turma A - Torneamento",
-              "Turma B - Fresagem",
-            ];
-            const newTitle = defaultTitles[sIdx] || st.title;
-            return {
-              ...st,
-              title: newTitle,
-              turma: sIdx === 0 ? "Turma A" : "Turma B",
-            };
-          }
-          return st;
-        }),
+      stages: undefined,
       lessonPlan: (!isOutdatedFusi && Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
         ? JSON.parse(JSON.stringify(u.lessonPlan))
         : baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : [],
