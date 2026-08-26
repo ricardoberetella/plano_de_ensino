@@ -355,11 +355,13 @@ function renderStageOrUnitHtml(
           <table class="lesson-table">
             <thead>
               <tr>
-                <th style="width: 13%;">Aula / Data</th>
-                <th style="width: 22%;">Capacidades</th>
-                <th style="width: 25%;">Conhecimentos</th>
-                <th style="width: 20%;">Estratégias</th>
-                <th style="width: 20%;">Recursos/Ambientes</th>
+                <th style="width: 10%;">Aula / Data</th>
+                <th style="width: 16%;">Capacidades</th>
+                <th style="width: 18%;">Conhecimentos</th>
+                <th style="width: 15%;">Estratégias</th>
+                <th style="width: 13%;">Recursos/Ambientes</th>
+                <th style="width: 14%;">Critérios de Avaliação</th>
+                <th style="width: 14%;">Instrumentos de Avaliação</th>
               </tr>
             </thead>
             <tbody>
@@ -374,6 +376,8 @@ function renderStageOrUnitHtml(
                   <td class="td-content">${escapeHtml(lp.conhecimentos || "")}</td>
                   <td class="td-content">${escapeHtml(lp.estrategias || "")}</td>
                   <td class="td-content">${escapeHtml(lp.recursos || "")}</td>
+                  <td class="td-content">${escapeHtml(lp.criteriosAvaliacao || "")}</td>
+                  <td class="td-content">${escapeHtml(lp.instrumentosAvaliacao || "")}</td>
                 </tr>
               `).join("")}
             </tbody>
