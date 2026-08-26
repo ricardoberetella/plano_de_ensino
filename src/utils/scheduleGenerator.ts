@@ -164,6 +164,14 @@ export function generateSyllabusSchedule(
               "Oficina de Usinagem / Laboratório SENAI, máquinas operatrizes, ferramentas de corte, instrumentos de medição e EPIs.";
             const recursosText = existingItem && existingItem.recursos ? existingItem.recursos : defaultRecursos;
 
+            const defaultCriterios = templateLesson?.criteriosAvaliacao ||
+              "Atendimento aos requisitos técnicos do desenho, tolerâncias dimensionais e normas de segurança NR-12.";
+            const criteriosText = existingItem && existingItem.criteriosAvaliacao !== undefined ? existingItem.criteriosAvaliacao : defaultCriterios;
+
+            const defaultInstrumentos = templateLesson?.instrumentosAvaliacao ||
+              "Observação direta das práticas de oficina, folha de processo e ficha de autoinspeção dimensional.";
+            const instrumentosText = existingItem && existingItem.instrumentosAvaliacao !== undefined ? existingItem.instrumentosAvaliacao : defaultInstrumentos;
+
             const lessonItem: LessonPlanItem = {
               id: lessonItemId,
               date: existingItem?.date || brDate, // Preserve user-edited date or use calendar date
@@ -172,6 +180,8 @@ export function generateSyllabusSchedule(
               conhecimentos: topicText,
               estrategias: estrategiasText,
               recursos: recursosText,
+              criteriosAvaliacao: criteriosText,
+              instrumentosAvaliacao: instrumentosText,
               professor: existingItem?.professor || rule.professor,
               status: existingItem?.status || "planejada",
             };
