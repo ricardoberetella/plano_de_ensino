@@ -141,44 +141,87 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
     const baseUnitMatch = rawProeducadorUnits.find((pu) => getStandardUcKey(pu) === key);
     const baseUnit = baseUnitMatch ? JSON.parse(JSON.stringify(baseUnitMatch)) : null;
 
-    // Standardize unit data
-    const isOutdatedFusi =
-      key === "FUSI" &&
-      (!u.technicalCapacities ||
-        u.technicalCapacities.length <= 1 ||
-        !u.basicCapacities ||
-        u.basicCapacities.length < 5);
+    // Extract any stage data if present (e.g. from previous version where data was inside stages)
+    const stageRubrics = Array.isArray((u as any).stages)
+      ? (u as any).stages.flatMap((s: any) => s.rubrics || [])
+      : [];
+    const stageTopics = Array.isArray((u as any).stages)
+      ? (u as any).stages.flatMap((s: any) => s.topics || [])
+      : [];
+    const stageLessons = Array.isArray((u as any).stages)
+      ? (u as any).stages.flatMap((s: any) => s.lessonPlan || [])
+      : [];
+    const stageSP = Array.isArray((u as any).stages)
+      ? (u as any).stages.map((s: any) => s.situationProblem).find((sp: any) => sp && (sp.title || sp.contextualization || (sp.challenge && sp.challenge.length > 0)))
+      : undefined;
+    const stageTechCap = Array.isArray((u as any).stages)
+      ? (u as any).stages.flatMap((s: any) => s.technicalCapacities || s.basicCapacities || [])
+      : [];
+    const stageSocioCap = Array.isArray((u as any).stages)
+      ? (u as any).stages.flatMap((s: any) => s.socioemotionalCapacities || [])
+      : [];
+
+    // Prioritize user data first, then stage data, then fallback to base template only if completely empty
+    const finalObjective = (u.objective !== undefined && u.objective !== null && u.objective.trim() !== "")
+      ? u.objective
+      : (baseUnit?.objective || "");
+
+    const finalBasicCapacities = (Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0)
+      ? JSON.parse(JSON.stringify(u.basicCapacities))
+      : (baseUnit?.basicCapacities ? JSON.parse(JSON.stringify(baseUnit.basicCapacities)) : []);
+
+    const finalTechCapacities = (Array.isArray(u.technicalCapacities) && u.technicalCapacities.length > 0)
+      ? JSON.parse(JSON.stringify(u.technicalCapacities))
+      : (stageTechCap.length > 0
+          ? JSON.parse(JSON.stringify(stageTechCap))
+          : (baseUnit?.technicalCapacities ? JSON.parse(JSON.stringify(baseUnit.technicalCapacities)) : []));
+
+    const finalSocioCapacities = (Array.isArray(u.socioemotionalCapacities) && u.socioemotionalCapacities.length > 0)
+      ? JSON.parse(JSON.stringify(u.socioemotionalCapacities))
+      : (stageSocioCap.length > 0
+          ? JSON.parse(JSON.stringify(stageSocioCap))
+          : (baseUnit?.socioemotionalCapacities ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacities)) : []));
+
+    const finalTopics = (Array.isArray(u.topics) && u.topics.length > 0)
+      ? JSON.parse(JSON.stringify(u.topics))
+      : (stageTopics.length > 0
+          ? JSON.parse(JSON.stringify(stageTopics))
+          : (baseUnit?.topics ? JSON.parse(JSON.stringify(baseUnit.topics)) : []));
+
+    const finalSituationProblem = (u.situationProblem && (u.situationProblem.title || u.situationProblem.contextualization || (u.situationProblem.challenge && u.situationProblem.challenge.length > 0)))
+      ? JSON.parse(JSON.stringify(u.situationProblem))
+      : (stageSP
+          ? JSON.parse(JSON.stringify(stageSP))
+          : (baseUnit?.situationProblem ? JSON.parse(JSON.stringify(baseUnit.situationProblem)) : undefined));
+
+    const finalRubrics = (Array.isArray(u.rubrics) && u.rubrics.length > 0)
+      ? JSON.parse(JSON.stringify(u.rubrics))
+      : (stageRubrics.length > 0
+          ? JSON.parse(JSON.stringify(stageRubrics))
+          : (baseUnit?.rubrics ? JSON.parse(JSON.stringify(baseUnit.rubrics)) : []));
+
+    const finalLessonPlan = (Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
+      ? JSON.parse(JSON.stringify(u.lessonPlan))
+      : (stageLessons.length > 0
+          ? JSON.parse(JSON.stringify(stageLessons))
+          : (baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : []));
 
     cleaned.push({
       id: u.id || baseUnit?.id || `uc-${key.toLowerCase()}`,
       acronym: u.acronym || baseUnit?.acronym || key,
       semester: u.semester || baseUnit?.semester || (["PRUSC", "MINDU"].includes(key) ? "2º SEMESTRE" : "1º SEMESTRE"),
       module: u.module || baseUnit?.module || (["PRUSC", "MINDU"].includes(key) ? "Módulo Específico" : "Módulo Introdutório"),
-      unitTitle: baseUnit?.unitTitle || u.unitTitle || "Unidade Curricular",
+      unitTitle: u.unitTitle || baseUnit?.unitTitle || "Unidade Curricular",
       workload: u.workload || baseUnit?.workload || (key === "FUSI" ? "240h" : key === "PRUSC" ? "160h" : key === "MINDU" ? "80h" : "40h"),
-      objective: (!isOutdatedFusi && u.objective !== undefined && u.objective !== "") ? u.objective : baseUnit?.objective || "",
-      basicCapacities: (!isOutdatedFusi && Array.isArray(u.basicCapacities) && u.basicCapacities.length > 0)
-        ? JSON.parse(JSON.stringify(u.basicCapacities))
-        : baseUnit?.basicCapacities ? JSON.parse(JSON.stringify(baseUnit.basicCapacities)) : [],
-      technicalCapacities: (!isOutdatedFusi && Array.isArray(u.technicalCapacities) && u.technicalCapacities.length > 0)
-        ? JSON.parse(JSON.stringify(u.technicalCapacities))
-        : baseUnit?.technicalCapacities ? JSON.parse(JSON.stringify(baseUnit.technicalCapacities)) : [],
-      socioemotionalCapacities: (!isOutdatedFusi && Array.isArray(u.socioemotionalCapacities) && u.socioemotionalCapacities.length > 0)
-        ? JSON.parse(JSON.stringify(u.socioemotionalCapacities))
-        : baseUnit?.socioemotionalCapacities ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacities)) : [],
-      topics: (!isOutdatedFusi && Array.isArray(u.topics) && u.topics.length > 0)
-        ? JSON.parse(JSON.stringify(u.topics))
-        : baseUnit?.topics ? JSON.parse(JSON.stringify(baseUnit.topics)) : [],
-      situationProblem: (!isOutdatedFusi && u.situationProblem)
-        ? JSON.parse(JSON.stringify(u.situationProblem))
-        : baseUnit?.situationProblem ? JSON.parse(JSON.stringify(baseUnit.situationProblem)) : undefined,
-      rubrics: (!isOutdatedFusi && Array.isArray(u.rubrics) && u.rubrics.length > 0)
-        ? JSON.parse(JSON.stringify(u.rubrics))
-        : baseUnit?.rubrics ? JSON.parse(JSON.stringify(baseUnit.rubrics)) : [],
+      objective: finalObjective,
+      basicCapacities: finalBasicCapacities,
+      technicalCapacities: finalTechCapacities,
+      socioemotionalCapacities: finalSocioCapacities,
+      topics: finalTopics,
+      situationProblem: finalSituationProblem,
+      rubrics: finalRubrics,
       stages: undefined,
-      lessonPlan: (!isOutdatedFusi && Array.isArray(u.lessonPlan) && u.lessonPlan.length > 0)
-        ? JSON.parse(JSON.stringify(u.lessonPlan))
-        : baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : [],
+      lessonPlan: finalLessonPlan,
     });
   }
 
