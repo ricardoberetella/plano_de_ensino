@@ -535,6 +535,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const [insertRubricAfterIndex, setInsertRubricAfterIndex] = useState<number | null>(null);
   const [rubricForm, setRubricForm] = useState<RubricItem>({
     capacity: "",
+    criteria: "",
     nsa: "",
     apo: "",
     par: "",
@@ -550,6 +551,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setInsertRubricAfterIndex(afterIndex !== undefined ? afterIndex : null);
     setRubricForm({
       capacity: "",
+      criteria: "",
       nsa: "Não atendeu aos critérios mínimos estabelecidos para a capacidade.",
       apo: "Demonstrou a capacidade mediante orientação e suporte técnico contínuo do docente.",
       par: "Demonstrou a capacidade de forma parcialmente autônoma com pequenos ajustes.",
@@ -565,7 +567,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     }
     setEditingRubricIndex(index);
     setInsertRubricAfterIndex(null);
-    setRubricForm({ ...rubric });
+    setRubricForm({
+      capacity: rubric.capacity || "",
+      criteria: rubric.criteria || rubric.criterios || "",
+      nsa: rubric.nsa || "",
+      apo: rubric.apo || "",
+      par: rubric.par || "",
+      aut: rubric.aut || "",
+    });
     setIsRubricModalOpen(true);
   };
 
@@ -1451,6 +1460,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     return availableSourceRubrics.filter(
       (r) =>
         (r.capacity || "").toLowerCase().includes(q) ||
+        (r.criteria || "").toLowerCase().includes(q) ||
+        (r.criterios || "").toLowerCase().includes(q) ||
         (r.nsa || "").toLowerCase().includes(q) ||
         (r.apo || "").toLowerCase().includes(q) ||
         (r.par || "").toLowerCase().includes(q) ||
@@ -2268,15 +2279,31 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           key={idx}
                           className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs"
                         >
-                          <div className="p-4 sm:p-5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
-                            <span className="font-black text-xs uppercase text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[10px] shrink-0">
-                                {idx + 1}
-                              </span>
-                              <span>{rubric.capacity}</span>
-                            </span>
+                          <div className="p-4 sm:p-5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="space-y-2.5 flex-1 min-w-0">
+                              {/* Linha 1: Capacidade */}
+                              <div className="flex items-start sm:items-center gap-2.5 flex-wrap">
+                                <span className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs">
+                                  CAPACIDADE
+                                </span>
+                                <span className="font-black text-xs sm:text-sm uppercase text-slate-900 dark:text-slate-100 leading-snug">
+                                  {rubric.capacity}
+                                </span>
+                              </div>
+
+                              {/* Linha 2: Critérios */}
+                              <div className="flex items-start gap-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-700/80">
+                                <span className="px-2.5 py-1 rounded-md bg-slate-700 dark:bg-slate-700 text-slate-100 dark:text-slate-200 font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs">
+                                  CRITÉRIOS
+                                </span>
+                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed pt-0.5">
+                                  {rubric.criteria || rubric.criterios || "Avaliação da capacidade técnica e metodológica conforme padrões normativos, segurança e qualidade operacional."}
+                                </p>
+                              </div>
+                            </div>
+
                             {isAdmin && (
-                              <div className="flex items-center gap-1 shrink-0">
+                              <div className="flex items-center gap-1 shrink-0 self-start md:self-center">
                                 <button
                                   onClick={() => handleOpenAddRubric(idx)}
                                   className="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-black"
@@ -3794,6 +3821,19 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 />
               </div>
 
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Critérios de Desempenho / Avaliação
+                </label>
+                <textarea
+                  rows={2}
+                  value={rubricForm.criteria || ""}
+                  onChange={(e) => setRubricForm({ ...rubricForm, criteria: e.target.value })}
+                  placeholder="Ex: Interpretação exata de projeções, cálculo de afastamentos limites ISO 286 e normas de segurança..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
               {/* NSA */}
               <div>
                 <label className="block text-[10px] font-black uppercase text-red-600 mb-1">
@@ -5165,10 +5205,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               onClick={(e) => e.stopPropagation()}
                               className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer shrink-0"
                             />
-                            <div className="flex-1 min-w-0">
-                              <h5 className="font-black text-xs text-slate-900 dark:text-white leading-snug">
-                                {rubric.capacity}
-                              </h5>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-1.5 py-0.5 rounded bg-blue-600 text-white font-black text-[9px] uppercase tracking-wider">
+                                  CAPACIDADE
+                                </span>
+                                <h5 className="font-black text-xs text-slate-900 dark:text-white leading-snug">
+                                  {rubric.capacity}
+                                </h5>
+                              </div>
+                              {(rubric.criteria || rubric.criterios) && (
+                                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                                  <span className="font-bold text-slate-700 dark:text-slate-200">Critérios:</span> {rubric.criteria || rubric.criterios}
+                                </p>
+                              )}
                             </div>
                           </div>
 
