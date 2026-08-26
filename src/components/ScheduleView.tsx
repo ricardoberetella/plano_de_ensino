@@ -153,6 +153,100 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     ucColor: UcColorConfig;
   }
 
+  // Helper to determine if a lesson belongs strictly to the selected teacher profile
+  const isLessonForTeacher = (
+    lesson: LessonPlanItem,
+    unit: ProgrammaticUnit,
+    isoDate: string,
+    targetProfessor: "Prof. Ricardo Beretella" | "Prof. Ricardo Gea",
+    semester: "1º SEMESTRE" | "2º SEMESTRE"
+  ): boolean => {
+    const isTargetBeretella = targetProfessor === "Prof. Ricardo Beretella";
+    const isTargetGea = targetProfessor === "Prof. Ricardo Gea";
+
+    // 1. Explicit professor field check on lesson
+    if (lesson.professor && lesson.professor.trim()) {
+      const profLower = lesson.professor.toLowerCase();
+      if (profLower.includes("ambos") || profLower.includes("compartilhada")) {
+        return true;
+      }
+      if (isTargetBeretella) {
+        if (profLower.includes("beretella")) return true;
+        if (profLower.includes("gea")) return false;
+      }
+      if (isTargetGea) {
+        if (profLower.includes("gea")) return true;
+        if (profLower.includes("beretella")) return false;
+      }
+    }
+
+    // 2. Check lesson.id for generated teacher slug
+    if (lesson.id) {
+      const idLower = lesson.id.toLowerCase();
+      if (idLower.includes("-beretella-")) {
+        return isTargetBeretella;
+      }
+      if (idLower.includes("-gea-")) {
+        return isTargetGea;
+      }
+    }
+
+    // 3. Stage / Turma check (e.g. for FUSI in 1º Semestre)
+    const stageTurma = ((lesson as any).stageTurma || (lesson as any).stageTitle || "").toLowerCase();
+    if (stageTurma) {
+      if (stageTurma.includes("turma a") || stageTurma.includes("etapa 1") || stageTurma.includes("etapa 3")) {
+        return isTargetBeretella;
+      }
+      if (stageTurma.includes("turma b") || stageTurma.includes("etapa 2") || stageTurma.includes("etapa 4")) {
+        return isTargetGea;
+      }
+    }
+
+    // 4. Verification against official weekly timetable rules for this day of week & UC
+    const ucAcronym = getAcronym(unit);
+    const dateObj = new Date(isoDate + "T12:00:00");
+    let dayOfWeek = dateObj.getDay(); // 0=Dom, 1=Seg... 6=Sáb
+
+    // Check school event overrides (balanceamento ou compensação)
+    const ev = schoolEvents.find((e) => e.date === isoDate);
+    if (ev) {
+      if (ev.type === "balanceamento" && ev.balanceForDayOfWeek) {
+        dayOfWeek = ev.balanceForDayOfWeek;
+      } else if (ev.type === "compensacao" && ev.balanceForDayOfWeek) {
+        dayOfWeek = ev.balanceForDayOfWeek;
+      }
+    }
+
+    // Check if the current professor has a rule for this day, semester & UC
+    const matchingRulesForTarget = teacherRules.filter(
+      (r) =>
+        r.professor === targetProfessor &&
+        r.semester === semester &&
+        r.dayOfWeek === dayOfWeek &&
+        (r.ucAcronym === ucAcronym || ucAcronym.includes(r.ucAcronym) || r.ucAcronym.includes(ucAcronym))
+    );
+
+    if (matchingRulesForTarget.length > 0) {
+      return true;
+    }
+
+    // Check if the other professor has a rule for this day, semester & UC (if so, exclude)
+    const otherProfessor = isTargetBeretella ? "Prof. Ricardo Gea" : "Prof. Ricardo Beretella";
+    const matchingRulesForOther = teacherRules.filter(
+      (r) =>
+        r.professor === otherProfessor &&
+        r.semester === semester &&
+        r.dayOfWeek === dayOfWeek &&
+        (r.ucAcronym === ucAcronym || ucAcronym.includes(r.ucAcronym) || r.ucAcronym.includes(ucAcronym))
+    );
+
+    if (matchingRulesForOther.length > 0) {
+      return false;
+    }
+
+    return false;
+  };
+
   // Filter semester units strictly
   const semesterUnits = units.filter((u) => {
     const ac = getAcronym(u);
@@ -194,17 +288,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       if (selectedSemester === "1º SEMESTRE" && !isFirstSemesterDate) return;
       if (selectedSemester === "2º SEMESTRE" && isFirstSemesterDate) return;
 
-      // Filter by teacher profile if lesson has professor specified
-      if (lesson.professor) {
-        const profLower = lesson.professor.toLowerCase();
-        if (!profLower.includes(profKeyword) && !profLower.includes("ambos")) return;
-      } else {
-        const isBeretella = profKeyword.includes("beretella");
-        const isGea = profKeyword.includes("gea");
-        const stageTurma = (lesson as any).stageTurma;
-        if (isBeretella && stageTurma === "Turma B") return;
-        if (isGea && stageTurma === "Turma A") return;
-      }
+      // Filter strictly by selected professor
+      const belongsToProfessor = isLessonForTeacher(
+        lesson,
+        unit,
+        iso,
+        selectedProfessorFilter,
+        selectedSemester
+      );
+      if (!belongsToProfessor) return;
 
       if (!masterDateMap[iso]) masterDateMap[iso] = [];
       const alreadyExists = masterDateMap[iso].some(
@@ -233,15 +325,32 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       if (selectedSemester === "1º SEMESTRE" && !isFirstSemesterDate) return;
       if (selectedSemester === "2º SEMESTRE" && isFirstSemesterDate) return;
 
-      if (item.professor) {
-        if (!item.professor.toLowerCase().includes(profKeyword)) return;
-      }
-
       const unitMatch = units.find(
         (u) =>
           getAcronym(u) === (item.unit || "").toUpperCase() ||
           (u.unitTitle && item.topic && item.topic.includes(u.unitTitle))
       );
+
+      const fakeLesson: LessonPlanItem = {
+        id: `sched-lesson-${item.id}`,
+        date: item.date,
+        hours: "4h",
+        capacities: "Desenvolvimento técnico e teórico",
+        conhecimentos: item.topic,
+        estrategias: item.activities || "Aula expositiva dialogada e prática orientada",
+        recursos: item.notes || "Quadro, projetor, máquinas e ferramentas",
+        professor: item.professor || "",
+        status: (item.status === "cancelada" ? "planejada" : item.status) as any,
+      };
+
+      const belongsToProfessor = isLessonForTeacher(
+        fakeLesson,
+        unitMatch || { id: "u-tmp", unitTitle: item.unit || "UC", objective: "", topics: [] },
+        iso,
+        selectedProfessorFilter,
+        selectedSemester
+      );
+      if (!belongsToProfessor) return;
 
       const ucAcronym = item.unit || (unitMatch ? getAcronym(unitMatch) : "AULA");
       const ucColor = getAcronymColor(ucAcronym);
@@ -262,16 +371,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
         masterDateMap[iso].push({
           unit: fallbackUnit,
-          lesson: {
-            id: `sched-lesson-${item.id}`,
-            date: item.date,
-            hours: "4h",
-            capacities: "Desenvolvimento técnico e teórico",
-            conhecimentos: item.topic,
-            estrategias: item.activities || "Aula expositiva dialogada e prática orientada",
-            recursos: item.notes || "Quadro, projetor, máquinas e ferramentas",
-            professor: item.professor || selectedProfessorFilter,
-          },
+          lesson: fakeLesson,
           ucAcronym,
           ucColor,
         });
@@ -289,21 +389,47 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     const matchesType = selectedTypeFilter === "todos" || item.type === selectedTypeFilter;
     const matchesStatus = selectedStatusFilter === "todos" || item.status === selectedStatusFilter;
 
-    // Filter by professor
-    let matchesProf = true;
-    if (item.professor) {
-      matchesProf = item.professor.toLowerCase().includes(profKeyword);
-    }
-
-    // Filter by semester
+    // Filter strictly by semester
     let matchesSem = true;
+    let iso = "";
     if (item.date) {
-      const iso = parseDateToISO(item.date);
+      iso = parseDateToISO(item.date) || "";
       if (iso) {
         const m = parseInt(iso.split("-")[1], 10) - 1;
         if (selectedSemester === "1º SEMESTRE" && m >= 6) matchesSem = false;
         if (selectedSemester === "2º SEMESTRE" && m < 6) matchesSem = false;
       }
+    }
+
+    // Filter strictly by professor
+    let matchesProf = false;
+    if (iso) {
+      const unitMatch = units.find(
+        (u) =>
+          getAcronym(u) === (item.unit || "").toUpperCase() ||
+          (u.unitTitle && item.topic && item.topic.includes(u.unitTitle))
+      );
+      matchesProf = isLessonForTeacher(
+        {
+          id: item.id,
+          date: item.date,
+          hours: "4h",
+          capacities: "",
+          conhecimentos: item.topic,
+          estrategias: "",
+          recursos: "",
+          professor: item.professor || "",
+          status: (item.status === "cancelada" ? "planejada" : item.status) as any,
+        },
+        unitMatch || { id: "u-tmp", unitTitle: item.unit || "UC", objective: "", topics: [] },
+        iso,
+        selectedProfessorFilter,
+        selectedSemester
+      );
+    } else if (item.professor) {
+      matchesProf = item.professor.toLowerCase().includes(profKeyword);
+    } else {
+      matchesProf = true;
     }
 
     return matchesSearch && matchesType && matchesStatus && matchesProf && matchesSem;
