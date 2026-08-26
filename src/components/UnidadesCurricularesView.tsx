@@ -639,6 +639,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     estrategias: "",
     recursos: "Laboratório / Oficina de Usinagem, ferramentas e EPIs",
     capacities: "Demonstrar conhecimento técnico e visão operacional",
+    criteriosAvaliacao: "",
+    instrumentosAvaliacao: "",
     stageId: "",
   });
 
@@ -658,6 +660,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       estrategias: "Apresentação expositiva dialogada e prática supervisionada em oficina.",
       recursos: "Máquinas, ferramentas de usinagem, paquímetro e EPIs.",
       capacities: "Demonstrar responsabilidade e autocontrole operacional.",
+      criteriosAvaliacao: "Atendimento às tolerâncias dimensionais, normas de segurança NR-12 e acabamento superficial.",
+      instrumentosAvaliacao: "Observação direta em oficina, ficha de autoinspeção e folha de processo.",
       stageId: preselectedStageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
     });
     setIsLessonModalOpen(true);
@@ -679,6 +683,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       estrategias: referenceLesson.estrategias || "Apresentação expositiva dialogada e prática supervisionada em oficina.",
       recursos: referenceLesson.recursos || "Máquinas, ferramentas de usinagem, paquímetro e EPIs.",
       capacities: referenceLesson.capacities || "Demonstrar responsabilidade e autocontrole operacional.",
+      criteriosAvaliacao: referenceLesson.criteriosAvaliacao || "",
+      instrumentosAvaliacao: referenceLesson.instrumentosAvaliacao || "",
       stageId: referenceLesson.stageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
     });
     setIsLessonModalOpen(true);
@@ -700,6 +706,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       estrategias: referenceLesson.estrategias || "",
       recursos: referenceLesson.recursos || "",
       capacities: referenceLesson.capacities || "",
+      criteriosAvaliacao: referenceLesson.criteriosAvaliacao || "",
+      instrumentosAvaliacao: referenceLesson.instrumentosAvaliacao || "",
       stageId: referenceLesson.stageId || selectedStageId || (currentUnit?.stages?.[0]?.id || ""),
     });
     setIsLessonModalOpen(true);
@@ -739,10 +747,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   date: lessonForm.date || item.date,
                   hours: lessonForm.hours || item.hours,
                   professor: profName,
-                  conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
-                  estrategias: lessonForm.estrategias || item.estrategias,
-                  recursos: lessonForm.recursos || item.recursos,
-                  capacities: lessonForm.capacities || item.capacities,
+                  conhecimentos: lessonForm.conhecimentos !== undefined ? lessonForm.conhecimentos : item.conhecimentos,
+                  estrategias: lessonForm.estrategias !== undefined ? lessonForm.estrategias : item.estrategias,
+                  recursos: lessonForm.recursos !== undefined ? lessonForm.recursos : item.recursos,
+                  capacities: lessonForm.capacities !== undefined ? lessonForm.capacities : item.capacities,
+                  criteriosAvaliacao: lessonForm.criteriosAvaliacao !== undefined ? lessonForm.criteriosAvaliacao : (item.criteriosAvaliacao || ""),
+                  instrumentosAvaliacao: lessonForm.instrumentosAvaliacao !== undefined ? lessonForm.instrumentosAvaliacao : (item.instrumentosAvaliacao || ""),
                   stageId: st.id,
                   stageTitle: st.title,
                   stageTurma: st.turma,
@@ -760,6 +770,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
             estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
             recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
             capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
+            criteriosAvaliacao: lessonForm.criteriosAvaliacao || "",
+            instrumentosAvaliacao: lessonForm.instrumentosAvaliacao || "",
             stageId: st.id,
             stageTitle: st.title,
             stageTurma: st.turma,
@@ -807,10 +819,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 date: lessonForm.date || item.date,
                 hours: lessonForm.hours || item.hours,
                 professor: profName,
-                conhecimentos: lessonForm.conhecimentos || item.conhecimentos,
-                estrategias: lessonForm.estrategias || item.estrategias,
-                recursos: lessonForm.recursos || item.recursos,
-                capacities: lessonForm.capacities || item.capacities,
+                conhecimentos: lessonForm.conhecimentos !== undefined ? lessonForm.conhecimentos : item.conhecimentos,
+                estrategias: lessonForm.estrategias !== undefined ? lessonForm.estrategias : item.estrategias,
+                recursos: lessonForm.recursos !== undefined ? lessonForm.recursos : item.recursos,
+                capacities: lessonForm.capacities !== undefined ? lessonForm.capacities : item.capacities,
+                criteriosAvaliacao: lessonForm.criteriosAvaliacao !== undefined ? lessonForm.criteriosAvaliacao : (item.criteriosAvaliacao || ""),
+                instrumentosAvaliacao: lessonForm.instrumentosAvaliacao !== undefined ? lessonForm.instrumentosAvaliacao : (item.instrumentosAvaliacao || ""),
               }
             : item
         );
@@ -824,6 +838,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
           estrategias: lessonForm.estrategias || "Prática em bancada e oficina.",
           recursos: lessonForm.recursos || "Ferramentas manuais e máquinas.",
           capacities: lessonForm.capacities || "Demonstrar visão sistêmica.",
+          criteriosAvaliacao: lessonForm.criteriosAvaliacao || "",
+          instrumentosAvaliacao: lessonForm.instrumentosAvaliacao || "",
         };
 
         nextList = [...currentList];
@@ -1597,6 +1613,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       item &&
       (((item.conhecimentos || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
         ((item.estrategias || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
+        ((item.recursos || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
+        ((item.criteriosAvaliacao || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
+        ((item.instrumentosAvaliacao || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
         ((item.date || "").toString().includes(lessonPlanSearch)) ||
         ((item.professor || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())) ||
         ((item.capacities || "").toString().toLowerCase().includes(lessonPlanSearch.toLowerCase())))
@@ -2548,7 +2567,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               (item.estrategias || "").toLowerCase().includes(q) ||
                               (item.date || "").includes(q) ||
                               (item.capacities || "").toLowerCase().includes(q) ||
-                              (item.recursos || "").toLowerCase().includes(q);
+                              (item.recursos || "").toLowerCase().includes(q) ||
+                              (item.criteriosAvaliacao || "").toLowerCase().includes(q) ||
+                              (item.instrumentosAvaliacao || "").toLowerCase().includes(q);
                             if (!matchSearch) return false;
                           }
 
@@ -2632,6 +2653,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     <th className="p-4">Conhecimentos</th>
                                     <th className="p-4">Estratégias</th>
                                     <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
+                                    <th className="p-4">Critérios de Avaliação</th>
+                                    <th className="p-4">Instrumentos de Avaliação</th>
                                     <th className="p-3 w-28 text-center">Ações</th>
                                   </tr>
                                 </thead>
@@ -2686,7 +2709,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                             {lesson.recursos}
                                           </td>
 
-                                          {/* 6. Ações */}
+                                          {/* 6. Critérios de Avaliação */}
+                                          <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                            {renderFormattedText(lesson.criteriosAvaliacao || "-")}
+                                          </td>
+
+                                          {/* 7. Instrumentos de Avaliação */}
+                                          <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                            {renderFormattedText(lesson.instrumentosAvaliacao || "-")}
+                                          </td>
+
+                                          {/* 8. Ações */}
                                           <td className="p-2 text-center whitespace-nowrap align-top">
                                             <div className="flex flex-col items-center justify-center gap-1.5">
                                               <button
@@ -2744,7 +2777,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     })
                                   ) : (
                                     <tr>
-                                      <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
+                                      <td colSpan={8} className="p-8 text-center text-slate-400 font-bold italic">
                                         Nenhuma aula encontrada para o filtro aplicado.
                                       </td>
                                     </tr>
@@ -2782,7 +2815,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                 (item.estrategias || "").toLowerCase().includes(q) ||
                                 (item.date || "").includes(q) ||
                                 (item.capacities || "").toLowerCase().includes(q) ||
-                                (item.recursos || "").toLowerCase().includes(q);
+                                (item.recursos || "").toLowerCase().includes(q) ||
+                                (item.criteriosAvaliacao || "").toLowerCase().includes(q) ||
+                                (item.instrumentosAvaliacao || "").toLowerCase().includes(q);
                               if (!matchSearch) return false;
                             }
 
@@ -2866,6 +2901,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                       <th className="p-4">Conhecimentos</th>
                                       <th className="p-4">Estratégias</th>
                                       <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
+                                      <th className="p-4">Critérios de Avaliação</th>
+                                      <th className="p-4">Instrumentos de Avaliação</th>
                                       <th className="p-3 w-28 text-center">Ações</th>
                                     </tr>
                                   </thead>
@@ -2918,7 +2955,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                               {lesson.recursos}
                                             </td>
 
-                                            {/* 6. Ações */}
+                                            {/* 6. Critérios de Avaliação */}
+                                            <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                              {renderFormattedText(lesson.criteriosAvaliacao || "-")}
+                                            </td>
+
+                                            {/* 7. Instrumentos de Avaliação */}
+                                            <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                              {renderFormattedText(lesson.instrumentosAvaliacao || "-")}
+                                            </td>
+
+                                            {/* 8. Ações */}
                                             <td className="p-2 text-center whitespace-nowrap align-top">
                                               <div className="flex flex-col items-center justify-center gap-1.5">
                                                 <button
@@ -2976,7 +3023,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                       })
                                     ) : (
                                       <tr>
-                                        <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
+                                        <td colSpan={8} className="p-8 text-center text-slate-400 font-bold italic">
                                           Nenhuma aula cadastrada nesta etapa ({stage.turma}).
                                         </td>
                                       </tr>
@@ -3000,6 +3047,8 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <th className="p-4">Conhecimentos</th>
                             <th className="p-4">Estratégias</th>
                             <th className="p-4 hidden md:table-cell">Recursos/Ambientes</th>
+                            <th className="p-4">Critérios de Avaliação</th>
+                            <th className="p-4">Instrumentos de Avaliação</th>
                             <th className="p-3 w-28 text-center">Ações</th>
                           </tr>
                         </thead>
@@ -3047,7 +3096,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                     {lesson.recursos}
                                   </td>
 
-                                  {/* 6. Ações */}
+                                  {/* 6. Critérios de Avaliação */}
+                                  <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                    {renderFormattedText(lesson.criteriosAvaliacao || "-")}
+                                  </td>
+
+                                  {/* 7. Instrumentos de Avaliação */}
+                                  <td className="p-4 text-slate-700 dark:text-slate-200 font-medium leading-relaxed align-top">
+                                    {renderFormattedText(lesson.instrumentosAvaliacao || "-")}
+                                  </td>
+
+                                  {/* 8. Ações */}
                                   <td className="p-2 text-center whitespace-nowrap align-top">
                                     <div className="flex flex-col items-center justify-center gap-1.5">
                                       <button
@@ -3105,7 +3164,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             })
                           ) : (
                             <tr>
-                              <td colSpan={6} className="p-8 text-center text-slate-400 font-bold italic">
+                              <td colSpan={8} className="p-8 text-center text-slate-400 font-bold italic">
                                 Nenhuma aula encontrada para o filtro.
                               </td>
                             </tr>
@@ -3600,6 +3659,34 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   value={lessonForm.recursos || ""}
                   onChange={(e) => setLessonForm({ ...lessonForm, recursos: e.target.value })}
                   placeholder="Ex: Oficina de Usinagem / Laboratório SENAI, máquinas operatrizes, ferramentas de corte, instrumentos de medição"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* 5. Critérios de Avaliação */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Critérios de Avaliação
+                </label>
+                <textarea
+                  rows={2}
+                  value={lessonForm.criteriosAvaliacao || ""}
+                  onChange={(e) => setLessonForm({ ...lessonForm, criteriosAvaliacao: e.target.value })}
+                  placeholder="Ex: Avaliação formativa continuada de acordo com as normas técnicas de segurança e tolerâncias dimensionais..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* 6. Instrumentos de Avaliação */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                  Instrumentos de Avaliação
+                </label>
+                <textarea
+                  rows={2}
+                  value={lessonForm.instrumentosAvaliacao || ""}
+                  onChange={(e) => setLessonForm({ ...lessonForm, instrumentosAvaliacao: e.target.value })}
+                  placeholder="Ex: Folha de processo, Lista de checagem/Rubrica de desempenho, Relatório técnico..."
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
