@@ -78,7 +78,8 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Realizar operações de baixa complexidade em torno convencional",
+        capacity: "Realizar operações fundamentais e de baixa complexidade em torno convencional",
+        criteria: "Execução correta do faceamento, desbaste cilíndrico escalonado, furação de centro e chanfros com atendimento às tolerâncias dimensionais e normas de segurança (NR-12).",
         nsa: "Não consegue executar as operações básicas no torno de forma satisfatória ou segura, mesmo com apoio e demonstrações constantes.",
         apo: "Tenta operar a máquina, mas demonstra insegurança e comete erros frequentes de posicionamento e avanço, necessitando de intervenção constante.",
         par: "Opera o torno e executa as operações, mas precisa de orientação pontual do docente para corrigir a técnica, ajustar a máquina ou atingir a tolerância.",
@@ -86,6 +87,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       },
       {
         capacity: "Controlar a qualidade das peças usinadas",
+        criteria: "Utilização correta e segura de paquímetro e micrômetro externo, interpretação de desenhos técnicos e preenchimento fidedigno da folha de autoinspeção dimensional.",
         nsa: "Não consegue realizar as medições de forma correta ou preencher a ficha de controle, mesmo com o apoio direto do docente.",
         apo: "Tenta realizar as medições, mas demonstra dificuldade na leitura dos instrumentos e no preenchimento da ficha, exigindo acompanhamento constante.",
         par: "Realiza o controle dimensional, mas necessita de auxílio pontual para manusear o micrômetro ou para interpretar alguma tolerância especificada.",
@@ -93,13 +95,15 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       },
       {
         capacity: "Zelar pelo uso de equipamentos, instrumentos, ferramentas e materiais",
+        criteria: "Cumprimento rigoroso dos preceitos de 5S, uso contínuo de EPIs (NR-06), acondicionamento adequado de ferramentas e descarte seletivo de cavacos e óleos.",
         nsa: "Danifica ferramentas ou instrumentos por mau uso ou não demonstra qualquer cuidado com os recursos da oficina, mesmo após repetidas orientações.",
         apo: "Manuseia os equipamentos de forma descuidada, deixando ferramentas em locais inadequados ou não realizando a limpeza, necessitando de intervenção constante.",
         par: "Manuseia os equipamentos de forma adequada na maior parte do tempo, mas requer lembretes pontuais sobre a limpeza ou guarda de algum item.",
         aut: "Manuseia todos os equipamentos, ferramentas e instrumentos com o máximo cuidado, limpando-os e guardando-os corretamente por iniciativa própria.",
       },
       {
-        capacity: "Demonstrar visão sistêmica",
+        capacity: "Demonstrar visão sistêmica no processo de fabricação mecânica",
+        criteria: "Compreensão da relação dimensional e geométrica entre os componentes montados (intercambialidade), identificando causas de desvios e propondo correções operacionais.",
         nsa: "Não consegue compreender a relação entre as peças ou a importância da sua tarefa para o produto final, mesmo com o conjunto montado para análise.",
         apo: "Foca apenas na execução da sua peça, demonstrando dificuldade em entender como ela irá interagir com as outras, necessitando de explicações constantes.",
         par: "Compreende que as peças se montarão, mas precisa de questionamentos para relacionar a precisão dimensional com a funcionalidade do conjunto.",
@@ -189,6 +193,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     rubrics: [
       {
         capacity: "Leitura de Cotas e Tolerâncias ISO",
+        criteria: "Interpretação exata de projeções ortogonais no 1º diedro, cálculo de afastamentos limites ISO 286 (H7/g6), simbologia GD&T e indicação de rugosidade Ra.",
         nsa: "Erros graves na conversão de tolerâncias e confusão de afastamentos.",
         apo: "Necessitou de intervenção para calcular limites máximo e mínimo.",
         par: "Calculou afastamentos corretamente com pequenos desvios de notação.",
@@ -258,7 +263,8 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Leitura no Micrômetro Externo",
+        capacity: "Leitura no Micrômetro Externo e Instrumentos de Precisão",
+        criteria: "Manuseio correto do instrumento, eliminação de erro de paralaxe, aplicação adequada da força na catraca sensível e emissão de laudo metrológico com exatidão.",
         nsa: "Erros de leitura de tambor e aplicação de pressão excessiva na catraca.",
         apo: "Leitura correta com auxílio na interpolação centesimal.",
         par: "Leitura precisa com ligeira demora no ajuste do instrumento.",
@@ -327,7 +333,8 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Cálculo de Trigonometria para Cones",
+        capacity: "Cálculo de Trigonometria para Cones e Parâmetros de Corte",
+        criteria: "Resolução correta das fórmulas trigonométricas de inclinação do carro superior, cálculo de rotação (RPM) e tempo de usinagem com validação lógica.",
         nsa: "Fórmula incorreta ou erro no uso de funções trigonométricas.",
         apo: "Aplicou a fórmula correta sob orientação e conferência dos passos.",
         par: "Calculou o ângulo com precisão com pequena demora na conversão decimal.",
@@ -396,7 +403,8 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Seleção e Justificativa de Materiais",
+        capacity: "Seleção e Justificativa de Materiais e Tratamentos Térmicos",
+        criteria: "Classificação correta dos aços SAE/ABNT, correlação entre teor de carbono, microestrutura, dureza pós-têmpera e ensaios mecânicos de validação.",
         nsa: "Indicação incoerente do material sem considerar propriedades mecânicas.",
         apo: "Selecionou o material correto mediante direcionamento nos catálogos.",
         par: "Justificou a escolha técnica com boa argumentação e pequenos detalhes pendentes.",
@@ -480,28 +488,32 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Usinagem de Roscas e Canais no Torno",
+        capacity: "Usinagem de Roscas e Canais no Torno Mecânico",
+        criteria: "Cálculo e ajuste do engate do fuso de rosca, penetração oblíqua da ferramenta 60°/55°, conferência com pente/calibrador e abertura de canais DIN 471.",
         nsa: "Passo de rosca incorreto ou colisão de ferramenta na saída de canal.",
         apo: "Rosqueou com acompanhamento constante no engate do relógio de rosca.",
         par: "Rosqueou com autonomia e bom acabamento superficial.",
         aut: "Rosqueamento impecável, encaixe perfeito no calibrador e zero retrabalho.",
       },
       {
-        capacity: "Fresamento e Alinhamento em Fresadora",
+        capacity: "Fresamento e Alinhamento em Fresadora Ferramenteira",
+        criteria: "Alinhamento centesimal da morsa com relógio comparador, esquadrejamento das faces com cabeçote faceador e fresagem de rasgos de chaveta com precisão.",
         nsa: "Profundidade de canal fora do desenho e rebarbas acentuadas.",
         apo: "Esquadrejou o bloco sob orientação nos sentidos de corte concordante/discordante.",
         par: "Fresou dentro das tolerâncias com bom aproveitamento de tempo.",
         aut: "Alinhamento perfeito com relógio comparador e acabamento espelhado.",
       },
       {
-        capacity: "Operação em Retificadoras e Balanceamento",
+        capacity: "Operação em Retificadoras e Balanceamento de Rebolos",
+        criteria: "Execução segura do balanceamento em flanges, dressagem diamantada uniforme, controle térmico com refrigeração e obtenção de tolerância h6 e paralelismo.",
         nsa: "Não realiza o balanceamento do rebolo com segurança ou comete erros dimensionais severos.",
         apo: "Opera a retificadora com auxílio e acompanhamento contínuo do docente.",
         par: "Executa retificação e balanceamento de forma autônoma com pequenos ajustes de acabamento.",
         aut: "Executa retificação de precisão com perfeito acabamento superficial e paralelismo micrométrico.",
       },
       {
-        capacity: "Controle Dimensional e Autoinspeção",
+        capacity: "Controle Dimensional, Geométrico e Autoinspeção",
+        criteria: "Inspeção dimensional rigorosa com micrômetro milesimal e relógio apalpador, autoavaliação por rubricas e montagem com torque e alinhamento adequados.",
         nsa: "Não utiliza corretamente micrômetros ou paquímetros para controle dimensional.",
         apo: "Realiza medições com dificuldade de leitura na escala centesimal.",
         par: "Realiza o controle dimensional com precisão, preenchendo a ficha técnica de autoinspeção.",
@@ -592,7 +604,8 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
     },
     rubrics: [
       {
-        capacity: "Medição de Rugosidade e Parâmetros Ra",
+        capacity: "Medição de Rugosidade e Parâmetros Ra/Rz",
+        criteria: "Calibração e configuração do cut-off no rugosímetro digital, posicionamento correto da ponta apalpadora, leitura e emissão do laudo de rugosidade.",
         nsa: "Configuração incorreta do cut-off ou posicionamento inadequado do apalpador.",
         apo: "Operou o rugosímetro mediante confirmação prévia dos parâmetros pelo docente.",
         par: "Executou a medição com autonomia registrando valores coerentes.",
