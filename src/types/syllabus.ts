@@ -51,6 +51,8 @@ export interface LessonPlanItem {
   conhecimentos: string;
   estrategias: string;
   recursos: string;
+  criteriosAvaliacao?: string;
+  instrumentosAvaliacao?: string;
   professor?: string; // "Prof. Ricardo Beretella" | "Prof. Ricardo Gea"
   status?: "planejada" | "concluida" | "reagendada";
   stageId?: string;
