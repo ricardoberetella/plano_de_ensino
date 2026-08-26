@@ -132,9 +132,11 @@ export function generateSyllabusSchedule(
             ucProfAccumulatedHours[profKey] = currentHours + hoursToAdd;
             ucProfLessonCounters[profKey] = currentCount;
 
-            // Find template lesson from stages or unit template
+            // Find template lesson from unit lessonPlan or stages
             let templateLesson: LessonPlanItem | undefined = undefined;
-            if (currentUnitObj.stages && currentUnitObj.stages.length > 0) {
+            if (currentUnitObj.lessonPlan && currentUnitObj.lessonPlan.length > 0) {
+              templateLesson = currentUnitObj.lessonPlan[(currentCount - 1) % currentUnitObj.lessonPlan.length];
+            } else if (currentUnitObj.stages && currentUnitObj.stages.length > 0) {
               const allStageLessons = currentUnitObj.stages.flatMap((st) => st.lessonPlan || []);
               if (allStageLessons.length > 0) {
                 templateLesson = allStageLessons[(currentCount - 1) % allStageLessons.length];
