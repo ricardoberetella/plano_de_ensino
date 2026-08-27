@@ -75,6 +75,7 @@ export const TEACHER_SCHEDULE_RULES: TeacherWeeklyRule[] = [
   { professor: "Prof. Ricardo Beretella", semester: "2º SEMESTRE", dayOfWeek: 5, ucAcronym: "PRUSC", hours: "4h" },
 
   // 2º SEMESTRE - PROF. RICARDO GEA
-  { professor: "Prof. Ricardo Gea", semester: "2º SEMESTRE", dayOfWeek: 3, ucAcronym: "MINDU", hours: "4h" },
+  { professor: "Prof. Ricardo Gea", semester: "2º SEMESTRE", dayOfWeek: 2, ucAcronym: "MINDU", hours: "4h" },
+  { professor: "Prof. Ricardo Gea", semester: "2º SEMESTRE", dayOfWeek: 1, ucAcronym: "PRUSC", hours: "4h" },
   { professor: "Prof. Ricardo Gea", semester: "2º SEMESTRE", dayOfWeek: 4, ucAcronym: "PRUSC", hours: "4h" },
 ];
