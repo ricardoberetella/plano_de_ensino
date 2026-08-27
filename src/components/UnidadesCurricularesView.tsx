@@ -338,76 +338,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // 1. TOPICS (CONHECIMENTOS) MODAL STATE
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
-  const [topicCategory, setTopicCategory] = useState<
-    "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
-  >("general");
+  const [topicCategory, setTopicCategory] = useState<"general">("general");
   const [topicModalText, setTopicModalText] = useState("");
 
-  const isCurrentFUSI = getStandardUcKey(currentUnit || {}) === "FUSI" || currentUnit?.acronym?.toUpperCase() === "FUSI";
-
-  const fusiBasicTorneamento: string[] =
-    currentUnit?.basicCapacitiesTorneamento && currentUnit.basicCapacitiesTorneamento.length > 0
-      ? currentUnit.basicCapacitiesTorneamento
-      : defaultMatchingUnit?.basicCapacitiesTorneamento || [];
-
-  const fusiBasicFresagem: string[] =
-    currentUnit?.basicCapacitiesFresagem && currentUnit.basicCapacitiesFresagem.length > 0
-      ? currentUnit.basicCapacitiesFresagem
-      : defaultMatchingUnit?.basicCapacitiesFresagem || [];
-
-  const fusiTechTorneamento: string[] =
-    currentUnit?.technicalCapacitiesTorneamento && currentUnit.technicalCapacitiesTorneamento.length > 0
-      ? currentUnit.technicalCapacitiesTorneamento
-      : defaultMatchingUnit?.technicalCapacitiesTorneamento || [];
-
-  const fusiTechFresagem: string[] =
-    currentUnit?.technicalCapacitiesFresagem && currentUnit.technicalCapacitiesFresagem.length > 0
-      ? currentUnit.technicalCapacitiesFresagem
-      : defaultMatchingUnit?.technicalCapacitiesFresagem || [];
-
-  const fusiSocioBasicTorneamento: string[] =
-    currentUnit?.socioemotionalCapacitiesBasicTorneamento && currentUnit.socioemotionalCapacitiesBasicTorneamento.length > 0
-      ? currentUnit.socioemotionalCapacitiesBasicTorneamento
-      : defaultMatchingUnit?.socioemotionalCapacitiesBasicTorneamento || [];
-
-  const fusiSocioBasicFresagem: string[] =
-    currentUnit?.socioemotionalCapacitiesBasicFresagem && currentUnit.socioemotionalCapacitiesBasicFresagem.length > 0
-      ? currentUnit.socioemotionalCapacitiesBasicFresagem
-      : defaultMatchingUnit?.socioemotionalCapacitiesBasicFresagem || [];
-
-  const fusiSocioTechTorneamento: string[] =
-    currentUnit?.socioemotionalCapacitiesTechTorneamento && currentUnit.socioemotionalCapacitiesTechTorneamento.length > 0
-      ? currentUnit.socioemotionalCapacitiesTechTorneamento
-      : defaultMatchingUnit?.socioemotionalCapacitiesTechTorneamento || [];
-
-  const fusiSocioTechFresagem: string[] =
-    currentUnit?.socioemotionalCapacitiesTechFresagem && currentUnit.socioemotionalCapacitiesTechFresagem.length > 0
-      ? currentUnit.socioemotionalCapacitiesTechFresagem
-      : defaultMatchingUnit?.socioemotionalCapacitiesTechFresagem || [];
-
-  const fusiTopicsBasicTorneamento: string[] =
-    currentUnit?.topicsBasicTorneamento && currentUnit.topicsBasicTorneamento.length > 0
-      ? currentUnit.topicsBasicTorneamento
-      : defaultMatchingUnit?.topicsBasicTorneamento || [];
-
-  const fusiTopicsBasicFresagem: string[] =
-    currentUnit?.topicsBasicFresagem && currentUnit.topicsBasicFresagem.length > 0
-      ? currentUnit.topicsBasicFresagem
-      : defaultMatchingUnit?.topicsBasicFresagem || [];
-
-  const fusiTopicsTechTorneamento: string[] =
-    currentUnit?.topicsTechTorneamento && currentUnit.topicsTechTorneamento.length > 0
-      ? currentUnit.topicsTechTorneamento
-      : defaultMatchingUnit?.topicsTechTorneamento || [];
-
-  const fusiTopicsTechFresagem: string[] =
-    currentUnit?.topicsTechFresagem && currentUnit.topicsTechFresagem.length > 0
-      ? currentUnit.topicsTechFresagem
-      : defaultMatchingUnit?.topicsTechFresagem || [];
-
-  const handleOpenAddTopic = (
-    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem" = "general"
-  ) => {
+  const handleOpenAddTopic = (category: "general" = "general") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
@@ -418,11 +352,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsTopicModalOpen(true);
   };
 
-  const handleOpenEditTopic = (
-    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem",
-    index: number,
-    currentText: string
-  ) => {
+  const handleOpenEditTopic = (category: "general", index: number, currentText: string) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
@@ -438,23 +368,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     const text = topicModalText.trim();
     const isAdding = editingTopicIndex === null;
 
-    if (topicCategory === "basic_torneamento") {
-      const list = [...fusiTopicsBasicTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicTorneamento: nextList });
-    } else if (topicCategory === "basic_fresagem") {
-      const list = [...fusiTopicsBasicFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicFresagem: nextList });
-    } else if (topicCategory === "technical_torneamento") {
-      const list = [...fusiTopicsTechTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateCurrentUnit({ ...currentUnit, topicsTechTorneamento: nextList });
-    } else if (topicCategory === "technical_fresagem") {
-      const list = [...fusiTopicsTechFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateCurrentUnit({ ...currentUnit, topicsTechFresagem: nextList });
-    } else if (activeStage) {
+    if (activeStage) {
       const currentTopics = [...(activeStage.topics || [])];
       const nextTopics = isAdding
         ? [...currentTopics, text]
@@ -470,69 +384,28 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsTopicModalOpen(false);
   };
 
-  const handleDeleteTopic = (
-    index: number,
-    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem" = "general"
-  ) => {
+  const handleDeleteTopic = (index: number, _category: "general" = "general") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
     if (!currentUnit) return;
-
-    if (category === "basic_torneamento") {
-      const next = fusiTopicsBasicTorneamento.filter((_, i) => i !== index);
-      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicTorneamento: next });
-    } else if (category === "basic_fresagem") {
-      const next = fusiTopicsBasicFresagem.filter((_, i) => i !== index);
-      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicFresagem: next });
-    } else if (category === "technical_torneamento") {
-      const next = fusiTopicsTechTorneamento.filter((_, i) => i !== index);
-      handleUpdateCurrentUnit({ ...currentUnit, topicsTechTorneamento: next });
-    } else if (category === "technical_fresagem") {
-      const next = fusiTopicsTechFresagem.filter((_, i) => i !== index);
-      handleUpdateCurrentUnit({ ...currentUnit, topicsTechFresagem: next });
+    const currentTopics = activeTopicsList;
+    const nextTopics = currentTopics.filter((_, i) => i !== index);
+    if (activeStage) {
+      handleUpdateActiveStage({ topics: nextTopics });
     } else {
-      const currentTopics = activeTopicsList;
-      const nextTopics = currentTopics.filter((_, i) => i !== index);
-      if (activeStage) {
-        handleUpdateActiveStage({ topics: nextTopics });
-      } else {
-        handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
-      }
+      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
     }
   };
 
   // 2. CAPACITIES (BÁSICAS/TÉCNICAS E SOCIOEMOCIONAIS) MODAL STATE
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
   const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
-  const [capacityCategory, setCapacityCategory] = useState<
-    | "basic_technical"
-    | "socioemotional"
-    | "basic_torneamento"
-    | "basic_fresagem"
-    | "technical_torneamento"
-    | "technical_fresagem"
-    | "socio_basic_torneamento"
-    | "socio_basic_fresagem"
-    | "socio_tech_torneamento"
-    | "socio_tech_fresagem"
-  >("basic_technical");
+  const [capacityCategory, setCapacityCategory] = useState<"basic_technical" | "socioemotional">("basic_technical");
   const [capacityModalText, setCapacityModalText] = useState("");
 
-  const handleOpenAddCapacity = (
-    category:
-      | "basic_technical"
-      | "socioemotional"
-      | "basic_torneamento"
-      | "basic_fresagem"
-      | "technical_torneamento"
-      | "technical_fresagem"
-      | "socio_basic_torneamento"
-      | "socio_basic_fresagem"
-      | "socio_tech_torneamento"
-      | "socio_tech_fresagem"
-  ) => {
+  const handleOpenAddCapacity = (category: "basic_technical" | "socioemotional") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
@@ -544,17 +417,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   };
 
   const handleOpenEditCapacity = (
-    category:
-      | "basic_technical"
-      | "socioemotional"
-      | "basic_torneamento"
-      | "basic_fresagem"
-      | "technical_torneamento"
-      | "technical_fresagem"
-      | "socio_basic_torneamento"
-      | "socio_basic_fresagem"
-      | "socio_tech_torneamento"
-      | "socio_tech_fresagem",
+    category: "basic_technical" | "socioemotional",
     index: number,
     currentText: string
   ) => {
@@ -573,39 +436,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     const text = capacityModalText.trim();
     const isAdding = editingCapacityIndex === null;
 
-    if (capacityCategory === "basic_torneamento") {
-      const list = [...fusiBasicTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: nextList });
-    } else if (capacityCategory === "basic_fresagem") {
-      const list = [...fusiBasicFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: nextList });
-    } else if (capacityCategory === "technical_torneamento") {
-      const list = [...fusiTechTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: nextList });
-    } else if (capacityCategory === "technical_fresagem") {
-      const list = [...fusiTechFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: nextList });
-    } else if (capacityCategory === "socio_basic_torneamento") {
-      const list = [...fusiSocioBasicTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: nextList });
-    } else if (capacityCategory === "socio_basic_fresagem") {
-      const list = [...fusiSocioBasicFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: nextList });
-    } else if (capacityCategory === "socio_tech_torneamento") {
-      const list = [...fusiSocioTechTorneamento];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: nextList });
-    } else if (capacityCategory === "socio_tech_fresagem") {
-      const list = [...fusiSocioTechFresagem];
-      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
-      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: nextList });
-    } else if (activeStage) {
+    if (activeStage) {
       if (capacityCategory === "socioemotional") {
         const list = [...(activeStage.socioemotionalCapacities || [])];
         const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
@@ -644,101 +475,16 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsCapacityModalOpen(false);
   };
 
-  // 3. FUSI GENERAL TAB PROCESS SELECTOR STATE
-  const [fusiGeneralProcess, setFusiGeneralProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
-
-  // 4. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
-  const [fusiSpProcess, setFusiSpProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
-  const [editingSpTarget, setEditingSpTarget] = useState<"standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("standard");
-
-  const fusiSPBasicTorneamento: SituationProblem =
-    currentUnit?.situationProblemBasicTorneamento ||
-    defaultMatchingUnit?.situationProblemBasicTorneamento || {
-      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro",
-      contextualization: "A oficina de manutenção mecânica da Metalúrgica Paulista necessita repor um lote de eixos escalonados de acionamento em aço SAE 1020. O torneiro mecânico aprendiz deve realizar a preparação do torno convencional, seleção de ferramentas pastilhadas/HSS, cálculo de RPM e parâmetros de corte, e usinar os eixos garantindo paralelismo, faceamento plano e furações de centro seguras em conformidade com as normas de SST (NR-12).",
-      challenge: [
-        "a) Fixar o tarugo cilíndrico na placa universal de 3 castanhas com alinhamento e mínimo balanço.",
-        "b) Calcular e regular a rotação (RPM) e velocidade de corte (Vc) adequadas para desbaste e acabamento.",
-        "c) Executar faceamento das duas faces, furação de centro para apoio e torneamento dos diâmetros escalonados.",
-        "d) Executar chanfros de entrada de 1x45° e rebarbação manual com lima fina.",
-      ],
-      expectedResults: [
-        "a) Eixo escalonado usinado com tolerâncias dimensionais de ±0,1 mm e sem conicidade indesejada.",
-        "b) Furação de centro executada com broca de centro nº 2 e profundidade padronizada de 2/3 do cone.",
-        "c) Folha de autoinspeção preenchida com medições com paquímetro centesimal e 5S aplicado.",
-      ],
+  // 3. SITUATION PROBLEM (SITUAÇÃO DE APRENDIZAGEM) EDIT STATE & HANDLERS
+  const activeSituationProblem: SituationProblem =
+    activeStage?.situationProblem ||
+    currentUnit?.situationProblem ||
+    defaultMatchingUnit?.situationProblem || {
+      title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
+      contextualization: "Otimização de processos produtivos na fábrica.",
+      challenge: ["Analisar especificações técnicas e executar o plano."],
+      expectedResults: ["Relatório técnico e inspeção dimensional."],
     };
-
-  const fusiSPBasicFresagem: SituationProblem =
-    currentUnit?.situationProblemBasicFresagem ||
-    defaultMatchingUnit?.situationProblemBasicFresagem || {
-      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento",
-      contextualization: "Para a confecção de bases de fixação de dispositivos de montagem, a ferramentaria da UsiTech encomendou blocos prismáticos esquadrejados em aço SAE 1045. O operador de fresadora deve realizar a montagem do cabeçote faceador na árvore da fresadora, alinhar a morsa de precisão, definir os parâmetros de corte e usinar as 6 faces do bloco garantindo rigoroso paralelismo e perpendicularismo.",
-      challenge: [
-        "a) Limpar a mesa e fixar a morsa de precisão, posicionando calços paralelos adequados.",
-        "b) Montar o cabeçote faceador com insertos intercambiáveis e calcular RPM e avanço de mesa.",
-        "c) Executar a sequência correta de esquadrejamento das 6 faces (face 1 referência, face 2 oposta, faces perpendiculares).",
-        "d) Realizar chanframento das arestas e controle de esquadro com esquadro de precisão e paquímetro.",
-      ],
-      expectedResults: [
-        "a) Bloco prismático esquadrejado com faces paralelas e perpendiculares com desvio angular inferior a 0,05 mm.",
-        "b) Rugosidade superficial uniforme nas faces usinadas sem marcas de vibração.",
-        "c) Ficha de inspeção preenchida e limpeza das canaletas da mesa da fresadora (5S).",
-      ],
-    };
-
-  const fusiSPTechTorneamento: SituationProblem =
-    currentUnit?.situationProblemTechTorneamento ||
-    defaultMatchingUnit?.situationProblemTechTorneamento || {
-      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão",
-      contextualization: "A empresa 'AgroMaq Industrial' demanda a fabricação de um eixo de transmissão com ponta cônica e rosca externa métrica M16x2.0 para acoplamento de manípulo regulador. A peça exige torneamento de perfis cônicos por inclinação do carro superior, abertura de canais com bedame e corte de rosca triangular com ferramenta HSS 60° e passo métrico acoplado ao fuso.",
-      challenge: [
-        "a) Calcular o ângulo de inclinação (tg α) do carro superior para usinagem do cone morse/angular.",
-        "b) Abrir canal de alívio de rosca e rebaixo com bedame afiado conforme norma.",
-        "c) Regular a caixa Norton do torno para o passo métrico (2,0 mm) e posicionar ferramenta 60° com escantilhão.",
-        "d) Executar passes de penetração radial da rosca e conferir com pente de rosca e calibrador de rosca passa/não-passa.",
-      ],
-      expectedResults: [
-        "a) Eixo cônico e roscado usinado com conicidade exata verificada por goniômetro e assentamento correto.",
-        "b) Rosca métrica M16x2.0 executada com perfil limpo e engate suave no elemento fêmea de teste.",
-        "c) Autoinspeção completa das tolerâncias ISO (H7/g6) e relatório dimensional validado.",
-      ],
-    };
-
-  const fusiSPTechFresagem: SituationProblem =
-    currentUnit?.situationProblemTechFresagem ||
-    defaultMatchingUnit?.situationProblemTechFresagem || {
-      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor",
-      contextualization: "Para um dispositivo de indexação de mesa giratória, faz-se necessária a confecção de um flange de fixação com cabeça sextavada e canal de chaveta longitudinal de precisão (DIN 6885). O operador deve utilizar o aparelho divisor universal, calcular o número de voltas da manivela no disco perfurado, alinhar a morsa com relógio comparador centesimal e fresar os rasgos com fresas de topo e chaveta.",
-      challenge: [
-        "a) Alinhar a morsa e aparelho divisor na mesa da fresadora com relógio comparador (erro < 0,01 mm).",
-        "b) Calcular a divisão indireta simples (fórmula N = 40/Z) para fresagem do sextavado regular.",
-        "c) Executar a usinagem das 6 faces poligonais com fresa de topo cilíndrica com profundidade uniforme.",
-        "d) Fresar rasgo de chaveta com fresa de canal com tolerância centesimal de largura (P9/Js9).",
-      ],
-      expectedResults: [
-        "a) Cabeça sextavada usinada com lados perfeitamente equidistantes e simétricos.",
-        "b) Rasgo de chaveta com profundidade e largura conformes com a norma DIN 6885.",
-        "c) Verificação dimensional com súbito/micrômetro e relatório técnico de conformidade.",
-      ],
-    };
-
-  const activeSituationProblem: SituationProblem = isCurrentFUSI
-    ? fusiSpProcess === "basic_torneamento"
-      ? fusiSPBasicTorneamento
-      : fusiSpProcess === "basic_fresagem"
-      ? fusiSPBasicFresagem
-      : fusiSpProcess === "tech_torneamento"
-      ? fusiSPTechTorneamento
-      : fusiSPTechFresagem
-    : activeStage?.situationProblem ||
-      currentUnit?.situationProblem ||
-      defaultMatchingUnit?.situationProblem || {
-        title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
-        contextualization: "Otimização de processos produtivos na fábrica.",
-        challenge: ["Analisar especificações técnicas e executar o plano."],
-        expectedResults: ["Relatório técnico e inspeção dimensional."],
-      };
 
   const [isSPModalOpen, setIsSPModalOpen] = useState(false);
   const [spForm, setSPForm] = useState<SituationProblem>({
@@ -748,21 +494,12 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     expectedResults: [],
   });
 
-  const handleOpenEditSP = (targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
+  const handleOpenEditSP = () => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
-    const target = targetProcess || (isCurrentFUSI ? fusiSpProcess : "standard");
-    setEditingSpTarget(target);
-
-    let spToEdit: SituationProblem;
-    if (target === "basic_torneamento") spToEdit = fusiSPBasicTorneamento;
-    else if (target === "basic_fresagem") spToEdit = fusiSPBasicFresagem;
-    else if (target === "tech_torneamento") spToEdit = fusiSPTechTorneamento;
-    else if (target === "tech_fresagem") spToEdit = fusiSPTechFresagem;
-    else spToEdit = activeSituationProblem;
-
+    const spToEdit = activeSituationProblem;
     if (spToEdit) {
       setSPForm({
         title: spToEdit.title || "",
@@ -783,15 +520,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       expectedResults: spForm.expectedResults.map((r) => r.trim()).filter(Boolean),
     };
 
-    if (editingSpTarget === "basic_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, situationProblemBasicTorneamento: cleanedSP });
-    } else if (editingSpTarget === "basic_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, situationProblemBasicFresagem: cleanedSP });
-    } else if (editingSpTarget === "tech_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, situationProblemTechTorneamento: cleanedSP });
-    } else if (editingSpTarget === "tech_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, situationProblemTechFresagem: cleanedSP });
-    } else if (activeStage) {
+    if (activeStage) {
       handleUpdateActiveStage({ situationProblem: cleanedSP });
     } else {
       handleUpdateCurrentUnit({
@@ -804,40 +533,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   };
 
   // 4. RUBRICS EDIT STATE & HANDLERS
-  const [fusiRubricProcess, setFusiRubricProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
-  const [editingRubricTarget, setEditingRubricTarget] = useState<"standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("standard");
-
-  const fusiRubricsBasicTorneamento: RubricItem[] =
-    (currentUnit?.rubricsBasicTorneamento && currentUnit.rubricsBasicTorneamento.length > 0
-      ? currentUnit.rubricsBasicTorneamento
-      : defaultMatchingUnit?.rubricsBasicTorneamento) || [];
-
-  const fusiRubricsBasicFresagem: RubricItem[] =
-    (currentUnit?.rubricsBasicFresagem && currentUnit.rubricsBasicFresagem.length > 0
-      ? currentUnit.rubricsBasicFresagem
-      : defaultMatchingUnit?.rubricsBasicFresagem) || [];
-
-  const fusiRubricsTechTorneamento: RubricItem[] =
-    (currentUnit?.rubricsTechTorneamento && currentUnit.rubricsTechTorneamento.length > 0
-      ? currentUnit.rubricsTechTorneamento
-      : defaultMatchingUnit?.rubricsTechTorneamento) || [];
-
-  const fusiRubricsTechFresagem: RubricItem[] =
-    (currentUnit?.rubricsTechFresagem && currentUnit.rubricsTechFresagem.length > 0
-      ? currentUnit.rubricsTechFresagem
-      : defaultMatchingUnit?.rubricsTechFresagem) || [];
-
-  const activeRubricsList: RubricItem[] = isCurrentFUSI
-    ? fusiRubricProcess === "basic_torneamento"
-      ? fusiRubricsBasicTorneamento
-      : fusiRubricProcess === "basic_fresagem"
-      ? fusiRubricsBasicFresagem
-      : fusiRubricProcess === "tech_torneamento"
-      ? fusiRubricsTechTorneamento
-      : fusiRubricsTechFresagem
-    : (activeStage?.rubrics && activeStage.rubrics.length > 0
-        ? activeStage.rubrics
-        : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
+  const activeRubricsList: RubricItem[] =
+    (activeStage?.rubrics && activeStage.rubrics.length > 0
+      ? activeStage.rubrics
+      : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
 
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
   const [editingRubricIndex, setEditingRubricIndex] = useState<number | null>(null);
@@ -851,13 +550,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     aut: "",
   });
 
-  const handleOpenAddRubric = (afterIndex?: number, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
+  const handleOpenAddRubric = (afterIndex?: number) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
-    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
-    setEditingRubricTarget(target);
     setEditingRubricIndex(null);
     setInsertRubricAfterIndex(afterIndex !== undefined ? afterIndex : null);
     setRubricForm({
@@ -871,13 +568,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsRubricModalOpen(true);
   };
 
-  const handleOpenEditRubric = (index: number, rubric: RubricItem, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
+  const handleOpenEditRubric = (index: number, rubric: RubricItem) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
-    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
-    setEditingRubricTarget(target);
     setEditingRubricIndex(index);
     setInsertRubricAfterIndex(null);
     setRubricForm({
@@ -893,14 +588,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   const handleSaveRubric = () => {
     if (!currentUnit) return;
-    const target = editingRubricTarget;
-    let currentList: RubricItem[];
-    if (target === "basic_torneamento") currentList = fusiRubricsBasicTorneamento;
-    else if (target === "basic_fresagem") currentList = fusiRubricsBasicFresagem;
-    else if (target === "tech_torneamento") currentList = fusiRubricsTechTorneamento;
-    else if (target === "tech_fresagem") currentList = fusiRubricsTechFresagem;
-    else currentList = activeRubricsList;
-
+    const currentList = activeRubricsList;
     let nextList: RubricItem[];
 
     if (editingRubricIndex !== null) {
@@ -915,15 +603,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       nextList = [...currentList, { ...rubricForm }];
     }
 
-    if (target === "basic_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicTorneamento: nextList });
-    } else if (target === "basic_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicFresagem: nextList });
-    } else if (target === "tech_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechTorneamento: nextList });
-    } else if (target === "tech_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechFresagem: nextList });
-    } else if (activeStage) {
+    if (activeStage) {
       handleUpdateActiveStage({ rubrics: nextList });
     } else {
       handleUpdateCurrentUnit({
@@ -936,31 +616,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setInsertRubricAfterIndex(null);
   };
 
-  const handleDeleteRubric = (index: number, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
+  const handleDeleteRubric = (index: number) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
     if (!currentUnit) return;
-    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
-    let currentList: RubricItem[];
-    if (target === "basic_torneamento") currentList = fusiRubricsBasicTorneamento;
-    else if (target === "basic_fresagem") currentList = fusiRubricsBasicFresagem;
-    else if (target === "tech_torneamento") currentList = fusiRubricsTechTorneamento;
-    else if (target === "tech_fresagem") currentList = fusiRubricsTechFresagem;
-    else currentList = activeRubricsList;
+    const nextList = activeRubricsList.filter((_, idx) => idx !== index);
 
-    const nextList = currentList.filter((_, idx) => idx !== index);
-
-    if (target === "basic_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicTorneamento: nextList });
-    } else if (target === "basic_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicFresagem: nextList });
-    } else if (target === "tech_torneamento") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechTorneamento: nextList });
-    } else if (target === "tech_fresagem") {
-      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechFresagem: nextList });
-    } else if (activeStage) {
+    if (activeStage) {
       handleUpdateActiveStage({ rubrics: nextList });
     } else {
       handleUpdateCurrentUnit({
@@ -2253,577 +1917,64 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   </div>
 
                   {/* Capacities & Topics Grid */}
-                  {isCurrentFUSI ? (
-                    <div className="space-y-6">
-                      {/* FUSI 4-Way Process Selector */}
-                      <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>Capacidades e Conhecimentos por Processo (FUSI SENAI)</span>
-                          </span>
-                          <span className="text-[10px] font-extrabold text-slate-400">
-                            Selecione o processo de usinagem
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setFusiGeneralProcess("basic_torneamento")}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                              fusiGeneralProcess === "basic_torneamento"
-                                ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
-                                : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
-                                SA 01
-                              </span>
-                              <span className="w-2 h-2 rounded-full bg-sky-400" />
-                            </div>
-                            <span className="text-xs font-black">Torneamento Básico</span>
-                            <span className="text-[10px] text-slate-400 truncate">Eixo Escalonado</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setFusiGeneralProcess("basic_fresagem")}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                              fusiGeneralProcess === "basic_fresagem"
-                                ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
-                                : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
-                                SA 02
-                              </span>
-                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                            </div>
-                            <span className="text-xs font-black">Fresagem Básica</span>
-                            <span className="text-[10px] text-slate-400 truncate">Esquadrejamento Bloco</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setFusiGeneralProcess("tech_torneamento")}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                              fusiGeneralProcess === "tech_torneamento"
-                                ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
-                                : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
-                                SA 03
-                              </span>
-                              <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                            </div>
-                            <span className="text-xs font-black">Torneamento Técnico</span>
-                            <span className="text-[10px] text-slate-400 truncate">Eixo Cônico Roscado</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setFusiGeneralProcess("tech_fresagem")}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                              fusiGeneralProcess === "tech_fresagem"
-                                ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
-                                : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
-                                SA 04
-                              </span>
-                              <span className="w-2 h-2 rounded-full bg-amber-400" />
-                            </div>
-                            <span className="text-xs font-black">Fresagem Técnica</span>
-                            <span className="text-[10px] text-slate-400 truncate">Canais & Divisor</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Active Process Content */}
-                      {(() => {
-                        const procConfig = {
-                          basic_torneamento: {
-                            badge: "SA 01 • PROCESSO 01",
-                            title: "TORNEAMENTO BÁSICO",
-                            colorCls: "text-sky-600 dark:text-sky-400",
-                            badgeCls: "bg-sky-600",
-                            bgCls: "bg-sky-50/40 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/60",
-                            itemBorderCls: "border-sky-100 dark:border-sky-900/50",
-                            primaryLabel: "CAPACIDADES BÁSICAS • TORNEAMENTO",
-                            primaryCategory: "basic_torneamento" as const,
-                            primaryList: fusiBasicTorneamento,
-                            primaryBtnCls: "bg-sky-600 hover:bg-sky-700",
-                            socioLabel: "SOCIOEMOCIONAIS • TORNEAMENTO BÁSICO",
-                            socioCategory: "socio_basic_torneamento" as const,
-                            socioList: fusiSocioBasicTorneamento,
-                            socioBtnCls: "bg-sky-600 hover:bg-sky-700",
-                            topicLabel: "CONHECIMENTOS & TÓPICOS • TORNEAMENTO BÁSICO",
-                            topicCategory: "basic_torneamento" as const,
-                            topicList: fusiTopicsBasicTorneamento,
-                            topicBtnCls: "bg-sky-600 hover:bg-sky-700",
-                            deletePrimary: (i: number) => {
-                              const next = fusiBasicTorneamento.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: next });
-                            },
-                            deleteSocio: (i: number) => {
-                              const next = fusiSocioBasicTorneamento.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: next });
-                            },
-                          },
-                          basic_fresagem: {
-                            badge: "SA 02 • PROCESSO 02",
-                            title: "FRESAGEM BÁSICA",
-                            colorCls: "text-emerald-600 dark:text-emerald-400",
-                            badgeCls: "bg-emerald-600",
-                            bgCls: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60",
-                            itemBorderCls: "border-emerald-100 dark:border-emerald-900/50",
-                            primaryLabel: "CAPACIDADES BÁSICAS • FRESAGEM",
-                            primaryCategory: "basic_fresagem" as const,
-                            primaryList: fusiBasicFresagem,
-                            primaryBtnCls: "bg-emerald-600 hover:bg-emerald-700",
-                            socioLabel: "SOCIOEMOCIONAIS • FRESAGEM BÁSICA",
-                            socioCategory: "socio_basic_fresagem" as const,
-                            socioList: fusiSocioBasicFresagem,
-                            socioBtnCls: "bg-emerald-600 hover:bg-emerald-700",
-                            topicLabel: "CONHECIMENTOS & TÓPICOS • FRESAGEM BÁSICA",
-                            topicCategory: "basic_fresagem" as const,
-                            topicList: fusiTopicsBasicFresagem,
-                            topicBtnCls: "bg-emerald-600 hover:bg-emerald-700",
-                            deletePrimary: (i: number) => {
-                              const next = fusiBasicFresagem.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: next });
-                            },
-                            deleteSocio: (i: number) => {
-                              const next = fusiSocioBasicFresagem.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: next });
-                            },
-                          },
-                          tech_torneamento: {
-                            badge: "SA 03 • PROCESSO 03",
-                            title: "TORNEAMENTO TÉCNICO",
-                            colorCls: "text-indigo-600 dark:text-indigo-400",
-                            badgeCls: "bg-indigo-600",
-                            bgCls: "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60",
-                            itemBorderCls: "border-indigo-100 dark:border-indigo-900/50",
-                            primaryLabel: "CAPACIDADES TÉCNICAS • TORNEAMENTO",
-                            primaryCategory: "technical_torneamento" as const,
-                            primaryList: fusiTechTorneamento,
-                            primaryBtnCls: "bg-indigo-600 hover:bg-indigo-700",
-                            socioLabel: "SOCIOEMOCIONAIS • TORNEAMENTO TÉCNICO",
-                            socioCategory: "socio_tech_torneamento" as const,
-                            socioList: fusiSocioTechTorneamento,
-                            socioBtnCls: "bg-indigo-600 hover:bg-indigo-700",
-                            topicLabel: "CONHECIMENTOS & TÓPICOS • TORNEAMENTO TÉCNICO",
-                            topicCategory: "technical_torneamento" as const,
-                            topicList: fusiTopicsTechTorneamento,
-                            topicBtnCls: "bg-indigo-600 hover:bg-indigo-700",
-                            deletePrimary: (i: number) => {
-                              const next = fusiTechTorneamento.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: next });
-                            },
-                            deleteSocio: (i: number) => {
-                              const next = fusiSocioTechTorneamento.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: next });
-                            },
-                          },
-                          tech_fresagem: {
-                            badge: "SA 04 • PROCESSO 04",
-                            title: "FRESAGEM TÉCNICA",
-                            colorCls: "text-amber-600 dark:text-amber-400",
-                            badgeCls: "bg-amber-600",
-                            bgCls: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60",
-                            itemBorderCls: "border-amber-100 dark:border-amber-900/50",
-                            primaryLabel: "CAPACIDADES TÉCNICAS • FRESAGEM",
-                            primaryCategory: "technical_fresagem" as const,
-                            primaryList: fusiTechFresagem,
-                            primaryBtnCls: "bg-amber-600 hover:bg-amber-700",
-                            socioLabel: "SOCIOEMOCIONAIS • FRESAGEM TÉCNICA",
-                            socioCategory: "socio_tech_fresagem" as const,
-                            socioList: fusiSocioTechFresagem,
-                            socioBtnCls: "bg-amber-600 hover:bg-amber-700",
-                            topicLabel: "CONHECIMENTOS & TÓPICOS • FRESAGEM TÉCNICA",
-                            topicCategory: "technical_fresagem" as const,
-                            topicList: fusiTopicsTechFresagem,
-                            topicBtnCls: "bg-amber-600 hover:bg-amber-700",
-                            deletePrimary: (i: number) => {
-                              const next = fusiTechFresagem.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: next });
-                            },
-                            deleteSocio: (i: number) => {
-                              const next = fusiSocioTechFresagem.filter((_, idx) => idx !== i);
-                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: next });
-                            },
-                          },
-                        };
-
-                        const activeProc = procConfig[fusiGeneralProcess];
-
-                        return (
-                          <div className="space-y-6 animate-in fade-in duration-200">
-                            {/* Process Section Title */}
-                            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                              <span className={`px-2 py-0.5 ${activeProc.badgeCls} text-white rounded text-[10px] font-black uppercase`}>
-                                {activeProc.badge}
-                              </span>
-                              <h3 className={`text-sm font-black uppercase tracking-wider ${activeProc.colorCls}`}>
-                                {activeProc.title}
-                              </h3>
-                            </div>
-
-                            {/* 2-Column Capacities Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {/* Primary Capacities Column */}
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <h4 className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${activeProc.colorCls}`}>
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>{activeProc.primaryLabel}</span>
-                                  </h4>
-                                  {isAdmin && (
-                                    <button
-                                      onClick={() => handleOpenAddCapacity(activeProc.primaryCategory)}
-                                      className={`px-3.5 py-1.5 ${activeProc.primaryBtnCls} text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1`}
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                      <span>ADICIONAR</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                <div className={`${activeProc.bgCls} p-4 rounded-2xl border min-h-[120px] space-y-2`}>
-                                  {activeProc.primaryList.length > 0 ? (
-                                    activeProc.primaryList.map((cap, i) => (
-                                      <div
-                                        key={i}
-                                        className={`p-3 bg-white dark:bg-slate-900 rounded-xl border ${activeProc.itemBorderCls} text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group`}
-                                      >
-                                        <span className="leading-relaxed">{cap}</span>
-                                        {isAdmin && (
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            <button
-                                              onClick={() => handleOpenEditCapacity(activeProc.primaryCategory, i, cap)}
-                                              className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                              title="Editar capacidade"
-                                            >
-                                              <Edit className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              onClick={() => activeProc.deletePrimary(i)}
-                                              className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                              title="Excluir capacidade"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                      Nenhuma capacidade cadastrada para este processo.
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Socioemotional Capacities Column */}
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-purple-600" />
-                                    <span>{activeProc.socioLabel}</span>
-                                  </h4>
-                                  {isAdmin && (
-                                    <button
-                                      onClick={() => handleOpenAddCapacity(activeProc.socioCategory)}
-                                      className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                      <span>ADICIONAR</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                <div className="bg-purple-50/30 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-200/80 dark:border-purple-800/50 min-h-[120px] space-y-2">
-                                  {activeProc.socioList.length > 0 ? (
-                                    activeProc.socioList.map((cap, i) => (
-                                      <div
-                                        key={i}
-                                        className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-purple-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                      >
-                                        <span className="leading-relaxed">{cap}</span>
-                                        {isAdmin && (
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            <button
-                                              onClick={() => handleOpenEditCapacity(activeProc.socioCategory, i, cap)}
-                                              className="p-1 text-slate-400 hover:text-purple-600 cursor-pointer"
-                                              title="Editar capacidade socioemocional"
-                                            >
-                                              <Edit className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              onClick={() => activeProc.deleteSocio(i)}
-                                              className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                              title="Excluir capacidade socioemocional"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                      Nenhuma capacidade socioemocional cadastrada para este processo.
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Conhecimentos & Tópicos Section */}
-                            <div className="space-y-4 pt-2">
-                              <div className="flex items-center justify-between">
-                                <h3 className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${activeProc.colorCls}`}>
-                                  <BookOpen className="w-4 h-4" />
-                                  <span>{activeProc.topicLabel}</span>
-                                </h3>
-
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => handleOpenAddTopic(activeProc.topicCategory)}
-                                    className={`px-4 py-1.5 ${activeProc.topicBtnCls} text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1.5`}
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    <span>ADICIONAR CONHECIMENTO</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              <div className={`${activeProc.bgCls} p-4 rounded-2xl border min-h-[120px] space-y-2`}>
-                                {activeProc.topicList.length > 0 ? (
-                                  activeProc.topicList.map((topic, i) => (
-                                    <div
-                                      key={i}
-                                      className={`p-3 bg-white dark:bg-slate-900 rounded-xl border ${activeProc.itemBorderCls} text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group`}
-                                    >
-                                      <span className="leading-relaxed">{topic}</span>
-                                      {isAdmin && (
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          <button
-                                            onClick={() => handleOpenEditTopic(activeProc.topicCategory, i, topic)}
-                                            className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
-                                            title="Editar tópico"
-                                          >
-                                            <Edit className="w-3.5 h-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteTopic(i, activeProc.topicCategory)}
-                                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                            title="Excluir tópico"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                    Nenhum conhecimento cadastrado para este processo.
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    /* Standard Non-FUSI Layout */
-                    <div className="space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Capacidades Básicas / Técnicas */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                              <span>{activePrimaryLabel}</span>
-                            </h3>
-
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleOpenAddCapacity("basic_technical")}
-                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>ADICIONAR</span>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* List */}
-                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                            {activePrimaryCapacities.length > 0 ? (
-                              activePrimaryCapacities.map((cap, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                >
-                                  <span className="leading-relaxed">{cap}</span>
-                                  {isAdmin && (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
-                                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                        title="Editar capacidade"
-                                      >
-                                        <Edit className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
-                                          if (activeStage) {
-                                            if (activeStage.basicCapacities) {
-                                              handleUpdateActiveStage({ basicCapacities: next });
-                                            } else {
-                                              handleUpdateActiveStage({ technicalCapacities: next });
-                                            }
-                                          } else {
-                                            if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
-                                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                            } else {
-                                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
-                                            }
-                                          }
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                        title="Excluir capacidade"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                Nenhuma capacidade cadastrada.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Capacidades Socioemocionais */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                              <Users className="w-4 h-4 text-purple-600" />
-                              <span>CAPACIDADES SOCIOEMOCIONAIS</span>
-                            </h3>
-
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleOpenAddCapacity("socioemotional")}
-                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>ADICIONAR</span>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Socioemotional Capacities List */}
-                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                            {activeSocioemotionalCapacities.length > 0 ? (
-                              activeSocioemotionalCapacities.map((cap, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                >
-                                  <span className="leading-relaxed">{cap}</span>
-                                  {isAdmin && (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
-                                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                        title="Editar capacidade socioemocional"
-                                      >
-                                        <Edit className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
-                                          if (activeStage) {
-                                            handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                          } else {
-                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                          }
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                        title="Excluir capacidade socioemocional"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                Nenhuma capacidade socioemocional cadastrada.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Conhecimentos Section for non-FUSI */}
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Capacidades Básicas / Técnicas */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                            <BookOpen className="w-4 h-4 text-emerald-600" />
-                            <span>CONHECIMENTOS & TÓPICOS PROGRAMÁTICOS</span>
+                            <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                            <span>{activePrimaryLabel}</span>
                           </h3>
 
                           {isAdmin && (
                             <button
-                              onClick={() => handleOpenAddTopic("general")}
-                              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                              onClick={() => handleOpenAddCapacity("basic_technical")}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                             >
-                              <Plus className="w-4 h-4" />
-                              <span>ADICIONAR CONHECIMENTO</span>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>ADICIONAR</span>
                             </button>
                           )}
                         </div>
 
+                        {/* List */}
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                          {activeTopicsList.length > 0 ? (
-                            activeTopicsList.map((topic, i) => (
+                          {activePrimaryCapacities.length > 0 ? (
+                            activePrimaryCapacities.map((cap, i) => (
                               <div
                                 key={i}
-                                className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
                               >
-                                <span className="leading-relaxed">{topic}</span>
+                                <span className="leading-relaxed">{cap}</span>
                                 {isAdmin && (
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
-                                      onClick={() => handleOpenEditTopic("general", i, topic)}
-                                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
-                                      title="Editar tópico/conhecimento"
+                                      onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
+                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                      title="Editar capacidade"
                                     >
                                       <Edit className="w-3.5 h-3.5" />
                                     </button>
                                     <button
-                                      onClick={() => handleDeleteTopic(i, "general")}
-                                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                      title="Excluir tópico"
+                                      onClick={() => {
+                                        const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
+                                        if (activeStage) {
+                                          if (activeStage.basicCapacities) {
+                                            handleUpdateActiveStage({ basicCapacities: next });
+                                          } else {
+                                            handleUpdateActiveStage({ technicalCapacities: next });
+                                          }
+                                        } else {
+                                          if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                            handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                          } else {
+                                            handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                          }
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                      title="Excluir capacidade"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -2832,14 +1983,132 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               </div>
                             ))
                           ) : (
-                            <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
-                              Nenhum conhecimento ou tópico cadastrado para esta Unidade.
+                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                              Nenhuma capacidade cadastrada.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Capacidades Socioemocionais */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <span>CAPACIDADES SOCIOEMOCIONAIS</span>
+                          </h3>
+
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenAddCapacity("socioemotional")}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>ADICIONAR</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Socioemotional Capacities List */}
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                          {activeSocioemotionalCapacities.length > 0 ? (
+                            activeSocioemotionalCapacities.map((cap, i) => (
+                              <div
+                                key={i}
+                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                              >
+                                <span className="leading-relaxed">{cap}</span>
+                                {isAdmin && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
+                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                      title="Editar capacidade socioemocional"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                        if (activeStage) {
+                                          handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                        } else {
+                                          handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                      title="Excluir capacidade socioemocional"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                              Nenhuma capacidade socioemocional cadastrada.
                             </p>
                           )}
                         </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Conhecimentos Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-emerald-600" />
+                          <span>CONHECIMENTOS & TÓPICOS PROGRAMÁTICOS</span>
+                        </h3>
+
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleOpenAddTopic("general")}
+                            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>ADICIONAR CONHECIMENTO</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                        {activeTopicsList.length > 0 ? (
+                          activeTopicsList.map((topic, i) => (
+                            <div
+                              key={i}
+                              className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                            >
+                              <span className="leading-relaxed">{topic}</span>
+                              {isAdmin && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleOpenEditTopic("general", i, topic)}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
+                                    title="Editar tópico/conhecimento"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTopic(i, "general")}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                    title="Excluir tópico"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
+                            Nenhum conhecimento ou tópico cadastrado para esta Unidade.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
                 </div>
               )}
@@ -2847,98 +2116,6 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 2: SITUAÇÃO-PROBLEMA */}
               {activeUcTab === "SITUAÇÃO-PROBLEMA" && (
                 <div className="space-y-8 animate-in fade-in duration-200">
-                  {/* FUSI 4-Way Process Selector */}
-                  {isCurrentFUSI && (
-                    <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Situações de Aprendizagem por Processo (FUSI SENAI)</span>
-                        </span>
-                        <span className="text-[10px] font-extrabold text-slate-400">
-                          Selecione o processo de usinagem
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFusiSpProcess("basic_torneamento")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiSpProcess === "basic_torneamento"
-                              ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
-                              SA 01
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-sky-400" />
-                          </div>
-                          <span className="text-xs font-black">Torneamento Básico</span>
-                          <span className="text-[10px] text-slate-400 truncate">Eixo Escalonado</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiSpProcess("basic_fresagem")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiSpProcess === "basic_fresagem"
-                              ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
-                              SA 02
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                          </div>
-                          <span className="text-xs font-black">Fresagem Básica</span>
-                          <span className="text-[10px] text-slate-400 truncate">Esquadrejamento Bloco</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiSpProcess("tech_torneamento")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiSpProcess === "tech_torneamento"
-                              ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
-                              SA 03
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                          </div>
-                          <span className="text-xs font-black">Torneamento Técnico</span>
-                          <span className="text-[10px] text-slate-400 truncate">Eixo Cônico Roscado</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiSpProcess("tech_fresagem")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiSpProcess === "tech_fresagem"
-                              ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
-                              SA 04
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-amber-400" />
-                          </div>
-                          <span className="text-xs font-black">Fresagem Técnica</span>
-                          <span className="text-[10px] text-slate-400 truncate">Canais & Divisor</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {activeSituationProblem ? (
                     <div className="space-y-8">
                       
@@ -2947,17 +2124,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
                             <Sparkles className="w-4 h-4" />
-                            <span>
-                              {isCurrentFUSI
-                                ? fusiSpProcess === "basic_torneamento"
-                                  ? "Torneamento Básico • SA 01 SENAI"
-                                  : fusiSpProcess === "basic_fresagem"
-                                  ? "Fresagem Básica • SA 02 SENAI"
-                                  : fusiSpProcess === "tech_torneamento"
-                                  ? "Torneamento Técnico • SA 03 SENAI"
-                                  : "Fresagem Técnica • SA 04 SENAI"
-                                : "Situação de Aprendizagem (S.A.) SENAI"}
-                            </span>
+                            <span>Situação de Aprendizagem SENAI</span>
                           </div>
                           {isAdmin && (
                             <div className="flex items-center gap-2 flex-wrap">
@@ -2970,7 +2137,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                 <span>COPIAR DE OUTRO PROFESSOR</span>
                               </button>
                               <button
-                                onClick={() => handleOpenEditSP(isCurrentFUSI ? fusiSpProcess : "standard")}
+                                onClick={handleOpenEditSP}
                                 className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                               >
                                 <Edit className="w-3.5 h-3.5" />
@@ -2997,7 +2164,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                         <div className="grid grid-cols-1 gap-3">
                           {(Array.isArray(activeSituationProblem?.challenge) ? activeSituationProblem.challenge : []).map((step, idx) => {
-                            const isDone = completedChallenges[`${currentUnit.id}-${isCurrentFUSI ? fusiSpProcess : 'sp'}-${idx}`] || false;
+                            const isDone = completedChallenges[`${currentUnit.id}-sp-${idx}`] || false;
 
                             return (
                               <div
@@ -3006,7 +2173,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   if (!isAdmin) return;
                                   setCompletedChallenges((prev) => ({
                                     ...prev,
-                                    [`${currentUnit.id}-${isCurrentFUSI ? fusiSpProcess : 'sp'}-${idx}`]: !isDone,
+                                    [`${currentUnit.id}-sp-${idx}`]: !isDone,
                                   }));
                                 }}
                                 className={`p-5 rounded-2xl border transition-all ${isAdmin ? 'cursor-pointer' : 'cursor-default'} flex items-start gap-4 ${
@@ -3077,7 +2244,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR SITUAÇÃO-PROBLEMA</span>
                           </button>
                           <button
-                            onClick={() => handleOpenEditSP(isCurrentFUSI ? fusiSpProcess : "standard")}
+                            onClick={handleOpenEditSP}
                             className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
                           >
                             <Plus className="w-4 h-4" />
@@ -3093,113 +2260,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 3: RUBRICAS */}
               {activeUcTab === "RUBRICAS" && (
                 <div className="space-y-8 animate-in fade-in duration-200">
-                  {/* FUSI 4-Way Process Selector */}
-                  {isCurrentFUSI && (
-                    <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
-                          <Award className="w-3.5 h-3.5" />
-                          <span>Rubricas de Desempenho MSEP por Processo (FUSI SENAI)</span>
-                        </span>
-                        <span className="text-[10px] font-extrabold text-slate-400">
-                          Selecione o processo de usinagem
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFusiRubricProcess("basic_torneamento")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiRubricProcess === "basic_torneamento"
-                              ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
-                              {fusiRubricsBasicTorneamento.length} Rubricas
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-sky-400" />
-                          </div>
-                          <span className="text-xs font-black">Torneamento Básico</span>
-                          <span className="text-[10px] text-slate-400 truncate">Parâmetros & Segurança</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiRubricProcess("basic_fresagem")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiRubricProcess === "basic_fresagem"
-                              ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
-                              {fusiRubricsBasicFresagem.length} Rubricas
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                          </div>
-                          <span className="text-xs font-black">Fresagem Básica</span>
-                          <span className="text-[10px] text-slate-400 truncate">Esquadrejamento 6 Faces</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiRubricProcess("tech_torneamento")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiRubricProcess === "tech_torneamento"
-                              ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
-                              {fusiRubricsTechTorneamento.length} Rubricas
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                          </div>
-                          <span className="text-xs font-black">Torneamento Técnico</span>
-                          <span className="text-[10px] text-slate-400 truncate">Cones & Roscas Métricas</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFusiRubricProcess("tech_fresagem")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                            fusiRubricProcess === "tech_fresagem"
-                              ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
-                              : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
-                              {fusiRubricsTechFresagem.length} Rubricas
-                            </span>
-                            <span className="w-2 h-2 rounded-full bg-amber-400" />
-                          </div>
-                          <span className="text-xs font-black">Fresagem Técnica</span>
-                          <span className="text-[10px] text-slate-400 truncate">Divisor & Chavetas</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-base font-black uppercase text-slate-900 dark:text-white flex items-center gap-2">
                         <Award className="w-5 h-5 text-emerald-600" />
-                        <span>
-                          {isCurrentFUSI
-                            ? fusiRubricProcess === "basic_torneamento"
-                              ? "Matriz de Rubricas • Torneamento Básico (MSEP SENAI)"
-                              : fusiRubricProcess === "basic_fresagem"
-                              ? "Matriz de Rubricas • Fresagem Básica (MSEP SENAI)"
-                              : fusiRubricProcess === "tech_torneamento"
-                              ? "Matriz de Rubricas • Torneamento Técnico & Avançado (MSEP SENAI)"
-                              : "Matriz de Rubricas • Fresagem Técnica & Avançada (MSEP SENAI)"
-                            : "Matriz de Rubricas de Desempenho (MSEP SENAI)"}
-                        </span>
+                        <span>Matriz de Rubricas de Desempenho (MSEP SENAI)</span>
                       </h2>
                       <p className="text-xs text-slate-500 font-medium">
                         Critérios objetivos de avaliação por níveis de autonomia e competência
@@ -3224,7 +2289,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR RUBRICAS</span>
                           </button>
                           <button
-                            onClick={() => handleOpenAddRubric(undefined, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                            onClick={() => handleOpenAddRubric()}
                             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                           >
                             <Plus className="w-4 h-4" />
@@ -3247,17 +2312,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <div className="space-y-2.5 flex-1 min-w-0">
                               {/* Linha 1: Capacidade */}
                               <div className="flex items-start sm:items-center gap-2.5 flex-wrap">
-                                <span className={`px-2.5 py-1 rounded-md text-white font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs ${
-                                  isCurrentFUSI
-                                    ? fusiRubricProcess === "basic_torneamento"
-                                      ? "bg-sky-600"
-                                      : fusiRubricProcess === "basic_fresagem"
-                                      ? "bg-emerald-600"
-                                      : fusiRubricProcess === "tech_torneamento"
-                                      ? "bg-indigo-600"
-                                      : "bg-amber-600"
-                                    : "bg-blue-600"
-                                }`}>
+                                <span className="px-2.5 py-1 rounded-md text-white font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs bg-blue-600">
                                   CAPACIDADE #{idx + 1}
                                 </span>
                                 <span className="font-black text-xs sm:text-sm uppercase text-slate-900 dark:text-slate-100 leading-snug">
@@ -3279,7 +2334,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             {isAdmin && (
                               <div className="flex items-center gap-1 shrink-0 self-start md:self-center">
                                 <button
-                                  onClick={() => handleOpenAddRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                                  onClick={() => handleOpenAddRubric(idx)}
                                   className="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-black"
                                   title="Inserir nova rubrica abaixo desta"
                                 >
@@ -3287,14 +2342,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   <span>INSERIR ABAIXO</span>
                                 </button>
                                 <button
-                                  onClick={() => handleOpenEditRubric(idx, rubric, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                                  onClick={() => handleOpenEditRubric(idx, rubric)}
                                   className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                                   title="Editar Rubrica"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                                  onClick={() => handleDeleteRubric(idx)}
                                   className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                                   title="Excluir Rubrica"
                                 >
@@ -3358,7 +2413,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           {isAdmin && (
                             <div className="px-5 pb-3 pt-0 flex justify-end">
                               <button
-                                onClick={() => handleOpenAddRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                                onClick={() => handleOpenAddRubric(idx)}
                                 className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 transition-colors cursor-pointer"
                                 title={`Inserir nova linha de rubrica abaixo da #${idx + 1}`}
                               >
@@ -3389,7 +2444,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR RUBRICAS DE OUTRO PROFESSOR</span>
                           </button>
                           <button
-                            onClick={() => handleOpenAddRubric(undefined, isCurrentFUSI ? fusiRubricProcess : "standard")}
+                            onClick={() => handleOpenAddRubric()}
                             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
                           >
                             <Plus className="w-4 h-4" />
@@ -5034,26 +4089,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 <CheckCircle2 className="w-5 h-5 text-blue-600" />
                 <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
                   {editingCapacityIndex !== null
-                    ? (capacityCategory === "basic_torneamento"
-                        ? "Editar Capacidade Básica • Torneamento"
-                        : capacityCategory === "basic_fresagem"
-                        ? "Editar Capacidade Básica • Fresagem"
-                        : capacityCategory === "technical_torneamento"
-                        ? "Editar Capacidade Técnica • Torneamento"
-                        : capacityCategory === "technical_fresagem"
-                        ? "Editar Capacidade Técnica • Fresagem"
-                        : capacityCategory === "socioemotional"
+                    ? (capacityCategory === "socioemotional"
                         ? "Editar Capacidade Socioemocional"
                         : `Editar Capacidade (${activePrimaryLabel})`)
-                    : (capacityCategory === "basic_torneamento"
-                        ? "Adicionar Capacidade Básica • Torneamento"
-                        : capacityCategory === "basic_fresagem"
-                        ? "Adicionar Capacidade Básica • Fresagem"
-                        : capacityCategory === "technical_torneamento"
-                        ? "Adicionar Capacidade Técnica • Torneamento"
-                        : capacityCategory === "technical_fresagem"
-                        ? "Adicionar Capacidade Técnica • Fresagem"
-                        : capacityCategory === "socioemotional"
+                    : (capacityCategory === "socioemotional"
                         ? "Adicionar Capacidade Socioemocional"
                         : `Adicionar Nova Capacidade (${activePrimaryLabel})`)}
                 </h3>
