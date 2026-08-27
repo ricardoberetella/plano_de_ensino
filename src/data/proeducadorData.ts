@@ -150,7 +150,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       "17. Refrigeração e fluidos de corte (17.1 Aplicações, 17.2 Tipos de emulsões, 17.3 Procedimentos)",
     ],
     situationProblemBasicTorneamento: {
-      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro (Torneamento Básico)",
+      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro",
       contextualization:
         "A oficina de manutenção mecânica da Metalúrgica Paulista necessita repor um lote de eixos escalonados de acionamento em aço SAE 1020. O torneiro mecânico aprendiz deve realizar a preparação do torno convencional, seleção de ferramentas pastilhadas/HSS, cálculo de RPM e parâmetros de corte, e usinar os eixos garantindo paralelismo, faceamento plano e furações de centro seguras em conformidade com as normas de SST (NR-12).",
       challenge: [
@@ -166,7 +166,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       ],
     },
     situationProblemBasicFresagem: {
-      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento (Fresagem Básica)",
+      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento",
       contextualization:
         "Para a confecção de bases de fixação de dispositivos de montagem, a ferramentaria da UsiTech encomendou blocos prismáticos esquadrejados em aço SAE 1045. O operador de fresadora deve realizar a montagem do cabeçote faceador na árvore da fresadora, alinhar a morsa de precisão, definir os parâmetros de corte e usinar as 6 faces do bloco garantindo rigoroso paralelismo e perpendicularismo.",
       challenge: [
@@ -182,7 +182,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       ],
     },
     situationProblemTechTorneamento: {
-      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão (Torneamento Técnico)",
+      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão",
       contextualization:
         "A empresa 'AgroMaq Industrial' demanda a fabricação de um eixo de transmissão com ponta cônica e rosca externa métrica M16x2.0 para acoplamento de manípulo regulador. A peça exige torneamento de perfis cônicos por inclinação do carro superior, abertura de canais com bedame e corte de rosca triangular com ferramenta HSS 60° e passo métrico acoplado ao fuso.",
       challenge: [
@@ -198,7 +198,7 @@ export const rawProeducadorUnits: ProgrammaticUnit[] = [
       ],
     },
     situationProblemTechFresagem: {
-      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor (Fresagem Técnica)",
+      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor",
       contextualization:
         "Para um dispositivo de indexação de mesa giratória, faz-se necessária a confecção de um flange de fixação com cabeça sextavada e canal de chaveta longitudinal de precisão (DIN 6885). O operador deve utilizar o aparelho divisor universal, calcular o número de voltas da manivela no disco perfurado, alinhar a morsa com relógio comparador centesimal e fresar os rasgos com fresas de topo e chaveta.",
       challenge: [
