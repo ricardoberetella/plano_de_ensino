@@ -206,6 +206,22 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
           ? JSON.parse(JSON.stringify(stageLessons))
           : (baseUnit?.lessonPlan ? JSON.parse(JSON.stringify(baseUnit.lessonPlan)) : []));
 
+    const finalBasicTorneamento = (Array.isArray(u.basicCapacitiesTorneamento) && u.basicCapacitiesTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.basicCapacitiesTorneamento))
+      : (baseUnit?.basicCapacitiesTorneamento ? JSON.parse(JSON.stringify(baseUnit.basicCapacitiesTorneamento)) : undefined);
+
+    const finalBasicFresagem = (Array.isArray(u.basicCapacitiesFresagem) && u.basicCapacitiesFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.basicCapacitiesFresagem))
+      : (baseUnit?.basicCapacitiesFresagem ? JSON.parse(JSON.stringify(baseUnit.basicCapacitiesFresagem)) : undefined);
+
+    const finalTechTorneamento = (Array.isArray(u.technicalCapacitiesTorneamento) && u.technicalCapacitiesTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.technicalCapacitiesTorneamento))
+      : (baseUnit?.technicalCapacitiesTorneamento ? JSON.parse(JSON.stringify(baseUnit.technicalCapacitiesTorneamento)) : undefined);
+
+    const finalTechFresagem = (Array.isArray(u.technicalCapacitiesFresagem) && u.technicalCapacitiesFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.technicalCapacitiesFresagem))
+      : (baseUnit?.technicalCapacitiesFresagem ? JSON.parse(JSON.stringify(baseUnit.technicalCapacitiesFresagem)) : undefined);
+
     cleaned.push({
       id: u.id || baseUnit?.id || `uc-${key.toLowerCase()}`,
       acronym: u.acronym || baseUnit?.acronym || key,
@@ -216,6 +232,10 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       objective: finalObjective,
       basicCapacities: finalBasicCapacities,
       technicalCapacities: finalTechCapacities,
+      basicCapacitiesTorneamento: finalBasicTorneamento,
+      basicCapacitiesFresagem: finalBasicFresagem,
+      technicalCapacitiesTorneamento: finalTechTorneamento,
+      technicalCapacitiesFresagem: finalTechFresagem,
       socioemotionalCapacities: finalSocioCapacities,
       topics: finalTopics,
       situationProblem: finalSituationProblem,
