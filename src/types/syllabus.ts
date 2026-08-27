@@ -90,6 +90,10 @@ export interface ProgrammaticUnit {
   objective?: string;
   basicCapacities?: string[];
   technicalCapacities?: string[];
+  basicCapacitiesTorneamento?: string[];
+  basicCapacitiesFresagem?: string[];
+  technicalCapacitiesTorneamento?: string[];
+  technicalCapacitiesFresagem?: string[];
   socioemotionalCapacities?: string[];
   topics: string[];
   situationProblem?: SituationProblem;
