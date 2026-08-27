@@ -222,6 +222,38 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       ? JSON.parse(JSON.stringify(u.technicalCapacitiesFresagem))
       : (baseUnit?.technicalCapacitiesFresagem ? JSON.parse(JSON.stringify(baseUnit.technicalCapacitiesFresagem)) : undefined);
 
+    const finalSocioBasicTorneamento = (Array.isArray(u.socioemotionalCapacitiesBasicTorneamento) && u.socioemotionalCapacitiesBasicTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.socioemotionalCapacitiesBasicTorneamento))
+      : (baseUnit?.socioemotionalCapacitiesBasicTorneamento ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacitiesBasicTorneamento)) : undefined);
+
+    const finalSocioBasicFresagem = (Array.isArray(u.socioemotionalCapacitiesBasicFresagem) && u.socioemotionalCapacitiesBasicFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.socioemotionalCapacitiesBasicFresagem))
+      : (baseUnit?.socioemotionalCapacitiesBasicFresagem ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacitiesBasicFresagem)) : undefined);
+
+    const finalSocioTechTorneamento = (Array.isArray(u.socioemotionalCapacitiesTechTorneamento) && u.socioemotionalCapacitiesTechTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.socioemotionalCapacitiesTechTorneamento))
+      : (baseUnit?.socioemotionalCapacitiesTechTorneamento ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacitiesTechTorneamento)) : undefined);
+
+    const finalSocioTechFresagem = (Array.isArray(u.socioemotionalCapacitiesTechFresagem) && u.socioemotionalCapacitiesTechFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.socioemotionalCapacitiesTechFresagem))
+      : (baseUnit?.socioemotionalCapacitiesTechFresagem ? JSON.parse(JSON.stringify(baseUnit.socioemotionalCapacitiesTechFresagem)) : undefined);
+
+    const finalTopicsBasicTorneamento = (Array.isArray(u.topicsBasicTorneamento) && u.topicsBasicTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.topicsBasicTorneamento))
+      : (baseUnit?.topicsBasicTorneamento ? JSON.parse(JSON.stringify(baseUnit.topicsBasicTorneamento)) : undefined);
+
+    const finalTopicsBasicFresagem = (Array.isArray(u.topicsBasicFresagem) && u.topicsBasicFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.topicsBasicFresagem))
+      : (baseUnit?.topicsBasicFresagem ? JSON.parse(JSON.stringify(baseUnit.topicsBasicFresagem)) : undefined);
+
+    const finalTopicsTechTorneamento = (Array.isArray(u.topicsTechTorneamento) && u.topicsTechTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.topicsTechTorneamento))
+      : (baseUnit?.topicsTechTorneamento ? JSON.parse(JSON.stringify(baseUnit.topicsTechTorneamento)) : undefined);
+
+    const finalTopicsTechFresagem = (Array.isArray(u.topicsTechFresagem) && u.topicsTechFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.topicsTechFresagem))
+      : (baseUnit?.topicsTechFresagem ? JSON.parse(JSON.stringify(baseUnit.topicsTechFresagem)) : undefined);
+
     cleaned.push({
       id: u.id || baseUnit?.id || `uc-${key.toLowerCase()}`,
       acronym: u.acronym || baseUnit?.acronym || key,
@@ -236,6 +268,14 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       basicCapacitiesFresagem: finalBasicFresagem,
       technicalCapacitiesTorneamento: finalTechTorneamento,
       technicalCapacitiesFresagem: finalTechFresagem,
+      socioemotionalCapacitiesBasicTorneamento: finalSocioBasicTorneamento,
+      socioemotionalCapacitiesBasicFresagem: finalSocioBasicFresagem,
+      socioemotionalCapacitiesTechTorneamento: finalSocioTechTorneamento,
+      socioemotionalCapacitiesTechFresagem: finalSocioTechFresagem,
+      topicsBasicTorneamento: finalTopicsBasicTorneamento,
+      topicsBasicFresagem: finalTopicsBasicFresagem,
+      topicsTechTorneamento: finalTopicsTechTorneamento,
+      topicsTechFresagem: finalTopicsTechFresagem,
       socioemotionalCapacities: finalSocioCapacities,
       topics: finalTopics,
       situationProblem: finalSituationProblem,
