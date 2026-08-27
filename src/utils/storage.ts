@@ -254,6 +254,38 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       ? JSON.parse(JSON.stringify(u.topicsTechFresagem))
       : (baseUnit?.topicsTechFresagem ? JSON.parse(JSON.stringify(baseUnit.topicsTechFresagem)) : undefined);
 
+    const finalSPBasicTorneamento = (u.situationProblemBasicTorneamento && (u.situationProblemBasicTorneamento.title || u.situationProblemBasicTorneamento.contextualization))
+      ? JSON.parse(JSON.stringify(u.situationProblemBasicTorneamento))
+      : (baseUnit?.situationProblemBasicTorneamento ? JSON.parse(JSON.stringify(baseUnit.situationProblemBasicTorneamento)) : undefined);
+
+    const finalSPBasicFresagem = (u.situationProblemBasicFresagem && (u.situationProblemBasicFresagem.title || u.situationProblemBasicFresagem.contextualization))
+      ? JSON.parse(JSON.stringify(u.situationProblemBasicFresagem))
+      : (baseUnit?.situationProblemBasicFresagem ? JSON.parse(JSON.stringify(baseUnit.situationProblemBasicFresagem)) : undefined);
+
+    const finalSPTechTorneamento = (u.situationProblemTechTorneamento && (u.situationProblemTechTorneamento.title || u.situationProblemTechTorneamento.contextualization))
+      ? JSON.parse(JSON.stringify(u.situationProblemTechTorneamento))
+      : (baseUnit?.situationProblemTechTorneamento ? JSON.parse(JSON.stringify(baseUnit.situationProblemTechTorneamento)) : undefined);
+
+    const finalSPTechFresagem = (u.situationProblemTechFresagem && (u.situationProblemTechFresagem.title || u.situationProblemTechFresagem.contextualization))
+      ? JSON.parse(JSON.stringify(u.situationProblemTechFresagem))
+      : (baseUnit?.situationProblemTechFresagem ? JSON.parse(JSON.stringify(baseUnit.situationProblemTechFresagem)) : undefined);
+
+    const finalRubricsBasicTorneamento = (Array.isArray(u.rubricsBasicTorneamento) && u.rubricsBasicTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.rubricsBasicTorneamento))
+      : (baseUnit?.rubricsBasicTorneamento ? JSON.parse(JSON.stringify(baseUnit.rubricsBasicTorneamento)) : undefined);
+
+    const finalRubricsBasicFresagem = (Array.isArray(u.rubricsBasicFresagem) && u.rubricsBasicFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.rubricsBasicFresagem))
+      : (baseUnit?.rubricsBasicFresagem ? JSON.parse(JSON.stringify(baseUnit.rubricsBasicFresagem)) : undefined);
+
+    const finalRubricsTechTorneamento = (Array.isArray(u.rubricsTechTorneamento) && u.rubricsTechTorneamento.length > 0)
+      ? JSON.parse(JSON.stringify(u.rubricsTechTorneamento))
+      : (baseUnit?.rubricsTechTorneamento ? JSON.parse(JSON.stringify(baseUnit.rubricsTechTorneamento)) : undefined);
+
+    const finalRubricsTechFresagem = (Array.isArray(u.rubricsTechFresagem) && u.rubricsTechFresagem.length > 0)
+      ? JSON.parse(JSON.stringify(u.rubricsTechFresagem))
+      : (baseUnit?.rubricsTechFresagem ? JSON.parse(JSON.stringify(baseUnit.rubricsTechFresagem)) : undefined);
+
     cleaned.push({
       id: u.id || baseUnit?.id || `uc-${key.toLowerCase()}`,
       acronym: u.acronym || baseUnit?.acronym || key,
@@ -276,6 +308,14 @@ export function deduplicateAndSanitizeUnits(units: ProgrammaticUnit[]): Programm
       topicsBasicFresagem: finalTopicsBasicFresagem,
       topicsTechTorneamento: finalTopicsTechTorneamento,
       topicsTechFresagem: finalTopicsTechFresagem,
+      situationProblemBasicTorneamento: finalSPBasicTorneamento,
+      situationProblemBasicFresagem: finalSPBasicFresagem,
+      situationProblemTechTorneamento: finalSPTechTorneamento,
+      situationProblemTechFresagem: finalSPTechFresagem,
+      rubricsBasicTorneamento: finalRubricsBasicTorneamento,
+      rubricsBasicFresagem: finalRubricsBasicFresagem,
+      rubricsTechTorneamento: finalRubricsTechTorneamento,
+      rubricsTechFresagem: finalRubricsTechFresagem,
       socioemotionalCapacities: finalSocioCapacities,
       topics: finalTopics,
       situationProblem: finalSituationProblem,
