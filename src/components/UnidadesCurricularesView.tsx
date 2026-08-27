@@ -654,7 +654,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const fusiSPBasicTorneamento: SituationProblem =
     currentUnit?.situationProblemBasicTorneamento ||
     defaultMatchingUnit?.situationProblemBasicTorneamento || {
-      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro (Torneamento Básico)",
+      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro",
       contextualization: "A oficina de manutenção mecânica da Metalúrgica Paulista necessita repor um lote de eixos escalonados de acionamento em aço SAE 1020. O torneiro mecânico aprendiz deve realizar a preparação do torno convencional, seleção de ferramentas pastilhadas/HSS, cálculo de RPM e parâmetros de corte, e usinar os eixos garantindo paralelismo, faceamento plano e furações de centro seguras em conformidade com as normas de SST (NR-12).",
       challenge: [
         "a) Fixar o tarugo cilíndrico na placa universal de 3 castanhas com alinhamento e mínimo balanço.",
@@ -672,7 +672,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const fusiSPBasicFresagem: SituationProblem =
     currentUnit?.situationProblemBasicFresagem ||
     defaultMatchingUnit?.situationProblemBasicFresagem || {
-      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento (Fresagem Básica)",
+      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento",
       contextualization: "Para a confecção de bases de fixação de dispositivos de montagem, a ferramentaria da UsiTech encomendou blocos prismáticos esquadrejados em aço SAE 1045. O operador de fresadora deve realizar a montagem do cabeçote faceador na árvore da fresadora, alinhar a morsa de precisão, definir os parâmetros de corte e usinar as 6 faces do bloco garantindo rigoroso paralelismo e perpendicularismo.",
       challenge: [
         "a) Limpar a mesa e fixar a morsa de precisão, posicionando calços paralelos adequados.",
@@ -690,7 +690,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const fusiSPTechTorneamento: SituationProblem =
     currentUnit?.situationProblemTechTorneamento ||
     defaultMatchingUnit?.situationProblemTechTorneamento || {
-      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão (Torneamento Técnico)",
+      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão",
       contextualization: "A empresa 'AgroMaq Industrial' demanda a fabricação de um eixo de transmissão com ponta cônica e rosca externa métrica M16x2.0 para acoplamento de manípulo regulador. A peça exige torneamento de perfis cônicos por inclinação do carro superior, abertura de canais com bedame e corte de rosca triangular com ferramenta HSS 60° e passo métrico acoplado ao fuso.",
       challenge: [
         "a) Calcular o ângulo de inclinação (tg α) do carro superior para usinagem do cone morse/angular.",
@@ -708,7 +708,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   const fusiSPTechFresagem: SituationProblem =
     currentUnit?.situationProblemTechFresagem ||
     defaultMatchingUnit?.situationProblemTechFresagem || {
-      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor (Fresagem Técnica)",
+      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor",
       contextualization: "Para um dispositivo de indexação de mesa giratória, faz-se necessária a confecção de um flange de fixação com cabeça sextavada e canal de chaveta longitudinal de precisão (DIN 6885). O operador deve utilizar o aparelho divisor universal, calcular o número de voltas da manivela no disco perfurado, alinhar a morsa com relógio comparador centesimal e fresar os rasgos com fresas de topo e chaveta.",
       challenge: [
         "a) Alinhar a morsa e aparelho divisor na mesa da fresadora com relógio comparador (erro < 0,01 mm).",
@@ -2350,7 +2350,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         const procConfig = {
                           basic_torneamento: {
                             badge: "SA 01 • PROCESSO 01",
-                            title: "TORNEAMENTO BÁSICO (EIXO ESCALONADO)",
+                            title: "TORNEAMENTO BÁSICO",
                             colorCls: "text-sky-600 dark:text-sky-400",
                             badgeCls: "bg-sky-600",
                             bgCls: "bg-sky-50/40 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/60",
@@ -2378,7 +2378,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           },
                           basic_fresagem: {
                             badge: "SA 02 • PROCESSO 02",
-                            title: "FRESAGEM BÁSICA (ESQUADREJAMENTO BLOCO)",
+                            title: "FRESAGEM BÁSICA",
                             colorCls: "text-emerald-600 dark:text-emerald-400",
                             badgeCls: "bg-emerald-600",
                             bgCls: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60",
@@ -2406,7 +2406,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           },
                           tech_torneamento: {
                             badge: "SA 03 • PROCESSO 03",
-                            title: "TORNEAMENTO TÉCNICO (EIXO CÔNICO ROSCADO)",
+                            title: "TORNEAMENTO TÉCNICO",
                             colorCls: "text-indigo-600 dark:text-indigo-400",
                             badgeCls: "bg-indigo-600",
                             bgCls: "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60",
@@ -2434,7 +2434,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           },
                           tech_fresagem: {
                             badge: "SA 04 • PROCESSO 04",
-                            title: "FRESAGEM TÉCNICA (CANAIS & DIVISOR)",
+                            title: "FRESAGEM TÉCNICA",
                             colorCls: "text-amber-600 dark:text-amber-400",
                             badgeCls: "bg-amber-600",
                             bgCls: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60",
