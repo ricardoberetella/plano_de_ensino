@@ -191,6 +191,13 @@ export function printHtmlViaHiddenIframe(htmlContent: string) {
   window.print();
 }
 
+interface FusiSpecificCapacities {
+  basicTorneamento?: string[];
+  basicFresagem?: string[];
+  techTorneamento?: string[];
+  techFresagem?: string[];
+}
+
 /**
  * Helper to render a complete Stage or Unit block in the printable PDF
  */
@@ -204,12 +211,20 @@ function renderStageOrUnitHtml(
   situation: SituationProblem | undefined | null,
   rubrics: RubricItem[],
   lessonPlan: LessonPlanItem[],
-  isMultiStageBlock: boolean = false
+  isMultiStageBlock: boolean = false,
+  fusiCaps?: FusiSpecificCapacities
 ): string {
   const totalHours = lessonPlan.reduce((sum, lp) => {
     const match = lp?.hours?.toString().match(/\d+/);
     return sum + (match ? parseInt(match[0], 10) : 4);
   }, 0);
+
+  const hasFusiCaps = fusiCaps && (
+    (fusiCaps.basicTorneamento && fusiCaps.basicTorneamento.length > 0) ||
+    (fusiCaps.basicFresagem && fusiCaps.basicFresagem.length > 0) ||
+    (fusiCaps.techTorneamento && fusiCaps.techTorneamento.length > 0) ||
+    (fusiCaps.techFresagem && fusiCaps.techFresagem.length > 0)
+  );
 
   return `
     <div class="stage-section ${isMultiStageBlock ? 'multi-stage-divider' : ''}">
@@ -226,25 +241,65 @@ function renderStageOrUnitHtml(
           <span>PERFIL DE CAPACIDADES E COMPETÊNCIAS</span>
         </div>
         
-        <div class="capacities-grid">
-          ${basicCaps && basicCaps.length > 0 ? `
-            <div class="capacity-column">
-              <div class="sub-heading sub-basic">Capacidades Básicas</div>
-              <ul class="clean-list">
-                ${basicCaps.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
-              </ul>
-            </div>
-          ` : ''}
+        ${hasFusiCaps ? `
+          <div class="capacities-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            ${fusiCaps.basicTorneamento && fusiCaps.basicTorneamento.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-basic" style="color: #0284c7; border-left: 3px solid #0284c7; padding-left: 6px;">Capacidades Básicas • Torneamento</div>
+                <ul class="clean-list">
+                  ${fusiCaps.basicTorneamento.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
 
-          ${techCaps && techCaps.length > 0 ? `
-            <div class="capacity-column">
-              <div class="sub-heading sub-tech">Capacidades Técnicas</div>
-              <ul class="clean-list">
-                ${techCaps.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
-              </ul>
-            </div>
-          ` : ''}
-        </div>
+            ${fusiCaps.basicFresagem && fusiCaps.basicFresagem.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-basic" style="color: #059669; border-left: 3px solid #059669; padding-left: 6px;">Capacidades Básicas • Fresagem</div>
+                <ul class="clean-list">
+                  ${fusiCaps.basicFresagem.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${fusiCaps.techTorneamento && fusiCaps.techTorneamento.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-tech" style="color: #4f46e5; border-left: 3px solid #4f46e5; padding-left: 6px;">Capacidades Técnicas • Torneamento</div>
+                <ul class="clean-list">
+                  ${fusiCaps.techTorneamento.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${fusiCaps.techFresagem && fusiCaps.techFresagem.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-tech" style="color: #d97706; border-left: 3px solid #d97706; padding-left: 6px;">Capacidades Técnicas • Fresagem</div>
+                <ul class="clean-list">
+                  ${fusiCaps.techFresagem.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        ` : `
+          <div class="capacities-grid">
+            ${basicCaps && basicCaps.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-basic">Capacidades Básicas</div>
+                <ul class="clean-list">
+                  ${basicCaps.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${techCaps && techCaps.length > 0 ? `
+              <div class="capacity-column">
+                <div class="sub-heading sub-tech">Capacidades Técnicas</div>
+                <ul class="clean-list">
+                  ${techCaps.map(c => `<li>${escapeHtml(c)}</li>`).join("")}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        `}
 
         ${socioCaps && socioCaps.length > 0 ? `
           <div style="margin-top: 10px;">
@@ -484,6 +539,13 @@ export function printUnidadeCurricularPDF(
     const rubrics = unit.rubrics || [];
     const lessonPlan = unit.lessonPlan || [];
 
+    const fusiCaps = (unit.acronym === "FUSI" || unit.basicCapacitiesTorneamento || unit.basicCapacitiesFresagem) ? {
+      basicTorneamento: unit.basicCapacitiesTorneamento || [],
+      basicFresagem: unit.basicCapacitiesFresagem || [],
+      techTorneamento: unit.technicalCapacitiesTorneamento || [],
+      techFresagem: unit.technicalCapacitiesFresagem || [],
+    } : undefined;
+
     bodyContent = renderStageOrUnitHtml(
       unit.unitTitle,
       "",
@@ -494,7 +556,8 @@ export function printUnidadeCurricularPDF(
       situation,
       rubrics,
       lessonPlan,
-      false
+      false,
+      fusiCaps
     );
   }
 
