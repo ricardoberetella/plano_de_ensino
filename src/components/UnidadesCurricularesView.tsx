@@ -399,10 +399,36 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // 2. CAPACITIES (BÁSICAS/TÉCNICAS E SOCIOEMOCIONAIS) MODAL STATE
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
   const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
-  const [capacityCategory, setCapacityCategory] = useState<"basic_technical" | "socioemotional">("basic_technical");
+  const [capacityCategory, setCapacityCategory] = useState<
+    "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
+  >("basic_technical");
   const [capacityModalText, setCapacityModalText] = useState("");
 
-  const handleOpenAddCapacity = (category: "basic_technical" | "socioemotional") => {
+  const isCurrentFUSI = getStandardUcKey(currentUnit || {}) === "FUSI" || currentUnit?.acronym?.toUpperCase() === "FUSI";
+
+  const fusiBasicTorneamento: string[] =
+    currentUnit?.basicCapacitiesTorneamento && currentUnit.basicCapacitiesTorneamento.length > 0
+      ? currentUnit.basicCapacitiesTorneamento
+      : defaultMatchingUnit?.basicCapacitiesTorneamento || [];
+
+  const fusiBasicFresagem: string[] =
+    currentUnit?.basicCapacitiesFresagem && currentUnit.basicCapacitiesFresagem.length > 0
+      ? currentUnit.basicCapacitiesFresagem
+      : defaultMatchingUnit?.basicCapacitiesFresagem || [];
+
+  const fusiTechTorneamento: string[] =
+    currentUnit?.technicalCapacitiesTorneamento && currentUnit.technicalCapacitiesTorneamento.length > 0
+      ? currentUnit.technicalCapacitiesTorneamento
+      : defaultMatchingUnit?.technicalCapacitiesTorneamento || [];
+
+  const fusiTechFresagem: string[] =
+    currentUnit?.technicalCapacitiesFresagem && currentUnit.technicalCapacitiesFresagem.length > 0
+      ? currentUnit.technicalCapacitiesFresagem
+      : defaultMatchingUnit?.technicalCapacitiesFresagem || [];
+
+  const handleOpenAddCapacity = (
+    category: "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
+  ) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
@@ -413,7 +439,11 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsCapacityModalOpen(true);
   };
 
-  const handleOpenEditCapacity = (category: "basic_technical" | "socioemotional", index: number, currentText: string) => {
+  const handleOpenEditCapacity = (
+    category: "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem",
+    index: number,
+    currentText: string
+  ) => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
@@ -429,7 +459,23 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     const text = capacityModalText.trim();
     const isAdding = editingCapacityIndex === null;
 
-    if (activeStage) {
+    if (capacityCategory === "basic_torneamento") {
+      const list = [...fusiBasicTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: nextList });
+    } else if (capacityCategory === "basic_fresagem") {
+      const list = [...fusiBasicFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: nextList });
+    } else if (capacityCategory === "technical_torneamento") {
+      const list = [...fusiTechTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: nextList });
+    } else if (capacityCategory === "technical_fresagem") {
+      const list = [...fusiTechFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: nextList });
+    } else if (activeStage) {
       if (capacityCategory === "socioemotional") {
         const list = [...(activeStage.socioemotionalCapacities || [])];
         const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
@@ -1908,143 +1954,445 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   </div>
 
                   {/* Capacities Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    
-                    {/* Capacidades Básicas / Técnicas */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                          <span>{activePrimaryLabel}</span>
-                        </h3>
+                  {isCurrentFUSI ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* 1. Capacidades Básicas - Torneamento */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                              <span>CAPACIDADES BÁSICAS • TORNEAMENTO</span>
+                            </h3>
 
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleOpenAddCapacity("basic_technical")}
-                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>ADICIONAR</span>
-                          </button>
-                        )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleOpenAddCapacity("basic_torneamento")}
+                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>ADICIONAR</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="bg-blue-50/40 dark:bg-blue-950/20 p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 min-h-[120px] space-y-2">
+                            {fusiBasicTorneamento.length > 0 ? (
+                              fusiBasicTorneamento.map((cap, i) => (
+                                <div
+                                  key={i}
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-blue-100 dark:border-blue-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                >
+                                  <span className="leading-relaxed">{cap}</span>
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={() => handleOpenEditCapacity("basic_torneamento", i, cap)}
+                                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                        title="Editar capacidade"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const next = fusiBasicTorneamento.filter((_, idx) => idx !== i);
+                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: next });
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                        title="Excluir capacidade"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                Nenhuma capacidade cadastrada.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Capacidades Básicas - Fresagem */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>CAPACIDADES BÁSICAS • FRESAGEM</span>
+                            </h3>
+
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleOpenAddCapacity("basic_fresagem")}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>ADICIONAR</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 min-h-[120px] space-y-2">
+                            {fusiBasicFresagem.length > 0 ? (
+                              fusiBasicFresagem.map((cap, i) => (
+                                <div
+                                  key={i}
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                >
+                                  <span className="leading-relaxed">{cap}</span>
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={() => handleOpenEditCapacity("basic_fresagem", i, cap)}
+                                        className="p-1 text-slate-400 hover:text-emerald-600 cursor-pointer"
+                                        title="Editar capacidade"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const next = fusiBasicFresagem.filter((_, idx) => idx !== i);
+                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: next });
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                        title="Excluir capacidade"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                Nenhuma capacidade cadastrada.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. Capacidades Técnicas - Torneamento */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+                              <span>CAPACIDADES TÉCNICAS • TORNEAMENTO</span>
+                            </h3>
+
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleOpenAddCapacity("technical_torneamento")}
+                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>ADICIONAR</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="bg-indigo-50/40 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 min-h-[120px] space-y-2">
+                            {fusiTechTorneamento.length > 0 ? (
+                              fusiTechTorneamento.map((cap, i) => (
+                                <div
+                                  key={i}
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                >
+                                  <span className="leading-relaxed">{cap}</span>
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={() => handleOpenEditCapacity("technical_torneamento", i, cap)}
+                                        className="p-1 text-slate-400 hover:text-indigo-600 cursor-pointer"
+                                        title="Editar capacidade"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const next = fusiTechTorneamento.filter((_, idx) => idx !== i);
+                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: next });
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                        title="Excluir capacidade"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                Nenhuma capacidade cadastrada.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 4. Capacidades Técnicas - Fresagem */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                              <span>CAPACIDADES TÉCNICAS • FRESAGEM</span>
+                            </h3>
+
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleOpenAddCapacity("technical_fresagem")}
+                                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>ADICIONAR</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="bg-amber-50/40 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 min-h-[120px] space-y-2">
+                            {fusiTechFresagem.length > 0 ? (
+                              fusiTechFresagem.map((cap, i) => (
+                                <div
+                                  key={i}
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                >
+                                  <span className="leading-relaxed">{cap}</span>
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={() => handleOpenEditCapacity("technical_fresagem", i, cap)}
+                                        className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
+                                        title="Editar capacidade"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const next = fusiTechFresagem.filter((_, idx) => idx !== i);
+                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: next });
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                        title="Excluir capacidade"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                Nenhuma capacidade cadastrada.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
                       </div>
 
-                      {/* List */}
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {activePrimaryCapacities.length > 0 ? (
-                          activePrimaryCapacities.map((cap, i) => (
-                            <div
-                              key={i}
-                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                      {/* Capacidades Socioemocionais Full Width */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider flex items-center gap-2">
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <span>CAPACIDADES SOCIOEMOCIONAIS</span>
+                          </h3>
+
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenAddCapacity("socioemotional")}
+                              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                             >
-                              <span className="leading-relaxed">{cap}</span>
-                              {isAdmin && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
-                                    className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                    title="Editar capacidade"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
-                                      if (activeStage) {
-                                        if (activeStage.basicCapacities) {
-                                          handleUpdateActiveStage({ basicCapacities: next });
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>ADICIONAR</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="bg-purple-50/40 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/60 min-h-[100px] space-y-2">
+                          {activeSocioemotionalCapacities.length > 0 ? (
+                            activeSocioemotionalCapacities.map((cap, i) => (
+                              <div
+                                key={i}
+                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-purple-900/40 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                              >
+                                <span className="leading-relaxed">{cap}</span>
+                                {isAdmin && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
+                                      className="p-1 text-slate-400 hover:text-purple-600 cursor-pointer"
+                                      title="Editar capacidade socioemocional"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                        if (activeStage) {
+                                          handleUpdateActiveStage({ socioemotionalCapacities: next });
                                         } else {
-                                          handleUpdateActiveStage({ technicalCapacities: next });
+                                          handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
                                         }
-                                      } else {
-                                        if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
-                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                        } else {
-                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
-                                        }
-                                      }
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                    title="Excluir capacidade"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                            Nenhuma capacidade cadastrada.
-                          </p>
-                        )}
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                      title="Excluir capacidade socioemocional"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                              Nenhuma capacidade socioemocional cadastrada.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      
+                      {/* Capacidades Básicas / Técnicas */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                            <span>{activePrimaryLabel}</span>
+                          </h3>
 
-                    {/* Capacidades Socioemocionais */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                          <Users className="w-4 h-4 text-purple-600" />
-                          <span>CAPACIDADES SOCIOEMOCIONAIS</span>
-                        </h3>
-
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleOpenAddCapacity("socioemotional")}
-                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>ADICIONAR</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Socioemotional Capacities List */}
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {activeSocioemotionalCapacities.length > 0 ? (
-                          activeSocioemotionalCapacities.map((cap, i) => (
-                            <div
-                              key={i}
-                              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenAddCapacity("basic_technical")}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                             >
-                              <span className="leading-relaxed">{cap}</span>
-                              {isAdmin && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
-                                    className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                    title="Editar capacidade socioemocional"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
-                                      if (activeStage) {
-                                        handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                      } else {
-                                        handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                      }
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                    title="Excluir capacidade socioemocional"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                            Nenhuma capacidade socioemocional cadastrada.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>ADICIONAR</span>
+                            </button>
+                          )}
+                        </div>
 
-                  </div>
+                        {/* List */}
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                          {activePrimaryCapacities.length > 0 ? (
+                            activePrimaryCapacities.map((cap, i) => (
+                              <div
+                                key={i}
+                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                              >
+                                <span className="leading-relaxed">{cap}</span>
+                                {isAdmin && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
+                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                      title="Editar capacidade"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
+                                        if (activeStage) {
+                                          if (activeStage.basicCapacities) {
+                                            handleUpdateActiveStage({ basicCapacities: next });
+                                          } else {
+                                            handleUpdateActiveStage({ technicalCapacities: next });
+                                          }
+                                        } else {
+                                          if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                            handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                          } else {
+                                            handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                          }
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                      title="Excluir capacidade"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                              Nenhuma capacidade cadastrada.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Capacidades Socioemocionais */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <span>CAPACIDADES SOCIOEMOCIONAIS</span>
+                          </h3>
+
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenAddCapacity("socioemotional")}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>ADICIONAR</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Socioemotional Capacities List */}
+                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                          {activeSocioemotionalCapacities.length > 0 ? (
+                            activeSocioemotionalCapacities.map((cap, i) => (
+                              <div
+                                key={i}
+                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                              >
+                                <span className="leading-relaxed">{cap}</span>
+                                {isAdmin && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
+                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                      title="Editar capacidade socioemocional"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                        if (activeStage) {
+                                          handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                        } else {
+                                          handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                      title="Excluir capacidade socioemocional"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                              Nenhuma capacidade socioemocional cadastrada.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
 
                   {/* Conhecimentos Section */}
                   <div className="space-y-4">
@@ -4081,8 +4429,28 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                 <CheckCircle2 className="w-5 h-5 text-blue-600" />
                 <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
                   {editingCapacityIndex !== null
-                    ? `Editar Capacidade (${capacityCategory === "socioemotional" ? "Socioemocional" : "Técnica"})`
-                    : `Adicionar Nova Capacidade (${capacityCategory === "socioemotional" ? "Socioemocional" : "Técnica"})`}
+                    ? (capacityCategory === "basic_torneamento"
+                        ? "Editar Capacidade Básica • Torneamento"
+                        : capacityCategory === "basic_fresagem"
+                        ? "Editar Capacidade Básica • Fresagem"
+                        : capacityCategory === "technical_torneamento"
+                        ? "Editar Capacidade Técnica • Torneamento"
+                        : capacityCategory === "technical_fresagem"
+                        ? "Editar Capacidade Técnica • Fresagem"
+                        : capacityCategory === "socioemotional"
+                        ? "Editar Capacidade Socioemocional"
+                        : `Editar Capacidade (${activePrimaryLabel})`)
+                    : (capacityCategory === "basic_torneamento"
+                        ? "Adicionar Capacidade Básica • Torneamento"
+                        : capacityCategory === "basic_fresagem"
+                        ? "Adicionar Capacidade Básica • Fresagem"
+                        : capacityCategory === "technical_torneamento"
+                        ? "Adicionar Capacidade Técnica • Torneamento"
+                        : capacityCategory === "technical_fresagem"
+                        ? "Adicionar Capacidade Técnica • Fresagem"
+                        : capacityCategory === "socioemotional"
+                        ? "Adicionar Capacidade Socioemocional"
+                        : `Adicionar Nova Capacidade (${activePrimaryLabel})`)}
                 </h3>
               </div>
               <button
@@ -4102,7 +4470,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                   rows={4}
                   value={capacityModalText}
                   onChange={(e) => setCapacityModalText(e.target.value)}
-                  placeholder="Descreva a capacidade técnica ou socioemocional..."
+                  placeholder="Descreva a capacidade técnica, básica ou socioemocional..."
                   className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
