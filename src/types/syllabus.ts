@@ -106,6 +106,14 @@ export interface ProgrammaticUnit {
   topicsBasicFresagem?: string[];
   topicsTechTorneamento?: string[];
   topicsTechFresagem?: string[];
+  situationProblemBasicTorneamento?: SituationProblem;
+  situationProblemBasicFresagem?: SituationProblem;
+  situationProblemTechTorneamento?: SituationProblem;
+  situationProblemTechFresagem?: SituationProblem;
+  rubricsBasicTorneamento?: RubricItem[];
+  rubricsBasicFresagem?: RubricItem[];
+  rubricsTechTorneamento?: RubricItem[];
+  rubricsTechFresagem?: RubricItem[];
   socioemotionalCapacities?: string[];
   topics: string[];
   situationProblem?: SituationProblem;
