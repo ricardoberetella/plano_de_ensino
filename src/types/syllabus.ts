@@ -94,6 +94,18 @@ export interface ProgrammaticUnit {
   basicCapacitiesFresagem?: string[];
   technicalCapacitiesTorneamento?: string[];
   technicalCapacitiesFresagem?: string[];
+  socioemotionalCapacitiesTorneamento?: string[];
+  socioemotionalCapacitiesFresagem?: string[];
+  socioemotionalCapacitiesBasicTorneamento?: string[];
+  socioemotionalCapacitiesBasicFresagem?: string[];
+  socioemotionalCapacitiesTechTorneamento?: string[];
+  socioemotionalCapacitiesTechFresagem?: string[];
+  topicsTorneamento?: string[];
+  topicsFresagem?: string[];
+  topicsBasicTorneamento?: string[];
+  topicsBasicFresagem?: string[];
+  topicsTechTorneamento?: string[];
+  topicsTechFresagem?: string[];
   socioemotionalCapacities?: string[];
   topics: string[];
   situationProblem?: SituationProblem;
