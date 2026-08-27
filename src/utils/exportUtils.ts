@@ -198,6 +198,20 @@ interface FusiSpecificCapacities {
   techFresagem?: string[];
 }
 
+interface FusiSpecificSPs {
+  basicTorneamento?: SituationProblem;
+  basicFresagem?: SituationProblem;
+  techTorneamento?: SituationProblem;
+  techFresagem?: SituationProblem;
+}
+
+interface FusiSpecificRubrics {
+  basicTorneamento?: RubricItem[];
+  basicFresagem?: RubricItem[];
+  techTorneamento?: RubricItem[];
+  techFresagem?: RubricItem[];
+}
+
 /**
  * Helper to render a complete Stage or Unit block in the printable PDF
  */
@@ -212,7 +226,9 @@ function renderStageOrUnitHtml(
   rubrics: RubricItem[],
   lessonPlan: LessonPlanItem[],
   isMultiStageBlock: boolean = false,
-  fusiCaps?: FusiSpecificCapacities
+  fusiCaps?: FusiSpecificCapacities,
+  fusiSPs?: FusiSpecificSPs,
+  fusiRubrics?: FusiSpecificRubrics
 ): string {
   const totalHours = lessonPlan.reduce((sum, lp) => {
     const match = lp?.hours?.toString().match(/\d+/);
@@ -225,6 +241,85 @@ function renderStageOrUnitHtml(
     (fusiCaps.techTorneamento && fusiCaps.techTorneamento.length > 0) ||
     (fusiCaps.techFresagem && fusiCaps.techFresagem.length > 0)
   );
+
+  const hasFusiSPs = fusiSPs && (
+    fusiSPs.basicTorneamento ||
+    fusiSPs.basicFresagem ||
+    fusiSPs.techTorneamento ||
+    fusiSPs.techFresagem
+  );
+
+  const hasFusiRubrics = fusiRubrics && (
+    (fusiRubrics.basicTorneamento && fusiRubrics.basicTorneamento.length > 0) ||
+    (fusiRubrics.basicFresagem && fusiRubrics.basicFresagem.length > 0) ||
+    (fusiRubrics.techTorneamento && fusiRubrics.techTorneamento.length > 0) ||
+    (fusiRubrics.techFresagem && fusiRubrics.techFresagem.length > 0)
+  );
+
+  const renderSingleSACard = (sa: SituationProblem, processLabel: string, color: string) => `
+    <div class="sa-card" style="margin-bottom: 12px; border-left: 4px solid ${color};">
+      <div class="sa-header">
+        <div class="sa-badge" style="background-color: ${color}; color: #ffffff;">${escapeHtml(processLabel)} • METODOLOGIA SENAI</div>
+        <div class="sa-title">${escapeHtml(sa.title || "Situação de Aprendizagem")}</div>
+      </div>
+      
+      <div class="sa-context">
+        <span class="label-tag">Contextualização da Empresa:</span>
+        <p>${escapeHtml(sa.contextualization)}</p>
+      </div>
+
+      ${Array.isArray(sa.challenge) && sa.challenge.length > 0 ? `
+        <div class="sa-challenges">
+          <span class="label-tag">Desafios Práticos &amp; Etapas de Execução:</span>
+          <ol class="challenge-list">
+            ${sa.challenge.map(ch => `<li>${escapeHtml(ch)}</li>`).join("")}
+          </ol>
+        </div>
+      ` : ''}
+
+      ${Array.isArray(sa.expectedResults) && sa.expectedResults.length > 0 ? `
+        <div class="sa-results">
+          <span class="label-tag">Entregáveis &amp; Resultados Esperados:</span>
+          <ul class="results-list">
+            ${sa.expectedResults.map(res => `<li>${escapeHtml(res)}</li>`).join("")}
+          </ul>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  const renderRubricTableSection = (items: RubricItem[], subTitle: string, color: string) => `
+    <div style="margin-bottom: 12px;">
+      <div style="font-weight: 800; font-size: 8pt; color: ${color}; text-transform: uppercase; margin-bottom: 4px; padding-left: 4px; border-left: 3px solid ${color};">
+        ${escapeHtml(subTitle)} (${items.length} Rubricas)
+      </div>
+      <table class="rubric-table">
+        <thead>
+          <tr>
+            <th style="width: 28%;">Capacidade Avaliada</th>
+            <th style="width: 18%;" class="th-nsa">NSA (Não Satisfez)</th>
+            <th style="width: 18%;" class="th-apo">APO (Com Orientação)</th>
+            <th style="width: 18%;" class="th-par">PAR (Parcial. Autônomo)</th>
+            <th style="width: 18%;" class="th-aut">AUT (Autônomo)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((r) => `
+            <tr>
+              <td class="td-cap">
+                <strong>${escapeHtml(r.capacity)}</strong>
+                ${r.criteria || r.criterios ? `<div style="font-size: 6.5pt; color: #64748b; margin-top: 2px;">${escapeHtml(r.criteria || r.criterios || "")}</div>` : ''}
+              </td>
+              <td class="td-nsa">${escapeHtml(r.nsa)}</td>
+              <td class="td-apo">${escapeHtml(r.apo)}</td>
+              <td class="td-par">${escapeHtml(r.par)}</td>
+              <td class="td-aut">${escapeHtml(r.aut)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 
   return `
     <div class="stage-section ${isMultiStageBlock ? 'multi-stage-divider' : ''}">
@@ -333,7 +428,17 @@ function renderStageOrUnitHtml(
       ` : ''}
 
       <!-- 3. Situação de Aprendizagem (S.A.) -->
-      ${situation ? `
+      ${hasFusiSPs ? `
+        <div class="section-block">
+          <div class="section-title">
+            <span>SITUAÇÕES DE APRENDIZAGEM POR PROCESSO (S.A. SENAI FUSI)</span>
+          </div>
+          ${fusiSPs.basicTorneamento ? renderSingleSACard(fusiSPs.basicTorneamento, "SA 01 • Torneamento Básico", "#0284c7") : ''}
+          ${fusiSPs.basicFresagem ? renderSingleSACard(fusiSPs.basicFresagem, "SA 02 • Fresagem Básica", "#059669") : ''}
+          ${fusiSPs.techTorneamento ? renderSingleSACard(fusiSPs.techTorneamento, "SA 03 • Torneamento Técnico", "#4f46e5") : ''}
+          ${fusiSPs.techFresagem ? renderSingleSACard(fusiSPs.techFresagem, "SA 04 • Fresagem Técnica", "#d97706") : ''}
+        </div>
+      ` : situation ? `
         <div class="section-block">
           <div class="section-title">
             <span>SITUAÇÃO DE APRENDIZAGEM (S.A.) SENAI</span>
@@ -371,7 +476,17 @@ function renderStageOrUnitHtml(
       ` : ''}
 
       <!-- 4. Matriz de Rubricas de Avaliação MSEP SENAI -->
-      ${rubrics && rubrics.length > 0 ? `
+      ${hasFusiRubrics ? `
+        <div class="section-block page-break-inside-avoid">
+          <div class="section-title">
+            <span>MATRIZ DE RUBRICAS DE DESEMPENHO POR PROCESSO (MSEP SENAI)</span>
+          </div>
+          ${fusiRubrics.basicTorneamento && fusiRubrics.basicTorneamento.length > 0 ? renderRubricTableSection(fusiRubrics.basicTorneamento, "Torneamento Básico", "#0284c7") : ''}
+          ${fusiRubrics.basicFresagem && fusiRubrics.basicFresagem.length > 0 ? renderRubricTableSection(fusiRubrics.basicFresagem, "Fresagem Básica", "#059669") : ''}
+          ${fusiRubrics.techTorneamento && fusiRubrics.techTorneamento.length > 0 ? renderRubricTableSection(fusiRubrics.techTorneamento, "Torneamento Técnico", "#4f46e5") : ''}
+          ${fusiRubrics.techFresagem && fusiRubrics.techFresagem.length > 0 ? renderRubricTableSection(fusiRubrics.techFresagem, "Fresagem Técnica", "#d97706") : ''}
+        </div>
+      ` : rubrics && rubrics.length > 0 ? `
         <div class="section-block page-break-inside-avoid">
           <div class="section-title">
             <span>MATRIZ DE RUBRICAS DE AVALIAÇÃO DE DESEMPENHO (MSEP SENAI)</span>
@@ -389,7 +504,10 @@ function renderStageOrUnitHtml(
             <tbody>
               ${rubrics.map((r) => `
                 <tr>
-                  <td class="td-cap"><strong>${escapeHtml(r.capacity)}</strong></td>
+                  <td class="td-cap">
+                    <strong>${escapeHtml(r.capacity)}</strong>
+                    ${r.criteria || r.criterios ? `<div style="font-size: 6.5pt; color: #64748b; margin-top: 2px;">${escapeHtml(r.criteria || r.criterios || "")}</div>` : ''}
+                  </td>
                   <td class="td-nsa">${escapeHtml(r.nsa)}</td>
                   <td class="td-apo">${escapeHtml(r.apo)}</td>
                   <td class="td-par">${escapeHtml(r.par)}</td>
@@ -539,11 +657,27 @@ export function printUnidadeCurricularPDF(
     const rubrics = unit.rubrics || [];
     const lessonPlan = unit.lessonPlan || [];
 
-    const fusiCaps = (unit.acronym === "FUSI" || unit.basicCapacitiesTorneamento || unit.basicCapacitiesFresagem) ? {
+    const isFUSI = unit.acronym === "FUSI" || !!(unit.basicCapacitiesTorneamento || unit.basicCapacitiesFresagem);
+
+    const fusiCaps = isFUSI ? {
       basicTorneamento: unit.basicCapacitiesTorneamento || [],
       basicFresagem: unit.basicCapacitiesFresagem || [],
       techTorneamento: unit.technicalCapacitiesTorneamento || [],
       techFresagem: unit.technicalCapacitiesFresagem || [],
+    } : undefined;
+
+    const fusiSPs = isFUSI ? {
+      basicTorneamento: unit.situationProblemBasicTorneamento,
+      basicFresagem: unit.situationProblemBasicFresagem,
+      techTorneamento: unit.situationProblemTechTorneamento,
+      techFresagem: unit.situationProblemTechFresagem,
+    } : undefined;
+
+    const fusiRubrics = isFUSI ? {
+      basicTorneamento: unit.rubricsBasicTorneamento || [],
+      basicFresagem: unit.rubricsBasicFresagem || [],
+      techTorneamento: unit.rubricsTechTorneamento || [],
+      techFresagem: unit.rubricsTechFresagem || [],
     } : undefined;
 
     bodyContent = renderStageOrUnitHtml(
@@ -557,7 +691,9 @@ export function printUnidadeCurricularPDF(
       rubrics,
       lessonPlan,
       false,
-      fusiCaps
+      fusiCaps,
+      fusiSPs,
+      fusiRubrics
     );
   }
 
