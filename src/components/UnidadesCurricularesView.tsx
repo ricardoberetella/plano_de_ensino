@@ -644,7 +644,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsCapacityModalOpen(false);
   };
 
-  // 3. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
+  // 3. FUSI GENERAL TAB PROCESS SELECTOR STATE
+  const [fusiGeneralProcess, setFusiGeneralProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
+
+  // 4. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
   const [fusiSpProcess, setFusiSpProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
   const [editingSpTarget, setEditingSpTarget] = useState<"standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("standard");
 
