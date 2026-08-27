@@ -35,10 +35,10 @@ export const INITIAL_SCHOOL_EVENTS_2026: SchoolCalendarEvent[] = [
   { id: "e-2-14", date: "2026-10-13", title: "Antecipação Dia do Professor (15/10)", type: "feriado" },
   { id: "e-2-15", date: "2026-10-17", title: "Sábado de Compensação (do dia 28/12)", type: "compensacao", balanceForDayOfWeek: 1 },
   { id: "e-2-16", date: "2026-11-02", title: "Feriado Nacional - Finados", type: "feriado" },
-  { id: "e-2-17", date: "2026-11-07", title: "Sábado de Compensação (do dia 29/12)", type: "compensacao", balanceForDayOfWeek: 2 },
+  { id: "e-2-17", date: "2026-11-07", title: "Sábado de Compensação (do dia 29/12)", type: "compensacao", balanceForDayOfWeek: 1 },
   { id: "e-2-18", date: "2026-11-15", title: "Feriado Nacional - Proclamação da República", type: "feriado" },
   { id: "e-2-19", date: "2026-11-20", title: "Feriado Estadual - Consciência Negra", type: "feriado" },
-  { id: "e-2-20", date: "2026-11-28", title: "Sábado de Compensação (do dia 30/12)", type: "compensacao", balanceForDayOfWeek: 3 },
+  { id: "e-2-20", date: "2026-11-28", title: "Sábado de Compensação (do dia 30/12)", type: "compensacao", balanceForDayOfWeek: 4 },
   { id: "e-2-21", date: "2026-12-18", title: "Término do 2º Semestre Letivo", type: "inicio_fim" },
 ];
 
