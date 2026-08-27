@@ -338,71 +338,10 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   // 1. TOPICS (CONHECIMENTOS) MODAL STATE
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [editingTopicIndex, setEditingTopicIndex] = useState<number | null>(null);
+  const [topicCategory, setTopicCategory] = useState<
+    "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
+  >("general");
   const [topicModalText, setTopicModalText] = useState("");
-
-  const handleOpenAddTopic = () => {
-    if (!isAdmin) {
-      onOpenLoginModal();
-      return;
-    }
-    setEditingTopicIndex(null);
-    setTopicModalText("");
-    setIsTopicModalOpen(true);
-  };
-
-  const handleOpenEditTopic = (index: number, currentText: string) => {
-    if (!isAdmin) {
-      onOpenLoginModal();
-      return;
-    }
-    setEditingTopicIndex(index);
-    setTopicModalText(currentText);
-    setIsTopicModalOpen(true);
-  };
-
-  const handleSaveTopicModal = () => {
-    if (!currentUnit || !topicModalText.trim()) return;
-    const text = topicModalText.trim();
-    const isAdding = editingTopicIndex === null;
-
-    if (activeStage) {
-      const currentTopics = [...(activeStage.topics || [])];
-      const nextTopics = isAdding
-        ? [...currentTopics, text]
-        : currentTopics.map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateActiveStage({ topics: nextTopics });
-    } else {
-      const nextTopics = isAdding
-        ? [...(currentUnit.topics || []), text]
-        : (currentUnit.topics || []).map((t, idx) => (idx === editingTopicIndex ? text : t));
-      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
-    }
-
-    setIsTopicModalOpen(false);
-  };
-
-  const handleDeleteTopic = (index: number) => {
-    if (!isAdmin) {
-      onOpenLoginModal();
-      return;
-    }
-    if (!currentUnit) return;
-    const currentTopics = activeTopicsList;
-    const nextTopics = currentTopics.filter((_, i) => i !== index);
-    if (activeStage) {
-      handleUpdateActiveStage({ topics: nextTopics });
-    } else {
-      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
-    }
-  };
-
-  // 2. CAPACITIES (BÁSICAS/TÉCNICAS E SOCIOEMOCIONAIS) MODAL STATE
-  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
-  const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
-  const [capacityCategory, setCapacityCategory] = useState<
-    "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
-  >("basic_technical");
-  const [capacityModalText, setCapacityModalText] = useState("");
 
   const isCurrentFUSI = getStandardUcKey(currentUnit || {}) === "FUSI" || currentUnit?.acronym?.toUpperCase() === "FUSI";
 
@@ -426,8 +365,173 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       ? currentUnit.technicalCapacitiesFresagem
       : defaultMatchingUnit?.technicalCapacitiesFresagem || [];
 
+  const fusiSocioBasicTorneamento: string[] =
+    currentUnit?.socioemotionalCapacitiesBasicTorneamento && currentUnit.socioemotionalCapacitiesBasicTorneamento.length > 0
+      ? currentUnit.socioemotionalCapacitiesBasicTorneamento
+      : defaultMatchingUnit?.socioemotionalCapacitiesBasicTorneamento || [];
+
+  const fusiSocioBasicFresagem: string[] =
+    currentUnit?.socioemotionalCapacitiesBasicFresagem && currentUnit.socioemotionalCapacitiesBasicFresagem.length > 0
+      ? currentUnit.socioemotionalCapacitiesBasicFresagem
+      : defaultMatchingUnit?.socioemotionalCapacitiesBasicFresagem || [];
+
+  const fusiSocioTechTorneamento: string[] =
+    currentUnit?.socioemotionalCapacitiesTechTorneamento && currentUnit.socioemotionalCapacitiesTechTorneamento.length > 0
+      ? currentUnit.socioemotionalCapacitiesTechTorneamento
+      : defaultMatchingUnit?.socioemotionalCapacitiesTechTorneamento || [];
+
+  const fusiSocioTechFresagem: string[] =
+    currentUnit?.socioemotionalCapacitiesTechFresagem && currentUnit.socioemotionalCapacitiesTechFresagem.length > 0
+      ? currentUnit.socioemotionalCapacitiesTechFresagem
+      : defaultMatchingUnit?.socioemotionalCapacitiesTechFresagem || [];
+
+  const fusiTopicsBasicTorneamento: string[] =
+    currentUnit?.topicsBasicTorneamento && currentUnit.topicsBasicTorneamento.length > 0
+      ? currentUnit.topicsBasicTorneamento
+      : defaultMatchingUnit?.topicsBasicTorneamento || [];
+
+  const fusiTopicsBasicFresagem: string[] =
+    currentUnit?.topicsBasicFresagem && currentUnit.topicsBasicFresagem.length > 0
+      ? currentUnit.topicsBasicFresagem
+      : defaultMatchingUnit?.topicsBasicFresagem || [];
+
+  const fusiTopicsTechTorneamento: string[] =
+    currentUnit?.topicsTechTorneamento && currentUnit.topicsTechTorneamento.length > 0
+      ? currentUnit.topicsTechTorneamento
+      : defaultMatchingUnit?.topicsTechTorneamento || [];
+
+  const fusiTopicsTechFresagem: string[] =
+    currentUnit?.topicsTechFresagem && currentUnit.topicsTechFresagem.length > 0
+      ? currentUnit.topicsTechFresagem
+      : defaultMatchingUnit?.topicsTechFresagem || [];
+
+  const handleOpenAddTopic = (
+    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem" = "general"
+  ) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingTopicIndex(null);
+    setTopicCategory(category);
+    setTopicModalText("");
+    setIsTopicModalOpen(true);
+  };
+
+  const handleOpenEditTopic = (
+    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem",
+    index: number,
+    currentText: string
+  ) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    setEditingTopicIndex(index);
+    setTopicCategory(category);
+    setTopicModalText(currentText);
+    setIsTopicModalOpen(true);
+  };
+
+  const handleSaveTopicModal = () => {
+    if (!currentUnit || !topicModalText.trim()) return;
+    const text = topicModalText.trim();
+    const isAdding = editingTopicIndex === null;
+
+    if (topicCategory === "basic_torneamento") {
+      const list = [...fusiTopicsBasicTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicTorneamento: nextList });
+    } else if (topicCategory === "basic_fresagem") {
+      const list = [...fusiTopicsBasicFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicFresagem: nextList });
+    } else if (topicCategory === "technical_torneamento") {
+      const list = [...fusiTopicsTechTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topicsTechTorneamento: nextList });
+    } else if (topicCategory === "technical_fresagem") {
+      const list = [...fusiTopicsTechFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topicsTechFresagem: nextList });
+    } else if (activeStage) {
+      const currentTopics = [...(activeStage.topics || [])];
+      const nextTopics = isAdding
+        ? [...currentTopics, text]
+        : currentTopics.map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateActiveStage({ topics: nextTopics });
+    } else {
+      const nextTopics = isAdding
+        ? [...(currentUnit.topics || []), text]
+        : (currentUnit.topics || []).map((t, idx) => (idx === editingTopicIndex ? text : t));
+      handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+    }
+
+    setIsTopicModalOpen(false);
+  };
+
+  const handleDeleteTopic = (
+    index: number,
+    category: "general" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem" = "general"
+  ) => {
+    if (!isAdmin) {
+      onOpenLoginModal();
+      return;
+    }
+    if (!currentUnit) return;
+
+    if (category === "basic_torneamento") {
+      const next = fusiTopicsBasicTorneamento.filter((_, i) => i !== index);
+      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicTorneamento: next });
+    } else if (category === "basic_fresagem") {
+      const next = fusiTopicsBasicFresagem.filter((_, i) => i !== index);
+      handleUpdateCurrentUnit({ ...currentUnit, topicsBasicFresagem: next });
+    } else if (category === "technical_torneamento") {
+      const next = fusiTopicsTechTorneamento.filter((_, i) => i !== index);
+      handleUpdateCurrentUnit({ ...currentUnit, topicsTechTorneamento: next });
+    } else if (category === "technical_fresagem") {
+      const next = fusiTopicsTechFresagem.filter((_, i) => i !== index);
+      handleUpdateCurrentUnit({ ...currentUnit, topicsTechFresagem: next });
+    } else {
+      const currentTopics = activeTopicsList;
+      const nextTopics = currentTopics.filter((_, i) => i !== index);
+      if (activeStage) {
+        handleUpdateActiveStage({ topics: nextTopics });
+      } else {
+        handleUpdateCurrentUnit({ ...currentUnit, topics: nextTopics });
+      }
+    }
+  };
+
+  // 2. CAPACITIES (BÁSICAS/TÉCNICAS E SOCIOEMOCIONAIS) MODAL STATE
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+  const [editingCapacityIndex, setEditingCapacityIndex] = useState<number | null>(null);
+  const [capacityCategory, setCapacityCategory] = useState<
+    | "basic_technical"
+    | "socioemotional"
+    | "basic_torneamento"
+    | "basic_fresagem"
+    | "technical_torneamento"
+    | "technical_fresagem"
+    | "socio_basic_torneamento"
+    | "socio_basic_fresagem"
+    | "socio_tech_torneamento"
+    | "socio_tech_fresagem"
+  >("basic_technical");
+  const [capacityModalText, setCapacityModalText] = useState("");
+
   const handleOpenAddCapacity = (
-    category: "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem"
+    category:
+      | "basic_technical"
+      | "socioemotional"
+      | "basic_torneamento"
+      | "basic_fresagem"
+      | "technical_torneamento"
+      | "technical_fresagem"
+      | "socio_basic_torneamento"
+      | "socio_basic_fresagem"
+      | "socio_tech_torneamento"
+      | "socio_tech_fresagem"
   ) => {
     if (!isAdmin) {
       onOpenLoginModal();
@@ -440,7 +544,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   };
 
   const handleOpenEditCapacity = (
-    category: "basic_technical" | "socioemotional" | "basic_torneamento" | "basic_fresagem" | "technical_torneamento" | "technical_fresagem",
+    category:
+      | "basic_technical"
+      | "socioemotional"
+      | "basic_torneamento"
+      | "basic_fresagem"
+      | "technical_torneamento"
+      | "technical_fresagem"
+      | "socio_basic_torneamento"
+      | "socio_basic_fresagem"
+      | "socio_tech_torneamento"
+      | "socio_tech_fresagem",
     index: number,
     currentText: string
   ) => {
@@ -475,6 +589,22 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       const list = [...fusiTechFresagem];
       const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
       handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: nextList });
+    } else if (capacityCategory === "socio_basic_torneamento") {
+      const list = [...fusiSocioBasicTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: nextList });
+    } else if (capacityCategory === "socio_basic_fresagem") {
+      const list = [...fusiSocioBasicFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: nextList });
+    } else if (capacityCategory === "socio_tech_torneamento") {
+      const list = [...fusiSocioTechTorneamento];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: nextList });
+    } else if (capacityCategory === "socio_tech_fresagem") {
+      const list = [...fusiSocioTechFresagem];
+      const nextList = isAdding ? [...list, text] : list.map((c, i) => (i === editingCapacityIndex ? text : c));
+      handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: nextList });
     } else if (activeStage) {
       if (capacityCategory === "socioemotional") {
         const list = [...(activeStage.socioemotionalCapacities || [])];
@@ -2192,65 +2322,239 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                       </div>
 
-                      {/* Capacidades Socioemocionais Full Width */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider flex items-center gap-2">
-                            <Users className="w-4 h-4 text-purple-600" />
-                            <span>CAPACIDADES SOCIOEMOCIONAIS</span>
+                      {/* Capacidades Socioemocionais - 4 seções dedicadas para FUSI */}
+                      <div className="space-y-4 pt-2">
+                        <div className="flex items-center gap-2 border-b border-purple-200 dark:border-purple-900/60 pb-2">
+                          <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          <h3 className="text-sm font-black uppercase text-purple-700 dark:text-purple-400 tracking-wider">
+                            CAPACIDADES SOCIOEMOCIONAIS POR PROCESSO & MATRIZ
                           </h3>
-
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleOpenAddCapacity("socioemotional")}
-                              className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>ADICIONAR</span>
-                            </button>
-                          )}
                         </div>
 
-                        <div className="bg-purple-50/40 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/60 min-h-[100px] space-y-2">
-                          {activeSocioemotionalCapacities.length > 0 ? (
-                            activeSocioemotionalCapacities.map((cap, i) => (
-                              <div
-                                key={i}
-                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-purple-900/40 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                              >
-                                <span className="leading-relaxed">{cap}</span>
-                                {isAdmin && (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
-                                      className="p-1 text-slate-400 hover:text-purple-600 cursor-pointer"
-                                      title="Editar capacidade socioemocional"
-                                    >
-                                      <Edit className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
-                                        if (activeStage) {
-                                          handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                        } else {
-                                          handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                        }
-                                      }}
-                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                      title="Excluir capacidade socioemocional"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* 1. Socioemocionais - Básica Torneamento */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-sky-600 dark:text-sky-400 tracking-wider flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-sky-600" />
+                                <span>SOCIOEMOCIONAIS • BÁSICAS (TORNEAMENTO)</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddCapacity("socio_basic_torneamento")}
+                                  className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-sky-50/30 dark:bg-sky-950/20 p-3.5 rounded-2xl border border-sky-200/80 dark:border-sky-800/50 min-h-[90px] space-y-2">
+                              {fusiSocioBasicTorneamento.length > 0 ? (
+                                fusiSocioBasicTorneamento.map((cap, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-sky-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  >
+                                    <span className="leading-relaxed">{cap}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditCapacity("socio_basic_torneamento", i, cap)}
+                                          className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
+                                          title="Editar capacidade socioemocional"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const next = fusiSocioBasicTorneamento.filter((_, idx) => idx !== i);
+                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: next });
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                          title="Excluir capacidade"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                              Nenhuma capacidade socioemocional cadastrada.
-                            </p>
-                          )}
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
+                                  Nenhuma capacidade socioemocional cadastrada.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 2. Socioemocionais - Básica Fresagem */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>SOCIOEMOCIONAIS • BÁSICAS (FRESAGEM)</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddCapacity("socio_basic_fresagem")}
+                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-emerald-50/30 dark:bg-emerald-950/20 p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/50 min-h-[90px] space-y-2">
+                              {fusiSocioBasicFresagem.length > 0 ? (
+                                fusiSocioBasicFresagem.map((cap, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  >
+                                    <span className="leading-relaxed">{cap}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditCapacity("socio_basic_fresagem", i, cap)}
+                                          className="p-1 text-slate-400 hover:text-emerald-600 cursor-pointer"
+                                          title="Editar capacidade socioemocional"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const next = fusiSocioBasicFresagem.filter((_, idx) => idx !== i);
+                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: next });
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                          title="Excluir capacidade"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
+                                  Nenhuma capacidade socioemocional cadastrada.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. Socioemocionais - Técnica Torneamento */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>SOCIOEMOCIONAIS • TÉCNICAS (TORNEAMENTO)</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddCapacity("socio_tech_torneamento")}
+                                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-indigo-50/30 dark:bg-indigo-950/20 p-3.5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/50 min-h-[90px] space-y-2">
+                              {fusiSocioTechTorneamento.length > 0 ? (
+                                fusiSocioTechTorneamento.map((cap, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  >
+                                    <span className="leading-relaxed">{cap}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditCapacity("socio_tech_torneamento", i, cap)}
+                                          className="p-1 text-slate-400 hover:text-indigo-600 cursor-pointer"
+                                          title="Editar capacidade socioemocional"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const next = fusiSocioTechTorneamento.filter((_, idx) => idx !== i);
+                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: next });
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                          title="Excluir capacidade"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
+                                  Nenhuma capacidade socioemocional cadastrada.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 4. Socioemocionais - Técnica Fresagem */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-amber-600" />
+                                <span>SOCIOEMOCIONAIS • TÉCNICAS (FRESAGEM)</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddCapacity("socio_tech_fresagem")}
+                                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-amber-50/30 dark:bg-amber-950/20 p-3.5 rounded-2xl border border-amber-200/80 dark:border-amber-800/50 min-h-[90px] space-y-2">
+                              {fusiSocioTechFresagem.length > 0 ? (
+                                fusiSocioTechFresagem.map((cap, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  >
+                                    <span className="leading-relaxed">{cap}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditCapacity("socio_tech_fresagem", i, cap)}
+                                          className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
+                                          title="Editar capacidade socioemocional"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const next = fusiSocioTechFresagem.filter((_, idx) => idx !== i);
+                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: next });
+                                          }}
+                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                          title="Excluir capacidade"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
+                                  Nenhuma capacidade socioemocional cadastrada.
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2402,9 +2706,9 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <span>CONHECIMENTOS & TÓPICOS PROGRAMÁTICOS</span>
                       </h3>
 
-                      {isAdmin && (
+                      {isAdmin && !isCurrentFUSI && (
                         <button
-                          onClick={handleOpenAddTopic}
+                          onClick={() => handleOpenAddTopic("general")}
                           className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
                         >
                           <Plus className="w-4 h-4" />
@@ -2413,41 +2717,260 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                       )}
                     </div>
 
-                    {/* Topics List */}
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                      {activeTopicsList.length > 0 ? (
-                        activeTopicsList.map((topic, i) => (
-                          <div
-                            key={i}
-                            className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                          >
-                            <span className="leading-relaxed">{topic}</span>
-                            {isAdmin && (
-                              <div className="flex items-center gap-1 shrink-0">
+                    {isCurrentFUSI ? (
+                      /* 4-way Process Blocks for FUSI */
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* 1. Tópicos - Básica Torneamento */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-sky-700 dark:text-sky-400 tracking-wider flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                                <span>CONHECIMENTOS • TORNEAMENTO BÁSICO</span>
+                              </h4>
+                              {isAdmin && (
                                 <button
-                                  onClick={() => handleOpenEditTopic(i, topic)}
-                                  className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
-                                  title="Editar tópico/conhecimento"
+                                  onClick={() => handleOpenAddTopic("basic_torneamento")}
+                                  className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
                                 </button>
-                                <button
-                                  onClick={() => handleDeleteTopic(i)}
-                                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                  title="Excluir tópico"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
+                            <div className="bg-sky-50/40 dark:bg-sky-950/20 p-4 rounded-2xl border border-sky-200 dark:border-sky-800/60 min-h-[120px] space-y-2">
+                              {fusiTopicsBasicTorneamento.length > 0 ? (
+                                fusiTopicsBasicTorneamento.map((topic, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-sky-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                                  >
+                                    <span className="leading-relaxed">{topic}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditTopic("basic_torneamento", i, topic)}
+                                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg cursor-pointer transition-colors"
+                                          title="Editar tópico"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTopic(i, "basic_torneamento")}
+                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                          title="Excluir tópico"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                  Nenhum conhecimento cadastrado.
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
-                          Nenhum conhecimento ou tópico cadastrado para esta Unidade.
-                        </p>
-                      )}
-                    </div>
+
+                          {/* 2. Tópicos - Básica Fresagem */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>CONHECIMENTOS • FRESAGEM BÁSICA</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddTopic("basic_fresagem")}
+                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 min-h-[120px] space-y-2">
+                              {fusiTopicsBasicFresagem.length > 0 ? (
+                                fusiTopicsBasicFresagem.map((topic, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                                  >
+                                    <span className="leading-relaxed">{topic}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditTopic("basic_fresagem", i, topic)}
+                                          className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg cursor-pointer transition-colors"
+                                          title="Editar tópico"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTopic(i, "basic_fresagem")}
+                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                          title="Excluir tópico"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                  Nenhum conhecimento cadastrado.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. Tópicos - Técnica Torneamento */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>CONHECIMENTOS • TORNEAMENTO TÉCNICO & AVANÇADO</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddTopic("technical_torneamento")}
+                                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-indigo-50/40 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 min-h-[120px] space-y-2">
+                              {fusiTopicsTechTorneamento.length > 0 ? (
+                                fusiTopicsTechTorneamento.map((topic, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                                  >
+                                    <span className="leading-relaxed">{topic}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditTopic("technical_torneamento", i, topic)}
+                                          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg cursor-pointer transition-colors"
+                                          title="Editar tópico"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTopic(i, "technical_torneamento")}
+                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                          title="Excluir tópico"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                  Nenhum conhecimento cadastrado.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 4. Tópicos - Técnica Fresagem */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                                <span>CONHECIMENTOS • FRESAGEM TÉCNICA & AVANÇADA</span>
+                              </h4>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleOpenAddTopic("technical_fresagem")}
+                                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>ADICIONAR</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="bg-amber-50/40 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 min-h-[120px] space-y-2">
+                              {fusiTopicsTechFresagem.length > 0 ? (
+                                fusiTopicsTechFresagem.map((topic, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                                  >
+                                    <span className="leading-relaxed">{topic}</span>
+                                    {isAdmin && (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => handleOpenEditTopic("technical_fresagem", i, topic)}
+                                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer transition-colors"
+                                          title="Editar tópico"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTopic(i, "technical_fresagem")}
+                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                          title="Excluir tópico"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                  Nenhum conhecimento cadastrado.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Standard Topics List for other UCs */
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                        {activeTopicsList.length > 0 ? (
+                          activeTopicsList.map((topic, i) => (
+                            <div
+                              key={i}
+                              className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
+                            >
+                              <span className="leading-relaxed">{topic}</span>
+                              {isAdmin && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleOpenEditTopic("general", i, topic)}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
+                                    title="Editar tópico/conhecimento"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTopic(i, "general")}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                    title="Excluir tópico"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
+                            Nenhum conhecimento ou tópico cadastrado para esta Unidade.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                 </div>
