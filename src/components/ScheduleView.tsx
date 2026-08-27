@@ -166,7 +166,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     const isTargetGea = targetProfessor === "Prof. Ricardo Gea";
     const ucAcronym = getAcronym(unit);
 
-    // 1. Explicit professor exclusion check
+    // 1. Explicit professor exclusion/inclusion check
     if (lesson.professor && lesson.professor.trim()) {
       const profLower = lesson.professor.toLowerCase();
       if (isTargetBeretella && profLower.includes("gea") && !profLower.includes("beretella")) {
@@ -174,6 +174,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       }
       if (isTargetGea && profLower.includes("beretella") && !profLower.includes("gea")) {
         return false;
+      }
+      if (isTargetBeretella && profLower.includes("beretella")) {
+        return true;
+      }
+      if (isTargetGea && profLower.includes("gea")) {
+        return true;
       }
     }
 
@@ -186,16 +192,24 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       if (isTargetGea && idLower.includes("-beretella-")) {
         return false;
       }
+      if (isTargetBeretella && idLower.includes("-beretella-")) {
+        return true;
+      }
+      if (isTargetGea && idLower.includes("-gea-")) {
+        return true;
+      }
     }
 
-    // 3. Stage / Turma check (e.g. for FUSI in 1º Semestre)
+    // 3. Stage / Turma check (e.g. for FUSI in 1º Semestre, PRUSC in 2º Semestre)
     const stageTurma = ((lesson as any).stageTurma || (lesson as any).stageTitle || "").toLowerCase();
     if (stageTurma) {
       if (stageTurma.includes("turma a") || stageTurma.includes("etapa 1") || stageTurma.includes("etapa 3")) {
         if (!isTargetBeretella) return false;
+        return true;
       }
       if (stageTurma.includes("turma b") || stageTurma.includes("etapa 2") || stageTurma.includes("etapa 4")) {
         if (!isTargetGea) return false;
+        return true;
       }
     }
 
