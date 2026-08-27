@@ -2252,23 +2252,415 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                     )}
                   </div>
 
-                  {/* Capacities Grid */}
+                  {/* Capacities & Topics Grid */}
                   {isCurrentFUSI ? (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        {/* 1. Capacidades Básicas - Torneamento */}
-                        <div className="space-y-3">
+                      {/* FUSI 4-Way Process Selector */}
+                      <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Capacidades e Conhecimentos por Processo (FUSI SENAI)</span>
+                          </span>
+                          <span className="text-[10px] font-extrabold text-slate-400">
+                            Selecione o processo de usinagem
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFusiGeneralProcess("basic_torneamento")}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              fusiGeneralProcess === "basic_torneamento"
+                                ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
+                                : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
+                                SA 01
+                              </span>
+                              <span className="w-2 h-2 rounded-full bg-sky-400" />
+                            </div>
+                            <span className="text-xs font-black">Torneamento Básico</span>
+                            <span className="text-[10px] text-slate-400 truncate">Eixo Escalonado</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFusiGeneralProcess("basic_fresagem")}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              fusiGeneralProcess === "basic_fresagem"
+                                ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
+                                : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
+                                SA 02
+                              </span>
+                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            </div>
+                            <span className="text-xs font-black">Fresagem Básica</span>
+                            <span className="text-[10px] text-slate-400 truncate">Esquadrejamento Bloco</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFusiGeneralProcess("tech_torneamento")}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              fusiGeneralProcess === "tech_torneamento"
+                                ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
+                                : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
+                                SA 03
+                              </span>
+                              <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                            </div>
+                            <span className="text-xs font-black">Torneamento Técnico</span>
+                            <span className="text-[10px] text-slate-400 truncate">Eixo Cônico Roscado</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFusiGeneralProcess("tech_fresagem")}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              fusiGeneralProcess === "tech_fresagem"
+                                ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
+                                : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
+                                SA 04
+                              </span>
+                              <span className="w-2 h-2 rounded-full bg-amber-400" />
+                            </div>
+                            <span className="text-xs font-black">Fresagem Técnica</span>
+                            <span className="text-[10px] text-slate-400 truncate">Canais & Divisor</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Active Process Content */}
+                      {(() => {
+                        const procConfig = {
+                          basic_torneamento: {
+                            badge: "SA 01 • PROCESSO 01",
+                            title: "TORNEAMENTO BÁSICO (EIXO ESCALONADO)",
+                            colorCls: "text-sky-600 dark:text-sky-400",
+                            badgeCls: "bg-sky-600",
+                            bgCls: "bg-sky-50/40 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/60",
+                            itemBorderCls: "border-sky-100 dark:border-sky-900/50",
+                            primaryLabel: "CAPACIDADES BÁSICAS • TORNEAMENTO",
+                            primaryCategory: "basic_torneamento" as const,
+                            primaryList: fusiBasicTorneamento,
+                            primaryBtnCls: "bg-sky-600 hover:bg-sky-700",
+                            socioLabel: "SOCIOEMOCIONAIS • TORNEAMENTO BÁSICO",
+                            socioCategory: "socio_basic_torneamento" as const,
+                            socioList: fusiSocioBasicTorneamento,
+                            socioBtnCls: "bg-sky-600 hover:bg-sky-700",
+                            topicLabel: "CONHECIMENTOS & TÓPICOS • TORNEAMENTO BÁSICO",
+                            topicCategory: "basic_torneamento" as const,
+                            topicList: fusiTopicsBasicTorneamento,
+                            topicBtnCls: "bg-sky-600 hover:bg-sky-700",
+                            deletePrimary: (i: number) => {
+                              const next = fusiBasicTorneamento.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: next });
+                            },
+                            deleteSocio: (i: number) => {
+                              const next = fusiSocioBasicTorneamento.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: next });
+                            },
+                          },
+                          basic_fresagem: {
+                            badge: "SA 02 • PROCESSO 02",
+                            title: "FRESAGEM BÁSICA (ESQUADREJAMENTO BLOCO)",
+                            colorCls: "text-emerald-600 dark:text-emerald-400",
+                            badgeCls: "bg-emerald-600",
+                            bgCls: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60",
+                            itemBorderCls: "border-emerald-100 dark:border-emerald-900/50",
+                            primaryLabel: "CAPACIDADES BÁSICAS • FRESAGEM",
+                            primaryCategory: "basic_fresagem" as const,
+                            primaryList: fusiBasicFresagem,
+                            primaryBtnCls: "bg-emerald-600 hover:bg-emerald-700",
+                            socioLabel: "SOCIOEMOCIONAIS • FRESAGEM BÁSICA",
+                            socioCategory: "socio_basic_fresagem" as const,
+                            socioList: fusiSocioBasicFresagem,
+                            socioBtnCls: "bg-emerald-600 hover:bg-emerald-700",
+                            topicLabel: "CONHECIMENTOS & TÓPICOS • FRESAGEM BÁSICA",
+                            topicCategory: "basic_fresagem" as const,
+                            topicList: fusiTopicsBasicFresagem,
+                            topicBtnCls: "bg-emerald-600 hover:bg-emerald-700",
+                            deletePrimary: (i: number) => {
+                              const next = fusiBasicFresagem.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: next });
+                            },
+                            deleteSocio: (i: number) => {
+                              const next = fusiSocioBasicFresagem.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: next });
+                            },
+                          },
+                          tech_torneamento: {
+                            badge: "SA 03 • PROCESSO 03",
+                            title: "TORNEAMENTO TÉCNICO (EIXO CÔNICO ROSCADO)",
+                            colorCls: "text-indigo-600 dark:text-indigo-400",
+                            badgeCls: "bg-indigo-600",
+                            bgCls: "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60",
+                            itemBorderCls: "border-indigo-100 dark:border-indigo-900/50",
+                            primaryLabel: "CAPACIDADES TÉCNICAS • TORNEAMENTO",
+                            primaryCategory: "technical_torneamento" as const,
+                            primaryList: fusiTechTorneamento,
+                            primaryBtnCls: "bg-indigo-600 hover:bg-indigo-700",
+                            socioLabel: "SOCIOEMOCIONAIS • TORNEAMENTO TÉCNICO",
+                            socioCategory: "socio_tech_torneamento" as const,
+                            socioList: fusiSocioTechTorneamento,
+                            socioBtnCls: "bg-indigo-600 hover:bg-indigo-700",
+                            topicLabel: "CONHECIMENTOS & TÓPICOS • TORNEAMENTO TÉCNICO",
+                            topicCategory: "technical_torneamento" as const,
+                            topicList: fusiTopicsTechTorneamento,
+                            topicBtnCls: "bg-indigo-600 hover:bg-indigo-700",
+                            deletePrimary: (i: number) => {
+                              const next = fusiTechTorneamento.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: next });
+                            },
+                            deleteSocio: (i: number) => {
+                              const next = fusiSocioTechTorneamento.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: next });
+                            },
+                          },
+                          tech_fresagem: {
+                            badge: "SA 04 • PROCESSO 04",
+                            title: "FRESAGEM TÉCNICA (CANAIS & DIVISOR)",
+                            colorCls: "text-amber-600 dark:text-amber-400",
+                            badgeCls: "bg-amber-600",
+                            bgCls: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60",
+                            itemBorderCls: "border-amber-100 dark:border-amber-900/50",
+                            primaryLabel: "CAPACIDADES TÉCNICAS • FRESAGEM",
+                            primaryCategory: "technical_fresagem" as const,
+                            primaryList: fusiTechFresagem,
+                            primaryBtnCls: "bg-amber-600 hover:bg-amber-700",
+                            socioLabel: "SOCIOEMOCIONAIS • FRESAGEM TÉCNICA",
+                            socioCategory: "socio_tech_fresagem" as const,
+                            socioList: fusiSocioTechFresagem,
+                            socioBtnCls: "bg-amber-600 hover:bg-amber-700",
+                            topicLabel: "CONHECIMENTOS & TÓPICOS • FRESAGEM TÉCNICA",
+                            topicCategory: "technical_fresagem" as const,
+                            topicList: fusiTopicsTechFresagem,
+                            topicBtnCls: "bg-amber-600 hover:bg-amber-700",
+                            deletePrimary: (i: number) => {
+                              const next = fusiTechFresagem.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: next });
+                            },
+                            deleteSocio: (i: number) => {
+                              const next = fusiSocioTechFresagem.filter((_, idx) => idx !== i);
+                              handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: next });
+                            },
+                          },
+                        };
+
+                        const activeProc = procConfig[fusiGeneralProcess];
+
+                        return (
+                          <div className="space-y-6 animate-in fade-in duration-200">
+                            {/* Process Section Title */}
+                            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                              <span className={`px-2 py-0.5 ${activeProc.badgeCls} text-white rounded text-[10px] font-black uppercase`}>
+                                {activeProc.badge}
+                              </span>
+                              <h3 className={`text-sm font-black uppercase tracking-wider ${activeProc.colorCls}`}>
+                                {activeProc.title}
+                              </h3>
+                            </div>
+
+                            {/* 2-Column Capacities Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Primary Capacities Column */}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${activeProc.colorCls}`}>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>{activeProc.primaryLabel}</span>
+                                  </h4>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleOpenAddCapacity(activeProc.primaryCategory)}
+                                      className={`px-3.5 py-1.5 ${activeProc.primaryBtnCls} text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1`}
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>ADICIONAR</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className={`${activeProc.bgCls} p-4 rounded-2xl border min-h-[120px] space-y-2`}>
+                                  {activeProc.primaryList.length > 0 ? (
+                                    activeProc.primaryList.map((cap, i) => (
+                                      <div
+                                        key={i}
+                                        className={`p-3 bg-white dark:bg-slate-900 rounded-xl border ${activeProc.itemBorderCls} text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group`}
+                                      >
+                                        <span className="leading-relaxed">{cap}</span>
+                                        {isAdmin && (
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                              onClick={() => handleOpenEditCapacity(activeProc.primaryCategory, i, cap)}
+                                              className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                              title="Editar capacidade"
+                                            >
+                                              <Edit className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              onClick={() => activeProc.deletePrimary(i)}
+                                              className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                              title="Excluir capacidade"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                      Nenhuma capacidade cadastrada para este processo.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Socioemotional Capacities Column */}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-purple-600" />
+                                    <span>{activeProc.socioLabel}</span>
+                                  </h4>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleOpenAddCapacity(activeProc.socioCategory)}
+                                      className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>ADICIONAR</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="bg-purple-50/30 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-200/80 dark:border-purple-800/50 min-h-[120px] space-y-2">
+                                  {activeProc.socioList.length > 0 ? (
+                                    activeProc.socioList.map((cap, i) => (
+                                      <div
+                                        key={i}
+                                        className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-purple-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                      >
+                                        <span className="leading-relaxed">{cap}</span>
+                                        {isAdmin && (
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                              onClick={() => handleOpenEditCapacity(activeProc.socioCategory, i, cap)}
+                                              className="p-1 text-slate-400 hover:text-purple-600 cursor-pointer"
+                                              title="Editar capacidade socioemocional"
+                                            >
+                                              <Edit className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              onClick={() => activeProc.deleteSocio(i)}
+                                              className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                              title="Excluir capacidade socioemocional"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                      Nenhuma capacidade socioemocional cadastrada para este processo.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Conhecimentos & Tópicos Section */}
+                            <div className="space-y-4 pt-2">
+                              <div className="flex items-center justify-between">
+                                <h3 className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${activeProc.colorCls}`}>
+                                  <BookOpen className="w-4 h-4" />
+                                  <span>{activeProc.topicLabel}</span>
+                                </h3>
+
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleOpenAddTopic(activeProc.topicCategory)}
+                                    className={`px-4 py-1.5 ${activeProc.topicBtnCls} text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1.5`}
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>ADICIONAR CONHECIMENTO</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className={`${activeProc.bgCls} p-4 rounded-2xl border min-h-[120px] space-y-2`}>
+                                {activeProc.topicList.length > 0 ? (
+                                  activeProc.topicList.map((topic, i) => (
+                                    <div
+                                      key={i}
+                                      className={`p-3 bg-white dark:bg-slate-900 rounded-xl border ${activeProc.itemBorderCls} text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group`}
+                                    >
+                                      <span className="leading-relaxed">{topic}</span>
+                                      {isAdmin && (
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <button
+                                            onClick={() => handleOpenEditTopic(activeProc.topicCategory, i, topic)}
+                                            className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
+                                            title="Editar tópico"
+                                          >
+                                            <Edit className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteTopic(i, activeProc.topicCategory)}
+                                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                            title="Excluir tópico"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
+                                    Nenhum conhecimento cadastrado para este processo.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* Standard Non-FUSI Layout */
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Capacidades Básicas / Técnicas */}
+                        <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-2">
+                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
                               <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                              <span>CAPACIDADES BÁSICAS • TORNEAMENTO</span>
+                              <span>{activePrimaryLabel}</span>
                             </h3>
 
                             {isAdmin && (
                               <button
-                                onClick={() => handleOpenAddCapacity("basic_torneamento")}
-                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                onClick={() => handleOpenAddCapacity("basic_technical")}
+                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                                 <span>ADICIONAR</span>
@@ -2276,18 +2668,19 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             )}
                           </div>
 
-                          <div className="bg-blue-50/40 dark:bg-blue-950/20 p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 min-h-[120px] space-y-2">
-                            {fusiBasicTorneamento.length > 0 ? (
-                              fusiBasicTorneamento.map((cap, i) => (
+                          {/* List */}
+                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                            {activePrimaryCapacities.length > 0 ? (
+                              activePrimaryCapacities.map((cap, i) => (
                                 <div
                                   key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-blue-100 dark:border-blue-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
                                 >
                                   <span className="leading-relaxed">{cap}</span>
                                   {isAdmin && (
                                     <div className="flex items-center gap-1 shrink-0">
                                       <button
-                                        onClick={() => handleOpenEditCapacity("basic_torneamento", i, cap)}
+                                        onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
                                         className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
                                         title="Editar capacidade"
                                       >
@@ -2295,8 +2688,20 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                       </button>
                                       <button
                                         onClick={() => {
-                                          const next = fusiBasicTorneamento.filter((_, idx) => idx !== i);
-                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesTorneamento: next });
+                                          const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
+                                          if (activeStage) {
+                                            if (activeStage.basicCapacities) {
+                                              handleUpdateActiveStage({ basicCapacities: next });
+                                            } else {
+                                              handleUpdateActiveStage({ technicalCapacities: next });
+                                            }
+                                          } else {
+                                            if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
+                                              handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
+                                            } else {
+                                              handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
+                                            }
+                                          }
                                         }}
                                         className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
                                         title="Excluir capacidade"
@@ -2315,18 +2720,18 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           </div>
                         </div>
 
-                        {/* 2. Capacidades Básicas - Fresagem */}
-                        <div className="space-y-3">
+                        {/* Capacidades Socioemocionais */}
+                        <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>CAPACIDADES BÁSICAS • FRESAGEM</span>
+                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+                              <Users className="w-4 h-4 text-purple-600" />
+                              <span>CAPACIDADES SOCIOEMOCIONAIS</span>
                             </h3>
 
                             {isAdmin && (
                               <button
-                                onClick={() => handleOpenAddCapacity("basic_fresagem")}
-                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                onClick={() => handleOpenAddCapacity("socioemotional")}
+                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                                 <span>ADICIONAR</span>
@@ -2334,30 +2739,35 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             )}
                           </div>
 
-                          <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 min-h-[120px] space-y-2">
-                            {fusiBasicFresagem.length > 0 ? (
-                              fusiBasicFresagem.map((cap, i) => (
+                          {/* Socioemotional Capacities List */}
+                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
+                            {activeSocioemotionalCapacities.length > 0 ? (
+                              activeSocioemotionalCapacities.map((cap, i) => (
                                 <div
                                   key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
                                 >
                                   <span className="leading-relaxed">{cap}</span>
                                   {isAdmin && (
                                     <div className="flex items-center gap-1 shrink-0">
                                       <button
-                                        onClick={() => handleOpenEditCapacity("basic_fresagem", i, cap)}
-                                        className="p-1 text-slate-400 hover:text-emerald-600 cursor-pointer"
-                                        title="Editar capacidade"
+                                        onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
+                                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                                        title="Editar capacidade socioemocional"
                                       >
                                         <Edit className="w-3.5 h-3.5" />
                                       </button>
                                       <button
                                         onClick={() => {
-                                          const next = fusiBasicFresagem.filter((_, idx) => idx !== i);
-                                          handleUpdateCurrentUnit({ ...currentUnit, basicCapacitiesFresagem: next });
+                                          const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
+                                          if (activeStage) {
+                                            handleUpdateActiveStage({ socioemotionalCapacities: next });
+                                          } else {
+                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
+                                          }
                                         }}
                                         className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                        title="Excluir capacidade"
+                                        title="Excluir capacidade socioemocional"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
@@ -2367,425 +2777,53 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               ))
                             ) : (
                               <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                Nenhuma capacidade cadastrada.
+                                Nenhuma capacidade socioemocional cadastrada.
                               </p>
                             )}
-                          </div>
-                        </div>
-
-                        {/* 3. Capacidades Técnicas - Torneamento */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                              <span>CAPACIDADES TÉCNICAS • TORNEAMENTO</span>
-                            </h3>
-
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleOpenAddCapacity("technical_torneamento")}
-                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>ADICIONAR</span>
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="bg-indigo-50/40 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 min-h-[120px] space-y-2">
-                            {fusiTechTorneamento.length > 0 ? (
-                              fusiTechTorneamento.map((cap, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                >
-                                  <span className="leading-relaxed">{cap}</span>
-                                  {isAdmin && (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        onClick={() => handleOpenEditCapacity("technical_torneamento", i, cap)}
-                                        className="p-1 text-slate-400 hover:text-indigo-600 cursor-pointer"
-                                        title="Editar capacidade"
-                                      >
-                                        <Edit className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const next = fusiTechTorneamento.filter((_, idx) => idx !== i);
-                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesTorneamento: next });
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                        title="Excluir capacidade"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                Nenhuma capacidade cadastrada.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 4. Capacidades Técnicas - Fresagem */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                              <span>CAPACIDADES TÉCNICAS • FRESAGEM</span>
-                            </h3>
-
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleOpenAddCapacity("technical_fresagem")}
-                                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>ADICIONAR</span>
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="bg-amber-50/40 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 min-h-[120px] space-y-2">
-                            {fusiTechFresagem.length > 0 ? (
-                              fusiTechFresagem.map((cap, i) => (
-                                <div
-                                  key={i}
-                                  className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                >
-                                  <span className="leading-relaxed">{cap}</span>
-                                  {isAdmin && (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        onClick={() => handleOpenEditCapacity("technical_fresagem", i, cap)}
-                                        className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
-                                        title="Editar capacidade"
-                                      >
-                                        <Edit className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const next = fusiTechFresagem.filter((_, idx) => idx !== i);
-                                          handleUpdateCurrentUnit({ ...currentUnit, technicalCapacitiesFresagem: next });
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                        title="Excluir capacidade"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                Nenhuma capacidade cadastrada.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* Capacidades Socioemocionais - 4 seções dedicadas para FUSI */}
-                      <div className="space-y-4 pt-2">
-                        <div className="flex items-center gap-2 border-b border-purple-200 dark:border-purple-900/60 pb-2">
-                          <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          <h3 className="text-sm font-black uppercase text-purple-700 dark:text-purple-400 tracking-wider">
-                            CAPACIDADES SOCIOEMOCIONAIS POR PROCESSO & MATRIZ
-                          </h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* 1. Socioemocionais - Básica Torneamento */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-sky-600 dark:text-sky-400 tracking-wider flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-sky-600" />
-                                <span>SOCIOEMOCIONAIS • BÁSICAS (TORNEAMENTO)</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddCapacity("socio_basic_torneamento")}
-                                  className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-sky-50/30 dark:bg-sky-950/20 p-3.5 rounded-2xl border border-sky-200/80 dark:border-sky-800/50 min-h-[90px] space-y-2">
-                              {fusiSocioBasicTorneamento.length > 0 ? (
-                                fusiSocioBasicTorneamento.map((cap, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-sky-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                  >
-                                    <span className="leading-relaxed">{cap}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditCapacity("socio_basic_torneamento", i, cap)}
-                                          className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
-                                          title="Editar capacidade socioemocional"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const next = fusiSocioBasicTorneamento.filter((_, idx) => idx !== i);
-                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicTorneamento: next });
-                                          }}
-                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                          title="Excluir capacidade"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
-                                  Nenhuma capacidade socioemocional cadastrada.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 2. Socioemocionais - Básica Fresagem */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>SOCIOEMOCIONAIS • BÁSICAS (FRESAGEM)</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddCapacity("socio_basic_fresagem")}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-emerald-50/30 dark:bg-emerald-950/20 p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/50 min-h-[90px] space-y-2">
-                              {fusiSocioBasicFresagem.length > 0 ? (
-                                fusiSocioBasicFresagem.map((cap, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                  >
-                                    <span className="leading-relaxed">{cap}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditCapacity("socio_basic_fresagem", i, cap)}
-                                          className="p-1 text-slate-400 hover:text-emerald-600 cursor-pointer"
-                                          title="Editar capacidade socioemocional"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const next = fusiSocioBasicFresagem.filter((_, idx) => idx !== i);
-                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesBasicFresagem: next });
-                                          }}
-                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                          title="Excluir capacidade"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
-                                  Nenhuma capacidade socioemocional cadastrada.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 3. Socioemocionais - Técnica Torneamento */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>SOCIOEMOCIONAIS • TÉCNICAS (TORNEAMENTO)</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddCapacity("socio_tech_torneamento")}
-                                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-indigo-50/30 dark:bg-indigo-950/20 p-3.5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/50 min-h-[90px] space-y-2">
-                              {fusiSocioTechTorneamento.length > 0 ? (
-                                fusiSocioTechTorneamento.map((cap, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                  >
-                                    <span className="leading-relaxed">{cap}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditCapacity("socio_tech_torneamento", i, cap)}
-                                          className="p-1 text-slate-400 hover:text-indigo-600 cursor-pointer"
-                                          title="Editar capacidade socioemocional"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const next = fusiSocioTechTorneamento.filter((_, idx) => idx !== i);
-                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechTorneamento: next });
-                                          }}
-                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                          title="Excluir capacidade"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
-                                  Nenhuma capacidade socioemocional cadastrada.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 4. Socioemocionais - Técnica Fresagem */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-amber-600" />
-                                <span>SOCIOEMOCIONAIS • TÉCNICAS (FRESAGEM)</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddCapacity("socio_tech_fresagem")}
-                                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-amber-50/30 dark:bg-amber-950/20 p-3.5 rounded-2xl border border-amber-200/80 dark:border-amber-800/50 min-h-[90px] space-y-2">
-                              {fusiSocioTechFresagem.length > 0 ? (
-                                fusiSocioTechFresagem.map((cap, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                                  >
-                                    <span className="leading-relaxed">{cap}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditCapacity("socio_tech_fresagem", i, cap)}
-                                          className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
-                                          title="Editar capacidade socioemocional"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const next = fusiSocioTechFresagem.filter((_, idx) => idx !== i);
-                                            handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacitiesTechFresagem: next });
-                                          }}
-                                          className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                          title="Excluir capacidade"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-2 text-center">
-                                  Nenhuma capacidade socioemocional cadastrada.
-                                </p>
-                              )}
-                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      
-                      {/* Capacidades Básicas / Técnicas */}
+
+                      {/* Conhecimentos Section for non-FUSI */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                            <span>{activePrimaryLabel}</span>
+                            <BookOpen className="w-4 h-4 text-emerald-600" />
+                            <span>CONHECIMENTOS & TÓPICOS PROGRAMÁTICOS</span>
                           </h3>
 
                           {isAdmin && (
                             <button
-                              onClick={() => handleOpenAddCapacity("basic_technical")}
-                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              onClick={() => handleOpenAddTopic("general")}
+                              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
                             >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>ADICIONAR</span>
+                              <Plus className="w-4 h-4" />
+                              <span>ADICIONAR CONHECIMENTO</span>
                             </button>
                           )}
                         </div>
 
-                        {/* List */}
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                          {activePrimaryCapacities.length > 0 ? (
-                            activePrimaryCapacities.map((cap, i) => (
+                          {activeTopicsList.length > 0 ? (
+                            activeTopicsList.map((topic, i) => (
                               <div
                                 key={i}
-                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
+                                className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
                               >
-                                <span className="leading-relaxed">{cap}</span>
+                                <span className="leading-relaxed">{topic}</span>
                                 {isAdmin && (
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
-                                      onClick={() => handleOpenEditCapacity("basic_technical", i, cap)}
-                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                      title="Editar capacidade"
+                                      onClick={() => handleOpenEditTopic("general", i, topic)}
+                                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
+                                      title="Editar tópico/conhecimento"
                                     >
                                       <Edit className="w-3.5 h-3.5" />
                                     </button>
                                     <button
-                                      onClick={() => {
-                                        const next = activePrimaryCapacities.filter((_, idx) => idx !== i);
-                                        if (activeStage) {
-                                          if (activeStage.basicCapacities) {
-                                            handleUpdateActiveStage({ basicCapacities: next });
-                                          } else {
-                                            handleUpdateActiveStage({ technicalCapacities: next });
-                                          }
-                                        } else {
-                                          if (currentUnit.technicalCapacities && currentUnit.technicalCapacities.length > 0) {
-                                            handleUpdateCurrentUnit({ ...currentUnit, technicalCapacities: next });
-                                          } else {
-                                            handleUpdateCurrentUnit({ ...currentUnit, basicCapacities: next });
-                                          }
-                                        }
-                                      }}
-                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                      title="Excluir capacidade"
+                                      onClick={() => handleDeleteTopic(i, "general")}
+                                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
+                                      title="Excluir tópico"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -2794,353 +2832,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                               </div>
                             ))
                           ) : (
-                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                              Nenhuma capacidade cadastrada.
+                            <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
+                              Nenhum conhecimento ou tópico cadastrado para esta Unidade.
                             </p>
                           )}
                         </div>
                       </div>
-
-                      {/* Capacidades Socioemocionais */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                            <Users className="w-4 h-4 text-purple-600" />
-                            <span>CAPACIDADES SOCIOEMOCIONAIS</span>
-                          </h3>
-
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleOpenAddCapacity("socioemotional")}
-                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-extrabold text-[11px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>ADICIONAR</span>
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Socioemotional Capacities List */}
-                        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                          {activeSocioemotionalCapacities.length > 0 ? (
-                            activeSocioemotionalCapacities.map((cap, i) => (
-                              <div
-                                key={i}
-                                className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 group"
-                              >
-                                <span className="leading-relaxed">{cap}</span>
-                                {isAdmin && (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => handleOpenEditCapacity("socioemotional", i, cap)}
-                                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                                      title="Editar capacidade socioemocional"
-                                    >
-                                      <Edit className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const next = activeSocioemotionalCapacities.filter((_, idx) => idx !== i);
-                                        if (activeStage) {
-                                          handleUpdateActiveStage({ socioemotionalCapacities: next });
-                                        } else {
-                                          handleUpdateCurrentUnit({ ...currentUnit, socioemotionalCapacities: next });
-                                        }
-                                      }}
-                                      className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
-                                      title="Excluir capacidade socioemocional"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                              Nenhuma capacidade socioemocional cadastrada.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
                     </div>
                   )}
-
-                  {/* Conhecimentos Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-emerald-600" />
-                        <span>CONHECIMENTOS & TÓPICOS PROGRAMÁTICOS</span>
-                      </h3>
-
-                      {isAdmin && !isCurrentFUSI && (
-                        <button
-                          onClick={() => handleOpenAddTopic("general")}
-                          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>ADICIONAR CONHECIMENTO</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {isCurrentFUSI ? (
-                      /* 4-way Process Blocks for FUSI */
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* 1. Tópicos - Básica Torneamento */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-sky-700 dark:text-sky-400 tracking-wider flex items-center gap-1.5">
-                                <BookOpen className="w-3.5 h-3.5 text-sky-600" />
-                                <span>CONHECIMENTOS • TORNEAMENTO BÁSICO</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddTopic("basic_torneamento")}
-                                  className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-sky-50/40 dark:bg-sky-950/20 p-4 rounded-2xl border border-sky-200 dark:border-sky-800/60 min-h-[120px] space-y-2">
-                              {fusiTopicsBasicTorneamento.length > 0 ? (
-                                fusiTopicsBasicTorneamento.map((topic, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-sky-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                                  >
-                                    <span className="leading-relaxed">{topic}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditTopic("basic_torneamento", i, topic)}
-                                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg cursor-pointer transition-colors"
-                                          title="Editar tópico"
-                                        >
-                                          <Edit className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteTopic(i, "basic_torneamento")}
-                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                          title="Excluir tópico"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                  Nenhum conhecimento cadastrado.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 2. Tópicos - Básica Fresagem */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
-                                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>CONHECIMENTOS • FRESAGEM BÁSICA</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddTopic("basic_fresagem")}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 min-h-[120px] space-y-2">
-                              {fusiTopicsBasicFresagem.length > 0 ? (
-                                fusiTopicsBasicFresagem.map((topic, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                                  >
-                                    <span className="leading-relaxed">{topic}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditTopic("basic_fresagem", i, topic)}
-                                          className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg cursor-pointer transition-colors"
-                                          title="Editar tópico"
-                                        >
-                                          <Edit className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteTopic(i, "basic_fresagem")}
-                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                          title="Excluir tópico"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                  Nenhum conhecimento cadastrado.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 3. Tópicos - Técnica Torneamento */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
-                                <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>CONHECIMENTOS • TORNEAMENTO TÉCNICO & AVANÇADO</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddTopic("technical_torneamento")}
-                                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-indigo-50/40 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 min-h-[120px] space-y-2">
-                              {fusiTopicsTechTorneamento.length > 0 ? (
-                                fusiTopicsTechTorneamento.map((topic, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                                  >
-                                    <span className="leading-relaxed">{topic}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditTopic("technical_torneamento", i, topic)}
-                                          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg cursor-pointer transition-colors"
-                                          title="Editar tópico"
-                                        >
-                                          <Edit className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteTopic(i, "technical_torneamento")}
-                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                          title="Excluir tópico"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                  Nenhum conhecimento cadastrado.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 4. Tópicos - Técnica Fresagem */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
-                                <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-                                <span>CONHECIMENTOS • FRESAGEM TÉCNICA & AVANÇADA</span>
-                              </h4>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => handleOpenAddTopic("technical_fresagem")}
-                                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                  <span>ADICIONAR</span>
-                                </button>
-                              )}
-                            </div>
-                            <div className="bg-amber-50/40 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/60 min-h-[120px] space-y-2">
-                              {fusiTopicsTechFresagem.length > 0 ? (
-                                fusiTopicsTechFresagem.map((topic, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-amber-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                                  >
-                                    <span className="leading-relaxed">{topic}</span>
-                                    {isAdmin && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          onClick={() => handleOpenEditTopic("technical_fresagem", i, topic)}
-                                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer transition-colors"
-                                          title="Editar tópico"
-                                        >
-                                          <Edit className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          onClick={() => handleDeleteTopic(i, "technical_fresagem")}
-                                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                          title="Excluir tópico"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs font-bold text-slate-400 italic py-4 text-center">
-                                  Nenhum conhecimento cadastrado.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Standard Topics List for other UCs */
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[120px] space-y-2">
-                        {activeTopicsList.length > 0 ? (
-                          activeTopicsList.map((topic, i) => (
-                            <div
-                              key={i}
-                              className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between gap-3 group"
-                            >
-                              <span className="leading-relaxed">{topic}</span>
-                              {isAdmin && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    onClick={() => handleOpenEditTopic("general", i, topic)}
-                                    className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer transition-colors"
-                                    title="Editar tópico/conhecimento"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteTopic(i, "general")}
-                                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer transition-colors"
-                                    title="Excluir tópico"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs font-bold text-slate-400 italic py-6 text-center">
-                            Nenhum conhecimento ou tópico cadastrado para esta Unidade.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
 
                 </div>
               )}
