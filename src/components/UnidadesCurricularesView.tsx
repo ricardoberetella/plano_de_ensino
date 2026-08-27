@@ -645,15 +645,97 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   };
 
   // 3. SITUATION PROBLEM (S.A.) EDIT STATE & HANDLERS
-  const activeSituationProblem: SituationProblem =
-    activeStage?.situationProblem ||
-    currentUnit?.situationProblem ||
-    defaultMatchingUnit?.situationProblem || {
-      title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
-      contextualization: "Otimização de processos produtivos na fábrica.",
-      challenge: ["Analisar especificações técnicas e executar o plano."],
-      expectedResults: ["Relatório técnico e inspeção dimensional."],
+  const [fusiSpProcess, setFusiSpProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
+  const [editingSpTarget, setEditingSpTarget] = useState<"standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("standard");
+
+  const fusiSPBasicTorneamento: SituationProblem =
+    currentUnit?.situationProblemBasicTorneamento ||
+    defaultMatchingUnit?.situationProblemBasicTorneamento || {
+      title: "SA 01 - Usinagem de Eixo Escalonado com Furação de Centro (Torneamento Básico)",
+      contextualization: "A oficina de manutenção mecânica da Metalúrgica Paulista necessita repor um lote de eixos escalonados de acionamento em aço SAE 1020. O torneiro mecânico aprendiz deve realizar a preparação do torno convencional, seleção de ferramentas pastilhadas/HSS, cálculo de RPM e parâmetros de corte, e usinar os eixos garantindo paralelismo, faceamento plano e furações de centro seguras em conformidade com as normas de SST (NR-12).",
+      challenge: [
+        "a) Fixar o tarugo cilíndrico na placa universal de 3 castanhas com alinhamento e mínimo balanço.",
+        "b) Calcular e regular a rotação (RPM) e velocidade de corte (Vc) adequadas para desbaste e acabamento.",
+        "c) Executar faceamento das duas faces, furação de centro para apoio e torneamento dos diâmetros escalonados.",
+        "d) Executar chanfros de entrada de 1x45° e rebarbação manual com lima fina.",
+      ],
+      expectedResults: [
+        "a) Eixo escalonado usinado com tolerâncias dimensionais de ±0,1 mm e sem conicidade indesejada.",
+        "b) Furação de centro executada com broca de centro nº 2 e profundidade padronizada de 2/3 do cone.",
+        "c) Folha de autoinspeção preenchida com medições com paquímetro centesimal e 5S aplicado.",
+      ],
     };
+
+  const fusiSPBasicFresagem: SituationProblem =
+    currentUnit?.situationProblemBasicFresagem ||
+    defaultMatchingUnit?.situationProblemBasicFresagem || {
+      title: "SA 02 - Esquadrejamento de Bloco Prismático e Faceamento (Fresagem Básica)",
+      contextualization: "Para a confecção de bases de fixação de dispositivos de montagem, a ferramentaria da UsiTech encomendou blocos prismáticos esquadrejados em aço SAE 1045. O operador de fresadora deve realizar a montagem do cabeçote faceador na árvore da fresadora, alinhar a morsa de precisão, definir os parâmetros de corte e usinar as 6 faces do bloco garantindo rigoroso paralelismo e perpendicularismo.",
+      challenge: [
+        "a) Limpar a mesa e fixar a morsa de precisão, posicionando calços paralelos adequados.",
+        "b) Montar o cabeçote faceador com insertos intercambiáveis e calcular RPM e avanço de mesa.",
+        "c) Executar a sequência correta de esquadrejamento das 6 faces (face 1 referência, face 2 oposta, faces perpendiculares).",
+        "d) Realizar chanframento das arestas e controle de esquadro com esquadro de precisão e paquímetro.",
+      ],
+      expectedResults: [
+        "a) Bloco prismático esquadrejado com faces paralelas e perpendiculares com desvio angular inferior a 0,05 mm.",
+        "b) Rugosidade superficial uniforme nas faces usinadas sem marcas de vibração.",
+        "c) Ficha de inspeção preenchida e limpeza das canaletas da mesa da fresadora (5S).",
+      ],
+    };
+
+  const fusiSPTechTorneamento: SituationProblem =
+    currentUnit?.situationProblemTechTorneamento ||
+    defaultMatchingUnit?.situationProblemTechTorneamento || {
+      title: "SA 03 - Fabricação de Eixo Cônico Roscado de Precisão (Torneamento Técnico)",
+      contextualization: "A empresa 'AgroMaq Industrial' demanda a fabricação de um eixo de transmissão com ponta cônica e rosca externa métrica M16x2.0 para acoplamento de manípulo regulador. A peça exige torneamento de perfis cônicos por inclinação do carro superior, abertura de canais com bedame e corte de rosca triangular com ferramenta HSS 60° e passo métrico acoplado ao fuso.",
+      challenge: [
+        "a) Calcular o ângulo de inclinação (tg α) do carro superior para usinagem do cone morse/angular.",
+        "b) Abrir canal de alívio de rosca e rebaixo com bedame afiado conforme norma.",
+        "c) Regular a caixa Norton do torno para o passo métrico (2,0 mm) e posicionar ferramenta 60° com escantilhão.",
+        "d) Executar passes de penetração radial da rosca e conferir com pente de rosca e calibrador de rosca passa/não-passa.",
+      ],
+      expectedResults: [
+        "a) Eixo cônico e roscado usinado com conicidade exata verificada por goniômetro e assentamento correto.",
+        "b) Rosca métrica M16x2.0 executada com perfil limpo e engate suave no elemento fêmea de teste.",
+        "c) Autoinspeção completa das tolerâncias ISO (H7/g6) e relatório dimensional validado.",
+      ],
+    };
+
+  const fusiSPTechFresagem: SituationProblem =
+    currentUnit?.situationProblemTechFresagem ||
+    defaultMatchingUnit?.situationProblemTechFresagem || {
+      title: "SA 04 - Usinagem de Canais em T e Elementos Poligonais com Aparelho Divisor (Fresagem Técnica)",
+      contextualization: "Para um dispositivo de indexação de mesa giratória, faz-se necessária a confecção de um flange de fixação com cabeça sextavada e canal de chaveta longitudinal de precisão (DIN 6885). O operador deve utilizar o aparelho divisor universal, calcular o número de voltas da manivela no disco perfurado, alinhar a morsa com relógio comparador centesimal e fresar os rasgos com fresas de topo e chaveta.",
+      challenge: [
+        "a) Alinhar a morsa e aparelho divisor na mesa da fresadora com relógio comparador (erro < 0,01 mm).",
+        "b) Calcular a divisão indireta simples (fórmula N = 40/Z) para fresagem do sextavado regular.",
+        "c) Executar a usinagem das 6 faces poligonais com fresa de topo cilíndrica com profundidade uniforme.",
+        "d) Fresar rasgo de chaveta com fresa de canal com tolerância centesimal de largura (P9/Js9).",
+      ],
+      expectedResults: [
+        "a) Cabeça sextavada usinada com lados perfeitamente equidistantes e simétricos.",
+        "b) Rasgo de chaveta com profundidade e largura conformes com a norma DIN 6885.",
+        "c) Verificação dimensional com súbito/micrômetro e relatório técnico de conformidade.",
+      ],
+    };
+
+  const activeSituationProblem: SituationProblem = isCurrentFUSI
+    ? fusiSpProcess === "basic_torneamento"
+      ? fusiSPBasicTorneamento
+      : fusiSpProcess === "basic_fresagem"
+      ? fusiSPBasicFresagem
+      : fusiSpProcess === "tech_torneamento"
+      ? fusiSPTechTorneamento
+      : fusiSPTechFresagem
+    : activeStage?.situationProblem ||
+      currentUnit?.situationProblem ||
+      defaultMatchingUnit?.situationProblem || {
+        title: `Situação de Aprendizagem - ${currentUnit?.unitTitle || "UC"}`,
+        contextualization: "Otimização de processos produtivos na fábrica.",
+        challenge: ["Analisar especificações técnicas e executar o plano."],
+        expectedResults: ["Relatório técnico e inspeção dimensional."],
+      };
 
   const [isSPModalOpen, setIsSPModalOpen] = useState(false);
   const [spForm, setSPForm] = useState<SituationProblem>({
@@ -663,17 +745,27 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     expectedResults: [],
   });
 
-  const handleOpenEditSP = () => {
+  const handleOpenEditSP = (targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
-    if (activeSituationProblem) {
+    const target = targetProcess || (isCurrentFUSI ? fusiSpProcess : "standard");
+    setEditingSpTarget(target);
+
+    let spToEdit: SituationProblem;
+    if (target === "basic_torneamento") spToEdit = fusiSPBasicTorneamento;
+    else if (target === "basic_fresagem") spToEdit = fusiSPBasicFresagem;
+    else if (target === "tech_torneamento") spToEdit = fusiSPTechTorneamento;
+    else if (target === "tech_fresagem") spToEdit = fusiSPTechFresagem;
+    else spToEdit = activeSituationProblem;
+
+    if (spToEdit) {
       setSPForm({
-        title: activeSituationProblem.title || "",
-        contextualization: activeSituationProblem.contextualization || "",
-        challenge: activeSituationProblem.challenge ? [...activeSituationProblem.challenge] : [""],
-        expectedResults: activeSituationProblem.expectedResults ? [...activeSituationProblem.expectedResults] : [""],
+        title: spToEdit.title || "",
+        contextualization: spToEdit.contextualization || "",
+        challenge: spToEdit.challenge ? [...spToEdit.challenge] : [""],
+        expectedResults: spToEdit.expectedResults ? [...spToEdit.expectedResults] : [""],
       });
     }
     setIsSPModalOpen(true);
@@ -688,7 +780,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       expectedResults: spForm.expectedResults.map((r) => r.trim()).filter(Boolean),
     };
 
-    if (activeStage) {
+    if (editingSpTarget === "basic_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, situationProblemBasicTorneamento: cleanedSP });
+    } else if (editingSpTarget === "basic_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, situationProblemBasicFresagem: cleanedSP });
+    } else if (editingSpTarget === "tech_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, situationProblemTechTorneamento: cleanedSP });
+    } else if (editingSpTarget === "tech_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, situationProblemTechFresagem: cleanedSP });
+    } else if (activeStage) {
       handleUpdateActiveStage({ situationProblem: cleanedSP });
     } else {
       handleUpdateCurrentUnit({
@@ -701,10 +801,40 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
   };
 
   // 4. RUBRICS EDIT STATE & HANDLERS
-  const activeRubricsList: RubricItem[] =
-    (activeStage?.rubrics && activeStage.rubrics.length > 0
-      ? activeStage.rubrics
-      : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
+  const [fusiRubricProcess, setFusiRubricProcess] = useState<"basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("basic_torneamento");
+  const [editingRubricTarget, setEditingRubricTarget] = useState<"standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem">("standard");
+
+  const fusiRubricsBasicTorneamento: RubricItem[] =
+    (currentUnit?.rubricsBasicTorneamento && currentUnit.rubricsBasicTorneamento.length > 0
+      ? currentUnit.rubricsBasicTorneamento
+      : defaultMatchingUnit?.rubricsBasicTorneamento) || [];
+
+  const fusiRubricsBasicFresagem: RubricItem[] =
+    (currentUnit?.rubricsBasicFresagem && currentUnit.rubricsBasicFresagem.length > 0
+      ? currentUnit.rubricsBasicFresagem
+      : defaultMatchingUnit?.rubricsBasicFresagem) || [];
+
+  const fusiRubricsTechTorneamento: RubricItem[] =
+    (currentUnit?.rubricsTechTorneamento && currentUnit.rubricsTechTorneamento.length > 0
+      ? currentUnit.rubricsTechTorneamento
+      : defaultMatchingUnit?.rubricsTechTorneamento) || [];
+
+  const fusiRubricsTechFresagem: RubricItem[] =
+    (currentUnit?.rubricsTechFresagem && currentUnit.rubricsTechFresagem.length > 0
+      ? currentUnit.rubricsTechFresagem
+      : defaultMatchingUnit?.rubricsTechFresagem) || [];
+
+  const activeRubricsList: RubricItem[] = isCurrentFUSI
+    ? fusiRubricProcess === "basic_torneamento"
+      ? fusiRubricsBasicTorneamento
+      : fusiRubricProcess === "basic_fresagem"
+      ? fusiRubricsBasicFresagem
+      : fusiRubricProcess === "tech_torneamento"
+      ? fusiRubricsTechTorneamento
+      : fusiRubricsTechFresagem
+    : (activeStage?.rubrics && activeStage.rubrics.length > 0
+        ? activeStage.rubrics
+        : currentUnit?.rubrics || defaultMatchingUnit?.rubrics) || [];
 
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
   const [editingRubricIndex, setEditingRubricIndex] = useState<number | null>(null);
@@ -718,11 +848,13 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     aut: "",
   });
 
-  const handleOpenAddRubric = (afterIndex?: number) => {
+  const handleOpenAddRubric = (afterIndex?: number, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
+    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
+    setEditingRubricTarget(target);
     setEditingRubricIndex(null);
     setInsertRubricAfterIndex(afterIndex !== undefined ? afterIndex : null);
     setRubricForm({
@@ -736,11 +868,13 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setIsRubricModalOpen(true);
   };
 
-  const handleOpenEditRubric = (index: number, rubric: RubricItem) => {
+  const handleOpenEditRubric = (index: number, rubric: RubricItem, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
+    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
+    setEditingRubricTarget(target);
     setEditingRubricIndex(index);
     setInsertRubricAfterIndex(null);
     setRubricForm({
@@ -756,7 +890,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
   const handleSaveRubric = () => {
     if (!currentUnit) return;
-    const currentList = activeRubricsList;
+    const target = editingRubricTarget;
+    let currentList: RubricItem[];
+    if (target === "basic_torneamento") currentList = fusiRubricsBasicTorneamento;
+    else if (target === "basic_fresagem") currentList = fusiRubricsBasicFresagem;
+    else if (target === "tech_torneamento") currentList = fusiRubricsTechTorneamento;
+    else if (target === "tech_fresagem") currentList = fusiRubricsTechFresagem;
+    else currentList = activeRubricsList;
+
     let nextList: RubricItem[];
 
     if (editingRubricIndex !== null) {
@@ -771,7 +912,15 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
       nextList = [...currentList, { ...rubricForm }];
     }
 
-    if (activeStage) {
+    if (target === "basic_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicTorneamento: nextList });
+    } else if (target === "basic_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicFresagem: nextList });
+    } else if (target === "tech_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechTorneamento: nextList });
+    } else if (target === "tech_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechFresagem: nextList });
+    } else if (activeStage) {
       handleUpdateActiveStage({ rubrics: nextList });
     } else {
       handleUpdateCurrentUnit({
@@ -784,14 +933,31 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
     setInsertRubricAfterIndex(null);
   };
 
-  const handleDeleteRubric = (index: number) => {
+  const handleDeleteRubric = (index: number, targetProcess?: "standard" | "basic_torneamento" | "basic_fresagem" | "tech_torneamento" | "tech_fresagem") => {
     if (!isAdmin) {
       onOpenLoginModal();
       return;
     }
     if (!currentUnit) return;
-    const nextList = activeRubricsList.filter((_, idx) => idx !== index);
-    if (activeStage) {
+    const target = targetProcess || (isCurrentFUSI ? fusiRubricProcess : "standard");
+    let currentList: RubricItem[];
+    if (target === "basic_torneamento") currentList = fusiRubricsBasicTorneamento;
+    else if (target === "basic_fresagem") currentList = fusiRubricsBasicFresagem;
+    else if (target === "tech_torneamento") currentList = fusiRubricsTechTorneamento;
+    else if (target === "tech_fresagem") currentList = fusiRubricsTechFresagem;
+    else currentList = activeRubricsList;
+
+    const nextList = currentList.filter((_, idx) => idx !== index);
+
+    if (target === "basic_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicTorneamento: nextList });
+    } else if (target === "basic_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsBasicFresagem: nextList });
+    } else if (target === "tech_torneamento") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechTorneamento: nextList });
+    } else if (target === "tech_fresagem") {
+      handleUpdateCurrentUnit({ ...currentUnit, rubricsTechFresagem: nextList });
+    } else if (activeStage) {
       handleUpdateActiveStage({ rubrics: nextList });
     } else {
       handleUpdateCurrentUnit({
@@ -2979,6 +3145,98 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 2: SITUAÇÃO-PROBLEMA */}
               {activeUcTab === "SITUAÇÃO-PROBLEMA" && (
                 <div className="space-y-8 animate-in fade-in duration-200">
+                  {/* FUSI 4-Way Process Selector */}
+                  {isCurrentFUSI && (
+                    <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Situações de Aprendizagem por Processo (FUSI SENAI)</span>
+                        </span>
+                        <span className="text-[10px] font-extrabold text-slate-400">
+                          Selecione o processo de usinagem
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFusiSpProcess("basic_torneamento")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiSpProcess === "basic_torneamento"
+                              ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
+                              SA 01
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-sky-400" />
+                          </div>
+                          <span className="text-xs font-black">Torneamento Básico</span>
+                          <span className="text-[10px] text-slate-400 truncate">Eixo Escalonado</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiSpProcess("basic_fresagem")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiSpProcess === "basic_fresagem"
+                              ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
+                              SA 02
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          </div>
+                          <span className="text-xs font-black">Fresagem Básica</span>
+                          <span className="text-[10px] text-slate-400 truncate">Esquadrejamento Bloco</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiSpProcess("tech_torneamento")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiSpProcess === "tech_torneamento"
+                              ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
+                              SA 03
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                          </div>
+                          <span className="text-xs font-black">Torneamento Técnico</span>
+                          <span className="text-[10px] text-slate-400 truncate">Eixo Cônico Roscado</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiSpProcess("tech_fresagem")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiSpProcess === "tech_fresagem"
+                              ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
+                              SA 04
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          </div>
+                          <span className="text-xs font-black">Fresagem Técnica</span>
+                          <span className="text-[10px] text-slate-400 truncate">Canais & Divisor</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {activeSituationProblem ? (
                     <div className="space-y-8">
                       
@@ -2987,7 +3245,17 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
                             <Sparkles className="w-4 h-4" />
-                            <span>Situação de Aprendizagem (S.A.) SENAI</span>
+                            <span>
+                              {isCurrentFUSI
+                                ? fusiSpProcess === "basic_torneamento"
+                                  ? "Torneamento Básico • SA 01 SENAI"
+                                  : fusiSpProcess === "basic_fresagem"
+                                  ? "Fresagem Básica • SA 02 SENAI"
+                                  : fusiSpProcess === "tech_torneamento"
+                                  ? "Torneamento Técnico • SA 03 SENAI"
+                                  : "Fresagem Técnica • SA 04 SENAI"
+                                : "Situação de Aprendizagem (S.A.) SENAI"}
+                            </span>
                           </div>
                           {isAdmin && (
                             <div className="flex items-center gap-2 flex-wrap">
@@ -3000,7 +3268,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                 <span>COPIAR DE OUTRO PROFESSOR</span>
                               </button>
                               <button
-                                onClick={handleOpenEditSP}
+                                onClick={() => handleOpenEditSP(isCurrentFUSI ? fusiSpProcess : "standard")}
                                 className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                               >
                                 <Edit className="w-3.5 h-3.5" />
@@ -3027,7 +3295,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
 
                         <div className="grid grid-cols-1 gap-3">
                           {(Array.isArray(activeSituationProblem?.challenge) ? activeSituationProblem.challenge : []).map((step, idx) => {
-                            const isDone = completedChallenges[`${currentUnit.id}-${idx}`] || false;
+                            const isDone = completedChallenges[`${currentUnit.id}-${isCurrentFUSI ? fusiSpProcess : 'sp'}-${idx}`] || false;
 
                             return (
                               <div
@@ -3036,7 +3304,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   if (!isAdmin) return;
                                   setCompletedChallenges((prev) => ({
                                     ...prev,
-                                    [`${currentUnit.id}-${idx}`]: !isDone,
+                                    [`${currentUnit.id}-${isCurrentFUSI ? fusiSpProcess : 'sp'}-${idx}`]: !isDone,
                                   }));
                                 }}
                                 className={`p-5 rounded-2xl border transition-all ${isAdmin ? 'cursor-pointer' : 'cursor-default'} flex items-start gap-4 ${
@@ -3107,7 +3375,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR SITUAÇÃO-PROBLEMA</span>
                           </button>
                           <button
-                            onClick={handleOpenEditSP}
+                            onClick={() => handleOpenEditSP(isCurrentFUSI ? fusiSpProcess : "standard")}
                             className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
                           >
                             <Plus className="w-4 h-4" />
@@ -3123,11 +3391,113 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
               {/* TAB 3: RUBRICAS */}
               {activeUcTab === "RUBRICAS" && (
                 <div className="space-y-8 animate-in fade-in duration-200">
+                  {/* FUSI 4-Way Process Selector */}
+                  {isCurrentFUSI && (
+                    <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
+                          <Award className="w-3.5 h-3.5" />
+                          <span>Rubricas de Desempenho MSEP por Processo (FUSI SENAI)</span>
+                        </span>
+                        <span className="text-[10px] font-extrabold text-slate-400">
+                          Selecione o processo de usinagem
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFusiRubricProcess("basic_torneamento")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiRubricProcess === "basic_torneamento"
+                              ? "bg-sky-950/70 border-sky-500 text-sky-200 shadow-md ring-1 ring-sky-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-sky-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-sky-900/80 text-sky-300">
+                              {fusiRubricsBasicTorneamento.length} Rubricas
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-sky-400" />
+                          </div>
+                          <span className="text-xs font-black">Torneamento Básico</span>
+                          <span className="text-[10px] text-slate-400 truncate">Parâmetros & Segurança</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiRubricProcess("basic_fresagem")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiRubricProcess === "basic_fresagem"
+                              ? "bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-md ring-1 ring-emerald-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-emerald-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300">
+                              {fusiRubricsBasicFresagem.length} Rubricas
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          </div>
+                          <span className="text-xs font-black">Fresagem Básica</span>
+                          <span className="text-[10px] text-slate-400 truncate">Esquadrejamento 6 Faces</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiRubricProcess("tech_torneamento")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiRubricProcess === "tech_torneamento"
+                              ? "bg-indigo-950/70 border-indigo-500 text-indigo-200 shadow-md ring-1 ring-indigo-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-indigo-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-300">
+                              {fusiRubricsTechTorneamento.length} Rubricas
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                          </div>
+                          <span className="text-xs font-black">Torneamento Técnico</span>
+                          <span className="text-[10px] text-slate-400 truncate">Cones & Roscas Métricas</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFusiRubricProcess("tech_fresagem")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                            fusiRubricProcess === "tech_fresagem"
+                              ? "bg-amber-950/70 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-500/50"
+                              : "bg-slate-800/60 border-slate-700 hover:border-amber-500/50 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-900/80 text-amber-300">
+                              {fusiRubricsTechFresagem.length} Rubricas
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          </div>
+                          <span className="text-xs font-black">Fresagem Técnica</span>
+                          <span className="text-[10px] text-slate-400 truncate">Divisor & Chavetas</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-base font-black uppercase text-slate-900 dark:text-white flex items-center gap-2">
                         <Award className="w-5 h-5 text-emerald-600" />
-                        <span>Matriz de Rubricas de Desempenho (MSEP SENAI)</span>
+                        <span>
+                          {isCurrentFUSI
+                            ? fusiRubricProcess === "basic_torneamento"
+                              ? "Matriz de Rubricas • Torneamento Básico (MSEP SENAI)"
+                              : fusiRubricProcess === "basic_fresagem"
+                              ? "Matriz de Rubricas • Fresagem Básica (MSEP SENAI)"
+                              : fusiRubricProcess === "tech_torneamento"
+                              ? "Matriz de Rubricas • Torneamento Técnico & Avançado (MSEP SENAI)"
+                              : "Matriz de Rubricas • Fresagem Técnica & Avançada (MSEP SENAI)"
+                            : "Matriz de Rubricas de Desempenho (MSEP SENAI)"}
+                        </span>
                       </h2>
                       <p className="text-xs text-slate-500 font-medium">
                         Critérios objetivos de avaliação por níveis de autonomia e competência
@@ -3152,7 +3522,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR RUBRICAS</span>
                           </button>
                           <button
-                            onClick={() => handleOpenAddRubric()}
+                            onClick={() => handleOpenAddRubric(undefined, isCurrentFUSI ? fusiRubricProcess : "standard")}
                             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                           >
                             <Plus className="w-4 h-4" />
@@ -3175,8 +3545,18 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <div className="space-y-2.5 flex-1 min-w-0">
                               {/* Linha 1: Capacidade */}
                               <div className="flex items-start sm:items-center gap-2.5 flex-wrap">
-                                <span className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs">
-                                  CAPACIDADE
+                                <span className={`px-2.5 py-1 rounded-md text-white font-black text-[10px] tracking-wider uppercase shrink-0 shadow-xs ${
+                                  isCurrentFUSI
+                                    ? fusiRubricProcess === "basic_torneamento"
+                                      ? "bg-sky-600"
+                                      : fusiRubricProcess === "basic_fresagem"
+                                      ? "bg-emerald-600"
+                                      : fusiRubricProcess === "tech_torneamento"
+                                      ? "bg-indigo-600"
+                                      : "bg-amber-600"
+                                    : "bg-blue-600"
+                                }`}>
+                                  CAPACIDADE #{idx + 1}
                                 </span>
                                 <span className="font-black text-xs sm:text-sm uppercase text-slate-900 dark:text-slate-100 leading-snug">
                                   {rubric.capacity}
@@ -3197,7 +3577,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             {isAdmin && (
                               <div className="flex items-center gap-1 shrink-0 self-start md:self-center">
                                 <button
-                                  onClick={() => handleOpenAddRubric(idx)}
+                                  onClick={() => handleOpenAddRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
                                   className="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-black"
                                   title="Inserir nova rubrica abaixo desta"
                                 >
@@ -3205,14 +3585,14 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                                   <span>INSERIR ABAIXO</span>
                                 </button>
                                 <button
-                                  onClick={() => handleOpenEditRubric(idx, rubric)}
+                                  onClick={() => handleOpenEditRubric(idx, rubric, isCurrentFUSI ? fusiRubricProcess : "standard")}
                                   className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                                   title="Editar Rubrica"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteRubric(idx)}
+                                  onClick={() => handleDeleteRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
                                   className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                                   title="Excluir Rubrica"
                                 >
@@ -3276,7 +3656,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                           {isAdmin && (
                             <div className="px-5 pb-3 pt-0 flex justify-end">
                               <button
-                                onClick={() => handleOpenAddRubric(idx)}
+                                onClick={() => handleOpenAddRubric(idx, isCurrentFUSI ? fusiRubricProcess : "standard")}
                                 className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 transition-colors cursor-pointer"
                                 title={`Inserir nova linha de rubrica abaixo da #${idx + 1}`}
                               >
@@ -3307,7 +3687,7 @@ export const UnidadesCurricularesView: React.FC<UnidadesCurricularesViewProps> =
                             <span>COPIAR RUBRICAS DE OUTRO PROFESSOR</span>
                           </button>
                           <button
-                            onClick={() => handleOpenAddRubric()}
+                            onClick={() => handleOpenAddRubric(undefined, isCurrentFUSI ? fusiRubricProcess : "standard")}
                             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer"
                           >
                             <Plus className="w-4 h-4" />
